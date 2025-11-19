@@ -12,30 +12,37 @@ data class TokenPrincipal(
 )
 
 fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospectionService) {
-    val logger = LoggerFactory.getLogger("TokenIntrospectionService")
+    val logger = LoggerFactory.getLogger("Authentication")
 
     install(Authentication) {
         bearer("auth-bearer") {
             authenticate { credential ->
                 try {
+                    logger.debug("Authenticating token request")
                     val introspectionResult = tokenIntrospectionService.introspect(credential.token)
 
+                    logger.debug("Token active: ${introspectionResult.active}")
                     if (!introspectionResult.active) {
+                        logger.warn("Token is not active")
                         return@authenticate null
                     }
 
                     val navIdent = introspectionResult.claims["NAVident"]?.jsonPrimitive?.content
+                    logger.debug("NAVident from token: $navIdent")
 
-                    if (navIdent != null) {
-                        val claimsMap = introspectionResult.claims.mapValues {
-                            it.value.jsonPrimitive.content
-                        }
-                        TokenPrincipal(navIdent, claimsMap)
-                    } else {
-                        null
+                    if (navIdent == null) {
+                        logger.warn("NAVident claim not found in token")
+                        return@authenticate null
                     }
+
+                    logger.info("User $navIdent authenticated successfully")
+
+                    val claimsMap = introspectionResult.claims.mapValues {
+                        it.value.jsonPrimitive.content
+                    }
+                    TokenPrincipal(navIdent, claimsMap)
                 } catch (e: Exception) {
-                    logger.error("Token introspection failed", e)
+                    logger.error("Token introspection failed: ${e.message}", e)
                     null
                 }
             }
