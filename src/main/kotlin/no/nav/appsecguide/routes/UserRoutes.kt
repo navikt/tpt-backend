@@ -9,7 +9,10 @@ import no.nav.appsecguide.domain.ProblemDetail
 import no.nav.appsecguide.plugins.TokenPrincipal
 
 @Serializable
-data class UserInfoResponse(val navIdent: String)
+data class UserInfoResponse(
+    val navIdent: String,
+    val preferredUsername: String?
+)
 
 fun Route.userRoutes() {
     authenticate("auth-bearer") {
@@ -18,7 +21,7 @@ fun Route.userRoutes() {
             val navIdent = principal?.navIdent
 
             if (navIdent != null) {
-                call.respond(HttpStatusCode.OK, UserInfoResponse(navIdent))
+                call.respond(HttpStatusCode.OK, UserInfoResponse(navIdent, principal.preferredUsername))
             } else {
                 call.respond(
                     HttpStatusCode.Unauthorized,

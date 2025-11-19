@@ -44,5 +44,24 @@ class UserRoutesTest {
         val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
         assertEquals("test123", json["navIdent"]?.jsonPrimitive?.content)
     }
+
+    @Test
+    fun `should return NAVident and preferred_username when valid token provided`() = testApplication {
+        application {
+            testModule(MockTokenIntrospectionService(
+                shouldSucceed = true,
+                navIdent = "test123",
+                preferredUsername = "test.user@nav.no"
+            ))
+        }
+        val response = client.get("/me") {
+            bearerAuth("valid-token")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals("test123", json["navIdent"]?.jsonPrimitive?.content)
+        assertEquals("test.user@nav.no", json["preferredUsername"]?.jsonPrimitive?.content)
+    }
 }
 

@@ -2,12 +2,14 @@ package no.nav.appsecguide.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import no.nav.appsecguide.infrastructure.auth.TokenIntrospectionService
 import org.slf4j.LoggerFactory
 
 data class TokenPrincipal(
     val navIdent: String,
+    val preferredUsername: String?,
     val claims: Map<String, String>
 )
 
@@ -35,12 +37,18 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                         return@authenticate null
                     }
 
+                    val preferredUsername = introspectionResult.claims["preferred_username"]?.jsonPrimitive?.content
+                    logger.debug("preferred_username from token: $preferredUsername")
+
                     logger.info("User $navIdent authenticated successfully")
 
-                    val claimsMap = introspectionResult.claims.mapValues {
-                        it.value.jsonPrimitive.content
+                    val claimsMap = introspectionResult.claims.mapValues { (_, value) ->
+                        when (value) {
+                            is JsonPrimitive -> value.content
+                            else -> value.toString()
+                        }
                     }
-                    TokenPrincipal(navIdent, claimsMap)
+                    TokenPrincipal(navIdent, preferredUsername, claimsMap)
                 } catch (e: Exception) {
                     logger.error("Token introspection failed: ${e.message}", e)
                     null
