@@ -27,6 +27,9 @@ fun Application.module() {
 
     install(CallLogging) {
         level = Level.INFO
+        filter { call ->
+            !call.request.uri.startsWith("/isalive") && !call.request.uri.startsWith("/isready")
+        }
         format { call ->
             val status = call.response.status()
             val httpMethod = call.request.httpMethod.value
