@@ -40,3 +40,8 @@ spec:
     logging:
       destinations:
         - id: loki
+  env:
+    - name: NAIS_API_URL
+      value: "https://console.nav.cloud.nais.io/graphql"
+  envFrom:
+    - secret: appsec-guide
