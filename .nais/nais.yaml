@@ -15,9 +15,9 @@ spec:
           - id: "d633d27b-a470-4b9d-984e-85499f126e18"
         extra:
           - "NAVident"
-      sidecar:
-        enabled: true
-        autoLogin: true
+    sidecar:
+      enabled: true
+      autoLogin: true
   accessPolicy:
     outbound:
       external:
