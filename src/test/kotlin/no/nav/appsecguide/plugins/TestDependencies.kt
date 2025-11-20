@@ -10,6 +10,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import no.nav.appsecguide.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.appsecguide.infrastructure.auth.TokenIntrospectionService
+import no.nav.appsecguide.infrastructure.config.AppConfig
 import no.nav.appsecguide.infrastructure.nais.MockNaisApiService
 import no.nav.appsecguide.infrastructure.nais.NaisApiService
 import no.nav.appsecguide.routes.healthRoutes
@@ -36,7 +37,19 @@ fun Application.installTestDependencies(
         }
     }
 
+    val testConfig = AppConfig(
+        naisTokenIntrospectionEndpoint = "http://test-introspection",
+        naisApiUrl = "http://test-nais-api",
+        naisApiToken = "test-token",
+        valkeyHost = "localhost",
+        valkeyPort = 6379,
+        valkeyUsername = "test",
+        valkeyPassword = "test",
+        cacheTtlMinutes = 1
+    )
+
     val dependencies = Dependencies(
+        config = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         httpClient = client

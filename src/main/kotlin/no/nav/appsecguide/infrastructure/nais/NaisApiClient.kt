@@ -16,20 +16,24 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load team-ingress.graphql")
 
+    private fun createTeamIngressTypesRequest(teamSlug: String, cursor: String? = null): TeamIngressTypesRequest {
+        return TeamIngressTypesRequest(
+            query = teamIngressQuery,
+            variables = TeamIngressTypesRequest.Variables(
+                teamSlug = teamSlug,
+                appFirst = 100,
+                appAfter = cursor
+            )
+        )
+    }
+
     override suspend fun getTeamIngressTypes(teamSlug: String): TeamIngressTypesResponse {
         val allEdges = mutableListOf<TeamIngressTypesResponse.Edge>()
         var cursor: String? = null
         var hasNextPage = true
 
         while (hasNextPage) {
-            val request = TeamIngressTypesRequest(
-                query = teamIngressQuery,
-                variables = TeamIngressTypesRequest.Variables(
-                    teamSlug = teamSlug,
-                    appFirst = 100,
-                    appAfter = cursor
-                )
-            )
+            val request = createTeamIngressTypesRequest(teamSlug, cursor)
 
             val response = httpClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)

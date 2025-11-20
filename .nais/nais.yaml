@@ -24,6 +24,9 @@ spec:
     outbound:
       external:
         - host: console.nav.cloud.nais.io
+  valkey:
+    - instance: appsec
+      access: readwrite
   image: {{image}}
   port: 8080
   liveness:
@@ -48,5 +51,7 @@ spec:
   env:
     - name: NAIS_API_URL
       value: "https://console.nav.cloud.nais.io/graphql"
+    - name: CACHE_TTL_MINUTES
+      value: "60"
   envFrom:
     - secret: appsec-guide

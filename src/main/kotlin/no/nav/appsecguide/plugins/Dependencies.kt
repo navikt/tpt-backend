@@ -9,19 +9,28 @@ import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import no.nav.appsecguide.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.appsecguide.infrastructure.auth.TokenIntrospectionService
+import no.nav.appsecguide.infrastructure.cache.ValkeyCache
+import no.nav.appsecguide.infrastructure.cache.ValkeyClientFactory
+import no.nav.appsecguide.infrastructure.config.AppConfig
+import no.nav.appsecguide.infrastructure.nais.CachedNaisApiService
 import no.nav.appsecguide.infrastructure.nais.NaisApiClient
 import no.nav.appsecguide.infrastructure.nais.NaisApiService
+import no.nav.appsecguide.infrastructure.nais.TeamIngressTypesResponse
+import kotlin.time.Duration.Companion.minutes
 
+@Suppress("unused")
 class Dependencies(
+    config: AppConfig,
     val tokenIntrospectionService: TokenIntrospectionService,
     val naisApiService: NaisApiService,
-    @Suppress("unused")
     val httpClient: HttpClient
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
 
 val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
+    val config = AppConfig.fromEnvironment()
+
     val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -32,25 +41,33 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         }
     }
 
-    val introspectionEndpoint = application.environment.config
-        .propertyOrNull("nais.introspection.endpoint")?.getString()
-        ?: System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
-        ?: error("NAIS_TOKEN_INTROSPECTION_ENDPOINT not configured")
+    val tokenIntrospectionService = NaisTokenIntrospectionService(
+        httpClient,
+        config.naisTokenIntrospectionEndpoint
+    )
 
-    val naisApiUrl = application.environment.config
-        .propertyOrNull("nais.api.url")?.getString()
-        ?: System.getenv("NAIS_API_URL")
-        ?: error("NAIS_API_URL not configured")
+    val naisApiClient = NaisApiClient(
+        httpClient,
+        config.naisApiUrl,
+        config.naisApiToken
+    )
 
-    val naisApiToken = application.environment.config
-        .propertyOrNull("nais.api.token")?.getString()
-        ?: System.getenv("NAIS_API_TOKEN")
-        ?: error("NAIS_API_TOKEN not configured")
-
-    val tokenIntrospectionService = NaisTokenIntrospectionService(httpClient, introspectionEndpoint)
-    val naisApiService = NaisApiClient(httpClient, naisApiUrl, naisApiToken)
+    val valkeyPool = ValkeyClientFactory.createPool(
+        config.valkeyHost,
+        config.valkeyPort,
+        config.valkeyUsername,
+        config.valkeyPassword
+    )
+    val naisApiCache = ValkeyCache<String, TeamIngressTypesResponse>(
+        pool = valkeyPool,
+        ttl = config.cacheTtlMinutes.minutes,
+        keyPrefix = "nais-api",
+        valueSerializer = TeamIngressTypesResponse.serializer()
+    )
+    val naisApiService = CachedNaisApiService(naisApiClient, naisApiCache)
 
     val dependencies = Dependencies(
+        config = config,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         httpClient = httpClient
@@ -62,7 +79,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 val Application.dependencies: Dependencies
     get() = attributes[DependenciesKey]
 
-@Suppress("unused")
 val ApplicationCall.dependencies: Dependencies
     get() = application.dependencies
 
