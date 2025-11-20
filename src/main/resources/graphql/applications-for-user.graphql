@@ -1,0 +1,25 @@
+query ApplicationsForUser($email: String!, $appFirst: Int = 100, $appAfter: Cursor) {
+  user(email: $email) {
+    teams {
+      nodes {
+        team {
+          slug
+          applications(first: $appFirst, after: $appAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              node {
+                name
+                ingresses {
+                  type
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

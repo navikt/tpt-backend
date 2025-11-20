@@ -12,10 +12,7 @@ import no.nav.appsecguide.infrastructure.auth.TokenIntrospectionService
 import no.nav.appsecguide.infrastructure.cache.ValkeyCache
 import no.nav.appsecguide.infrastructure.cache.ValkeyClientFactory
 import no.nav.appsecguide.infrastructure.config.AppConfig
-import no.nav.appsecguide.infrastructure.nais.CachedNaisApiService
-import no.nav.appsecguide.infrastructure.nais.NaisApiClient
-import no.nav.appsecguide.infrastructure.nais.NaisApiService
-import no.nav.appsecguide.infrastructure.nais.TeamIngressTypesResponse
+import no.nav.appsecguide.infrastructure.nais.*
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
@@ -58,13 +55,19 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         config.valkeyUsername,
         config.valkeyPassword
     )
-    val naisApiCache = ValkeyCache<String, TeamIngressTypesResponse>(
+    val teamIngressCache = ValkeyCache<String, TeamIngressTypesResponse>(
         pool = valkeyPool,
         ttl = config.cacheTtlMinutes.minutes,
-        keyPrefix = "nais-api",
+        keyPrefix = "nais-team-ingress",
         valueSerializer = TeamIngressTypesResponse.serializer()
     )
-    val naisApiService = CachedNaisApiService(naisApiClient, naisApiCache)
+    val userAppsCache = ValkeyCache<String, ApplicationsForUserResponse>(
+        pool = valkeyPool,
+        ttl = config.cacheTtlMinutes.minutes,
+        keyPrefix = "nais-user-apps",
+        valueSerializer = ApplicationsForUserResponse.serializer()
+    )
+    val naisApiService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
     val dependencies = Dependencies(
         config = config,

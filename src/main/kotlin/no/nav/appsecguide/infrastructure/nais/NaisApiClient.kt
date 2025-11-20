@@ -16,6 +16,11 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load team-ingress.graphql")
 
+    private val applicationsForUser = this::class.java.classLoader
+        .getResource("graphql/applications-for-user.graphql")
+        ?.readText()
+        ?: error("Could not load applications-for-user.graphql")
+
     private fun createTeamIngressTypesRequest(teamSlug: String, cursor: String? = null): TeamIngressTypesRequest {
         return TeamIngressTypesRequest(
             query = teamIngressQuery,
@@ -74,6 +79,102 @@ class NaisApiClient(
                             endCursor = null
                         ),
                         edges = allEdges
+                    )
+                )
+            )
+        )
+    }
+
+    private fun createApplicationsForUserRequest(email: String, cursor: String? = null): ApplicationsForUserRequest {
+        return ApplicationsForUserRequest(
+            query = applicationsForUser,
+            variables = ApplicationsForUserRequest.Variables(
+                email = email,
+                appFirst = 100,
+                appAfter = cursor
+            )
+        )
+    }
+
+    override suspend fun getApplicationsForUser(email: String): ApplicationsForUserResponse {
+        val allTeamNodes = mutableListOf<ApplicationsForUserResponse.TeamNode>()
+        var cursor: String? = null
+        var hasNextPage = true
+
+        while (hasNextPage) {
+            val request = createApplicationsForUserRequest(email, cursor)
+
+            val response = httpClient.post(apiUrl) {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token)
+                setBody(request)
+            }
+
+            val pageResponse: ApplicationsForUserResponse = response.body()
+
+            if (pageResponse.errors != null && pageResponse.errors.isNotEmpty()) {
+                return pageResponse
+            }
+
+            if (pageResponse.data?.user == null) {
+                return ApplicationsForUserResponse(
+                    errors = listOf(
+                        ApplicationsForUserResponse.GraphQLError(
+                            message = "User not found or no data returned",
+                            path = listOf("user")
+                        )
+                    )
+                )
+            }
+
+            val teams = pageResponse.data.user.teams
+            for (teamNode in teams.nodes) {
+                val existingTeamNode = allTeamNodes.find { it.team.slug == teamNode.team.slug }
+                if (existingTeamNode != null) {
+                    val mergedEdges = existingTeamNode.team.applications.edges + teamNode.team.applications.edges
+                    allTeamNodes.remove(existingTeamNode)
+                    allTeamNodes.add(
+                        ApplicationsForUserResponse.TeamNode(
+                            team = ApplicationsForUserResponse.Team(
+                                slug = teamNode.team.slug,
+                                applications = ApplicationsForUserResponse.Applications(
+                                    pageInfo = teamNode.team.applications.pageInfo,
+                                    edges = mergedEdges
+                                )
+                            )
+                        )
+                    )
+                } else {
+                    allTeamNodes.add(teamNode)
+                }
+
+                hasNextPage = teamNode.team.applications.pageInfo.hasNextPage
+                cursor = teamNode.team.applications.pageInfo.endCursor
+            }
+
+            if (!hasNextPage) break
+        }
+
+        val finalTeamNodes = allTeamNodes.map { teamNode ->
+            ApplicationsForUserResponse.TeamNode(
+                team = ApplicationsForUserResponse.Team(
+                    slug = teamNode.team.slug,
+                    applications = ApplicationsForUserResponse.Applications(
+                        pageInfo = ApplicationsForUserResponse.PageInfo(
+                            hasNextPage = false,
+                            endCursor = null
+                        ),
+                        edges = teamNode.team.applications.edges
+                    )
+                )
+            )
+        }
+
+        return ApplicationsForUserResponse(
+            data = ApplicationsForUserResponse.Data(
+                user = ApplicationsForUserResponse.User(
+                    teams = ApplicationsForUserResponse.Teams(
+                        nodes = finalTeamNodes
                     )
                 )
             )

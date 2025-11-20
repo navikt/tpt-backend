@@ -34,8 +34,7 @@ fun Application.module() {
             val status = call.response.status()
             val httpMethod = call.request.httpMethod.value
             val uri = call.request.uri
-            val userAgent = call.request.headers["User-Agent"]
-            "$httpMethod $uri -> $status (User-Agent: $userAgent)"
+            "$httpMethod $uri -> $status"
         }
     }
 

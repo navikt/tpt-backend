@@ -8,7 +8,6 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import no.nav.appsecguide.infrastructure.cache.ValkeyCache
-import no.nav.appsecguide.infrastructure.cache.ValkeyClientFactory
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -22,7 +21,8 @@ class CachedNaisApiServiceIntegrationTest {
 
     companion object {
         private lateinit var valkeyContainer: GenericContainer<*>
-        private lateinit var cache: ValkeyCache<String, TeamIngressTypesResponse>
+        private lateinit var teamIngressCache: ValkeyCache<String, TeamIngressTypesResponse>
+        private lateinit var userAppsCache: ValkeyCache<String, ApplicationsForUserResponse>
 
         @JvmStatic
         @BeforeAll
@@ -36,11 +36,17 @@ class CachedNaisApiServiceIntegrationTest {
             val valkeyUri = "redis://$host:$port"
 
             val pool = createTestValkeyPool(valkeyUri)
-            cache = ValkeyCache(
+            teamIngressCache = ValkeyCache(
                 pool = pool,
                 ttl = 5.minutes,
-                keyPrefix = "nais-api-test",
+                keyPrefix = "nais-team-ingress-test",
                 valueSerializer = TeamIngressTypesResponse.serializer()
+            )
+            userAppsCache = ValkeyCache(
+                pool = pool,
+                ttl = 5.minutes,
+                keyPrefix = "nais-user-apps-test",
+                valueSerializer = ApplicationsForUserResponse.serializer()
             )
         }
 
@@ -57,14 +63,15 @@ class CachedNaisApiServiceIntegrationTest {
         @JvmStatic
         @AfterAll
         fun teardown() {
-            cache.close()
+            teamIngressCache.close()
+            userAppsCache.close()
             valkeyContainer.stop()
         }
     }
 
     @Test
     fun `should cache NAIS API responses`() = runTest {
-        cache.clear()
+        teamIngressCache.clear()
         var apiCallCount = 0
 
         val mockEngine = MockEngine { request ->
@@ -108,7 +115,7 @@ class CachedNaisApiServiceIntegrationTest {
         }
 
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
-        val cachedService = CachedNaisApiService(naisApiClient, cache)
+        val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
         val response1 = cachedService.getTeamIngressTypes("test-team")
         val response2 = cachedService.getTeamIngressTypes("test-team")
@@ -121,7 +128,7 @@ class CachedNaisApiServiceIntegrationTest {
 
     @Test
     fun `should not cache error responses`() = runTest {
-        cache.clear()
+        teamIngressCache.clear()
         var apiCallCount = 0
 
         val mockEngine = MockEngine { request ->
@@ -140,7 +147,7 @@ class CachedNaisApiServiceIntegrationTest {
         }
 
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
-        val cachedService = CachedNaisApiService(naisApiClient, cache)
+        val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
         cachedService.getTeamIngressTypes("nonexistent-team")
         cachedService.getTeamIngressTypes("nonexistent-team")
@@ -150,7 +157,7 @@ class CachedNaisApiServiceIntegrationTest {
 
     @Test
     fun `should generate different cache keys for different teams`() = runTest {
-        cache.clear()
+        teamIngressCache.clear()
         var apiCallCount = 0
 
         val mockEngine = MockEngine { request ->
@@ -183,7 +190,7 @@ class CachedNaisApiServiceIntegrationTest {
         }
 
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
-        val cachedService = CachedNaisApiService(naisApiClient, cache)
+        val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
         cachedService.getTeamIngressTypes("team1")
         cachedService.getTeamIngressTypes("team2")
