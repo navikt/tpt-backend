@@ -23,6 +23,7 @@ spec:
       external:
         - host: console.nav.cloud.nais.io
         - host: www.cisa.gov
+        - host: api.first.org
   valkey:
     - instance: appsec
       access: readwrite
