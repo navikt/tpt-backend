@@ -9,12 +9,10 @@ query ApplicationsForUser($email: String!, $appFirst: Int = 100, $appAfter: Curs
               hasNextPage
               endCursor
             }
-            edges {
-              node {
-                name
-                ingresses {
-                  type
-                }
+            nodes {
+              name
+              ingresses {
+                type
               }
             }
           }

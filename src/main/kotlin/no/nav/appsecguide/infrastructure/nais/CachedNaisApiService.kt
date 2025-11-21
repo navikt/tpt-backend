@@ -5,25 +5,25 @@ import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 
 class CachedNaisApiService(
-    private val delegate: NaisApiClient,
-    private val teamIngressCache: ValkeyCache<String, TeamIngressTypesResponse>,
+    private val apiClient: NaisApiClient,
+    private val teamAppsCache: ValkeyCache<String, ApplicationsForTeamResponse>,
     private val userAppsCache: ValkeyCache<String, ApplicationsForUserResponse>
 ) : NaisApiService {
     private val logger = LoggerFactory.getLogger(CachedNaisApiService::class.java)
 
-    override suspend fun getTeamIngressTypes(teamSlug: String): TeamIngressTypesResponse {
+    override suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
         val cacheKey = generateCacheKey("team:$teamSlug")
 
-        teamIngressCache.get(cacheKey)?.let { cachedResponse ->
+        teamAppsCache.get(cacheKey)?.let { cachedResponse ->
             return cachedResponse
         }
 
-        val response = delegate.getTeamIngressTypes(teamSlug)
+        val response = apiClient.getApplicationsForTeam(teamSlug)
 
         if (response.errors != null && response.errors.isNotEmpty()) {
             logger.warn("Not caching error response for team: $teamSlug")
         } else {
-            teamIngressCache.put(cacheKey, response)
+            teamAppsCache.put(cacheKey, response)
         }
 
         return response
@@ -36,7 +36,7 @@ class CachedNaisApiService(
             return cachedResponse
         }
 
-        val response = delegate.getApplicationsForUser(email)
+        val response = apiClient.getApplicationsForUser(email)
 
         if (response.errors != null && response.errors.isNotEmpty()) {
             logger.warn("Not caching error response for user: $email")

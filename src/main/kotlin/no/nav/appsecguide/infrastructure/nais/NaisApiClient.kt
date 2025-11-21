@@ -11,20 +11,20 @@ class NaisApiClient(
     private val token: String
 ) : NaisApiService {
 
-    private val teamIngressQuery = this::class.java.classLoader
-        .getResource("graphql/team-ingress.graphql")
+    private val applicationsForTeamQuery = this::class.java.classLoader
+        .getResource("graphql/applications-for-team.graphql")
         ?.readText()
-        ?: error("Could not load team-ingress.graphql")
+        ?: error("Could not load applications-for-team.graphql")
 
-    private val applicationsForUser = this::class.java.classLoader
+    private val applicationsForUserQuery = this::class.java.classLoader
         .getResource("graphql/applications-for-user.graphql")
         ?.readText()
         ?: error("Could not load applications-for-user.graphql")
 
-    private fun createTeamIngressTypesRequest(teamSlug: String, cursor: String? = null): TeamIngressTypesRequest {
-        return TeamIngressTypesRequest(
-            query = teamIngressQuery,
-            variables = TeamIngressTypesRequest.Variables(
+    private fun createApplicationsForTeamRequest(teamSlug: String, cursor: String? = null): ApplicationsForTeamRequest {
+        return ApplicationsForTeamRequest(
+            query = applicationsForTeamQuery,
+            variables = ApplicationsForTeamRequest.Variables(
                 teamSlug = teamSlug,
                 appFirst = 100,
                 appAfter = cursor
@@ -32,13 +32,13 @@ class NaisApiClient(
         )
     }
 
-    override suspend fun getTeamIngressTypes(teamSlug: String): TeamIngressTypesResponse {
-        val allEdges = mutableListOf<TeamIngressTypesResponse.Edge>()
+    override suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
+        val allNodes = mutableListOf<ApplicationsForTeamResponse.Application>()
         var cursor: String? = null
         var hasNextPage = true
 
         while (hasNextPage) {
-            val request = createTeamIngressTypesRequest(teamSlug, cursor)
+            val request = createApplicationsForTeamRequest(teamSlug, cursor)
 
             val response = httpClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)
@@ -46,16 +46,16 @@ class NaisApiClient(
                 setBody(request)
             }
 
-            val pageResponse: TeamIngressTypesResponse = response.body()
+            val pageResponse: ApplicationsForTeamResponse = response.body()
 
             if (pageResponse.errors != null && pageResponse.errors.isNotEmpty()) {
                 return pageResponse
             }
 
             if (pageResponse.data?.team == null) {
-                return TeamIngressTypesResponse(
+                return ApplicationsForTeamResponse(
                     errors = listOf(
-                        TeamIngressTypesResponse.GraphQLError(
+                        ApplicationsForTeamResponse.GraphQLError(
                             message = "Team not found or no data returned",
                             path = listOf("team")
                         )
@@ -64,21 +64,21 @@ class NaisApiClient(
             }
 
             val applications = pageResponse.data.team.applications
-            allEdges.addAll(applications.edges)
+            allNodes.addAll(applications.nodes)
 
             hasNextPage = applications.pageInfo.hasNextPage
             cursor = applications.pageInfo.endCursor
         }
 
-        return TeamIngressTypesResponse(
-            data = TeamIngressTypesResponse.Data(
-                team = TeamIngressTypesResponse.Team(
-                    applications = TeamIngressTypesResponse.Applications(
-                        pageInfo = TeamIngressTypesResponse.PageInfo(
+        return ApplicationsForTeamResponse(
+            data = ApplicationsForTeamResponse.Data(
+                team = ApplicationsForTeamResponse.Team(
+                    applications = ApplicationsForTeamResponse.Applications(
+                        pageInfo = ApplicationsForTeamResponse.PageInfo(
                             hasNextPage = false,
                             endCursor = null
                         ),
-                        edges = allEdges
+                        nodes = allNodes
                     )
                 )
             )
@@ -87,7 +87,7 @@ class NaisApiClient(
 
     private fun createApplicationsForUserRequest(email: String, cursor: String? = null): ApplicationsForUserRequest {
         return ApplicationsForUserRequest(
-            query = applicationsForUser,
+            query = applicationsForUserQuery,
             variables = ApplicationsForUserRequest.Variables(
                 email = email,
                 appFirst = 100,
@@ -131,7 +131,7 @@ class NaisApiClient(
             for (teamNode in teams.nodes) {
                 val existingTeamNode = allTeamNodes.find { it.team.slug == teamNode.team.slug }
                 if (existingTeamNode != null) {
-                    val mergedEdges = existingTeamNode.team.applications.edges + teamNode.team.applications.edges
+                    val mergedNodes = existingTeamNode.team.applications.nodes + teamNode.team.applications.nodes
                     allTeamNodes.remove(existingTeamNode)
                     allTeamNodes.add(
                         ApplicationsForUserResponse.TeamNode(
@@ -139,7 +139,7 @@ class NaisApiClient(
                                 slug = teamNode.team.slug,
                                 applications = ApplicationsForUserResponse.Applications(
                                     pageInfo = teamNode.team.applications.pageInfo,
-                                    edges = mergedEdges
+                                    nodes = mergedNodes
                                 )
                             )
                         )
@@ -164,7 +164,7 @@ class NaisApiClient(
                             hasNextPage = false,
                             endCursor = null
                         ),
-                        edges = teamNode.team.applications.edges
+                        nodes = teamNode.team.applications.nodes
                     )
                 )
             )

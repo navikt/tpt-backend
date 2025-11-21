@@ -8,21 +8,21 @@ import no.nav.appsecguide.plugins.dependencies
 
 fun Route.naisRoutes() {
     authenticate("auth-bearer") {
-        get("/nais/teams/{teamSlug}/ingresses") {
+        get("/applications/{teamSlug}") {
             val teamSlug = call.parameters["teamSlug"] ?: run {
                 call.respondBadRequest("teamSlug path parameter is required")
                 return@get
             }
 
             try {
-                val response = call.dependencies.naisApiService.getTeamIngressTypes(teamSlug)
+                val response = call.dependencies.naisApiService.getApplicationsForTeam(teamSlug)
                 call.respondWithGraphQLOrError(response, response.errors)
             } catch (e: Exception) {
                 call.respondInternalServerError("Failed to fetch team ingresses", e)
             }
         }
 
-        get("/nais/applications/user") {
+        get("/applications/user") {
             val principal = call.principal<TokenPrincipal>()
             val email = principal?.preferredUsername
 

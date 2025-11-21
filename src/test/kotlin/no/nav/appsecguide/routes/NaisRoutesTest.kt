@@ -12,15 +12,18 @@ import no.nav.appsecguide.plugins.testModule
 
 class NaisRoutesTest {
 
+    private val teamTestIngress = "/applications/appsec"
+    private val userTestIngress = "/applications/user"
+
     @Test
-    fun `should return team ingresses when team exists and authenticated`() = testApplication {
+    fun `should return team applications when team exists and authenticated`() = testApplication {
         application {
             testModule(
                 tokenIntrospectionService = MockTokenIntrospectionService(shouldSucceed = true, navIdent = "user123"),
                 naisApiService = MockNaisApiService(shouldSucceed = true)
             )
         }
-        val response = client.get("/nais/teams/appsec/ingresses") {
+        val response = client.get(teamTestIngress) {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.OK, response.status)
@@ -34,32 +37,32 @@ class NaisRoutesTest {
         application {
             testModule()
         }
-        val response = client.get("/nais/teams/appsec/ingresses")
+        val response = client.get(teamTestIngress)
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
     @Test
-    fun `should return bad request when teamSlug is missing`() = testApplication {
+    fun `should return not found when route does not match`() = testApplication {
         application {
             testModule(
                 tokenIntrospectionService = MockTokenIntrospectionService(shouldSucceed = true, navIdent = "user123")
             )
         }
-        val response = client.get("/nais/teams//ingresses") {
+        val response = client.get("/applications/") {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test
-    fun `should return error when GraphQL fails`() = testApplication {
+    fun `should return error when GraphQL fails for team applications`() = testApplication {
         application {
             testModule(
                 tokenIntrospectionService = MockTokenIntrospectionService(shouldSucceed = true, navIdent = "user123"),
                 naisApiService = MockNaisApiService(shouldSucceed = false)
             )
         }
-        val response = client.get("/nais/teams/appsec/ingresses") {
+        val response = client.get(teamTestIngress) {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.BadGateway, response.status)
@@ -77,7 +80,7 @@ class NaisRoutesTest {
                 naisApiService = MockNaisApiService(shouldSucceed = true)
             )
         }
-        val response = client.get("/nais/applications/user") {
+        val response = client.get(userTestIngress) {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.OK, response.status)
@@ -103,7 +106,7 @@ class NaisRoutesTest {
                 naisApiService = MockNaisApiService(shouldSucceed = true)
             )
         }
-        val response = client.get("/nais/applications/user") {
+        val response = client.get(userTestIngress) {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -118,7 +121,7 @@ class NaisRoutesTest {
         application {
             testModule()
         }
-        val response = client.get("/nais/applications/user")
+        val response = client.get(userTestIngress)
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
@@ -134,7 +137,7 @@ class NaisRoutesTest {
                 naisApiService = MockNaisApiService(shouldSucceed = false)
             )
         }
-        val response = client.get("/nais/applications/user") {
+        val response = client.get(userTestIngress) {
             bearerAuth("valid-token")
         }
         assertEquals(HttpStatusCode.BadGateway, response.status)
@@ -156,7 +159,7 @@ class NaisRoutesTest {
                 )
             }
 
-            val response1 = client.get("/nais/applications/user") {
+            val response1 = client.get(userTestIngress) {
                 bearerAuth("valid-token")
             }
             assertEquals(HttpStatusCode.OK, response1.status)
@@ -167,9 +170,14 @@ class NaisRoutesTest {
             assertNotNull(user1)
             val teams1 = user1["teams"]?.jsonObject?.get("nodes")?.jsonArray
             assertNotNull(teams1)
-            val team1Slug = teams1[0].jsonObject["team"]?.jsonObject?.get("slug")?.jsonPrimitive?.content
-            val app1Name = teams1[0].jsonObject["team"]?.jsonObject?.get("applications")?.jsonObject
-                ?.get("edges")?.jsonArray?.get(0)?.jsonObject?.get("node")?.jsonObject?.get("name")?.jsonPrimitive?.content
+            assertTrue(teams1.isNotEmpty())
+            val team1 = teams1[0].jsonObject["team"]?.jsonObject
+            assertNotNull(team1)
+            val team1Slug = team1["slug"]?.jsonPrimitive?.content
+            val apps1 = team1["applications"]?.jsonObject?.get("nodes")?.jsonArray
+            assertNotNull(apps1)
+            assertTrue(apps1.isNotEmpty())
+            val app1Name = apps1[0].jsonObject["name"]?.jsonPrimitive?.content
 
             assertEquals("team-user1", team1Slug)
             assertEquals("app-user1", app1Name)
@@ -187,7 +195,7 @@ class NaisRoutesTest {
                 )
             }
 
-            val response2 = client.get("/nais/applications/user") {
+            val response2 = client.get(userTestIngress) {
                 bearerAuth("valid-token")
             }
             assertEquals(HttpStatusCode.OK, response2.status)
@@ -196,11 +204,16 @@ class NaisRoutesTest {
             assertNotNull(json2["data"])
             val user2 = json2["data"]?.jsonObject?.get("user")?.jsonObject
             assertNotNull(user2)
-            val teams2 = user2["teams"]?.jsonObject?.get("nodes")?.jsonArray
+            val teams2 = user2.get("teams")?.jsonObject?.get("nodes")?.jsonArray
             assertNotNull(teams2)
-            val team2Slug = teams2[0].jsonObject["team"]?.jsonObject?.get("slug")?.jsonPrimitive?.content
-            val app2Name = teams2[0].jsonObject["team"]?.jsonObject?.get("applications")?.jsonObject
-                ?.get("edges")?.jsonArray?.get(0)?.jsonObject?.get("node")?.jsonObject?.get("name")?.jsonPrimitive?.content
+            assertTrue(teams2.isNotEmpty())
+            val team2 = teams2[0].jsonObject["team"]?.jsonObject
+            assertNotNull(team2)
+            val team2Slug = team2["slug"]?.jsonPrimitive?.content
+            val apps2 = team2["applications"]?.jsonObject?.get("nodes")?.jsonArray
+            assertNotNull(apps2)
+            assertTrue(apps2.isNotEmpty())
+            val app2Name = apps2[0].jsonObject["name"]?.jsonPrimitive?.content
 
             assertEquals("team-user2", team2Slug)
             assertEquals("app-user2", app2Name)

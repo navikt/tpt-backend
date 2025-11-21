@@ -21,7 +21,7 @@ class CachedNaisApiServiceIntegrationTest {
 
     companion object {
         private lateinit var valkeyContainer: GenericContainer<*>
-        private lateinit var teamIngressCache: ValkeyCache<String, TeamIngressTypesResponse>
+        private lateinit var teamIngressCache: ValkeyCache<String, ApplicationsForTeamResponse>
         private lateinit var userAppsCache: ValkeyCache<String, ApplicationsForUserResponse>
 
         @JvmStatic
@@ -40,7 +40,7 @@ class CachedNaisApiServiceIntegrationTest {
                 pool = pool,
                 ttl = 5.minutes,
                 keyPrefix = "nais-team-ingress-test",
-                valueSerializer = TeamIngressTypesResponse.serializer()
+                valueSerializer = ApplicationsForTeamResponse.serializer()
             )
             userAppsCache = ValkeyCache(
                 pool = pool,
@@ -86,16 +86,14 @@ class CachedNaisApiServiceIntegrationTest {
                                         "hasNextPage": false,
                                         "endCursor": null
                                     },
-                                    "edges": [
+                                    "nodes": [
                                         {
-                                            "node": {
-                                                "name": "test-app",
-                                                "ingresses": [
-                                                    {
-                                                        "type": "internal"
-                                                    }
-                                                ]
-                                            }
+                                            "name": "test-app",
+                                            "ingresses": [
+                                                {
+                                                    "type": "internal"
+                                                }
+                                            ]
                                         }
                                     ]
                                 }
@@ -117,13 +115,13 @@ class CachedNaisApiServiceIntegrationTest {
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
         val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
-        val response1 = cachedService.getTeamIngressTypes("test-team")
-        val response2 = cachedService.getTeamIngressTypes("test-team")
-        val response3 = cachedService.getTeamIngressTypes("test-team")
+        val response1 = cachedService.getApplicationsForTeam("test-team")
+        val response2 = cachedService.getApplicationsForTeam("test-team")
+        val response3 = cachedService.getApplicationsForTeam("test-team")
 
         assertEquals(1, apiCallCount, "API should only be called once due to caching")
-        assertEquals(response1.data?.team?.applications?.edges?.size, response2.data?.team?.applications?.edges?.size)
-        assertEquals(response1.data?.team?.applications?.edges?.size, response3.data?.team?.applications?.edges?.size)
+        assertEquals(response1.data?.team?.applications?.nodes?.size, response2.data?.team?.applications?.nodes?.size)
+        assertEquals(response1.data?.team?.applications?.nodes?.size, response3.data?.team?.applications?.nodes?.size)
     }
 
     @Test
@@ -149,8 +147,8 @@ class CachedNaisApiServiceIntegrationTest {
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
         val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
-        cachedService.getTeamIngressTypes("nonexistent-team")
-        cachedService.getTeamIngressTypes("nonexistent-team")
+        cachedService.getApplicationsForTeam("nonexistent-team")
+        cachedService.getApplicationsForTeam("nonexistent-team")
 
         assertEquals(2, apiCallCount, "Error responses should not be cached")
     }
@@ -172,7 +170,7 @@ class CachedNaisApiServiceIntegrationTest {
                                         "hasNextPage": false,
                                         "endCursor": null
                                     },
-                                    "edges": []
+                                    "nodes": []
                                 }
                             }
                         }
@@ -192,10 +190,10 @@ class CachedNaisApiServiceIntegrationTest {
         val naisApiClient = NaisApiClient(httpClient, "http://test", "test-token")
         val cachedService = CachedNaisApiService(naisApiClient, teamIngressCache, userAppsCache)
 
-        cachedService.getTeamIngressTypes("team1")
-        cachedService.getTeamIngressTypes("team2")
-        cachedService.getTeamIngressTypes("team1")
-        cachedService.getTeamIngressTypes("team2")
+        cachedService.getApplicationsForTeam("team1")
+        cachedService.getApplicationsForTeam("team2")
+        cachedService.getApplicationsForTeam("team1")
+        cachedService.getApplicationsForTeam("team2")
 
         assertEquals(2, apiCallCount, "Should call API once per unique team")
     }

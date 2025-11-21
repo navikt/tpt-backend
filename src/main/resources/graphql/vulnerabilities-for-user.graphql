@@ -1,0 +1,26 @@
+query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  user(email: $email) {
+    teams {
+      nodes {
+        team {
+          workloads(first: $workloadFirst, after: $workloadAfter) {
+            nodes {
+              name
+              image {
+                vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+                  nodes {
+                    identifier
+                    severity
+                    suppression {
+                      state
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

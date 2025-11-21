@@ -5,12 +5,10 @@ query TeamIngressTypes($teamSlug: Slug!, $appFirst: Int = 100, $appAfter: Cursor
         hasNextPage
         endCursor
       }
-      edges {
-        node {
-          name
-          ingresses {
-            type
-          }
+      nodes {
+        name
+        ingresses {
+          type
         }
       }
     }

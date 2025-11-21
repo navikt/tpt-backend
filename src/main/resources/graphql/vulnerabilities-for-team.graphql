@@ -1,0 +1,20 @@
+query VulnerabilitiesForTeam($teamSlug: Slug!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  team(slug: $teamSlug) {
+    workloads(first: $workloadFirst, after: $workloadAfter) {
+      nodes {
+        name
+        image {
+          vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+            nodes {
+              identifier
+              severity
+              suppression {
+                state
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

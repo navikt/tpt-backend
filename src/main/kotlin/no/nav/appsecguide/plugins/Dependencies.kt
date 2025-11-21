@@ -57,11 +57,11 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         config.valkeyUsername,
         config.valkeyPassword
     )
-    val teamIngressCache = ValkeyCache<String, TeamIngressTypesResponse>(
+    val teamIngressCache = ValkeyCache<String, ApplicationsForTeamResponse>(
         pool = valkeyPool,
         ttl = config.cacheTtlMinutes.minutes,
-        keyPrefix = "nais-team-ingress",
-        valueSerializer = TeamIngressTypesResponse.serializer()
+        keyPrefix = "nais-team-apps",
+        valueSerializer = ApplicationsForTeamResponse.serializer()
     )
     val userAppsCache = ValkeyCache<String, ApplicationsForUserResponse>(
         pool = valkeyPool,

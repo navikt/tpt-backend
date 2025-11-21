@@ -2,8 +2,13 @@ package no.nav.appsecguide.infrastructure.nais
 
 import kotlinx.serialization.Serializable
 
+interface GraphQLErrorInterface {
+    val message: String
+    val path: List<String>?
+}
+
 @Serializable
-data class TeamIngressTypesRequest(
+data class ApplicationsForTeamRequest(
     val query: String,
     val variables: Variables
 ) {
@@ -16,7 +21,7 @@ data class TeamIngressTypesRequest(
 }
 
 @Serializable
-data class TeamIngressTypesResponse(
+data class ApplicationsForTeamResponse(
     val data: Data? = null,
     val errors: List<GraphQLError>? = null
 ) {
@@ -33,7 +38,7 @@ data class TeamIngressTypesResponse(
     @Serializable
     data class Applications(
         val pageInfo: PageInfo,
-        val edges: List<Edge>
+        val nodes: List<Application>
     )
 
     @Serializable
@@ -42,10 +47,6 @@ data class TeamIngressTypesResponse(
         val endCursor: String?
     )
 
-    @Serializable
-    data class Edge(
-        val node: Application
-    )
 
     @Serializable
     data class Application(
@@ -60,9 +61,9 @@ data class TeamIngressTypesResponse(
 
     @Serializable
     data class GraphQLError(
-        val message: String,
-        val path: List<String>? = null
-    )
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
 }
 
 @Serializable
@@ -112,7 +113,7 @@ data class ApplicationsForUserResponse(
     @Serializable
     data class Applications(
         val pageInfo: PageInfo,
-        val edges: List<Edge>
+        val nodes: List<Application>
     )
 
     @Serializable
@@ -121,10 +122,6 @@ data class ApplicationsForUserResponse(
         val endCursor: String?
     )
 
-    @Serializable
-    data class Edge(
-        val node: Application
-    )
 
     @Serializable
     data class Application(
@@ -139,8 +136,8 @@ data class ApplicationsForUserResponse(
 
     @Serializable
     data class GraphQLError(
-        val message: String,
-        val path: List<String>? = null
-    )
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
 }
 

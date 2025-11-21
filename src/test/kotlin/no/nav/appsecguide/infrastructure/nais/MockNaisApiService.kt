@@ -2,15 +2,15 @@ package no.nav.appsecguide.infrastructure.nais
 
 class MockNaisApiService(
     private val shouldSucceed: Boolean = true,
-    private val mockResponse: TeamIngressTypesResponse? = null,
+    private val mockResponse: ApplicationsForTeamResponse? = null,
     private val mockUserResponse: ApplicationsForUserResponse? = null
 ) : NaisApiService {
 
-    override suspend fun getTeamIngressTypes(teamSlug: String): TeamIngressTypesResponse {
+    override suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
         if (!shouldSucceed) {
-            return TeamIngressTypesResponse(
+            return ApplicationsForTeamResponse(
                 errors = listOf(
-                    TeamIngressTypesResponse.GraphQLError(
+                    ApplicationsForTeamResponse.GraphQLError(
                         message = "Mock error",
                         path = listOf("team")
                     )
@@ -18,21 +18,19 @@ class MockNaisApiService(
             )
         }
 
-        return mockResponse ?: TeamIngressTypesResponse(
-            data = TeamIngressTypesResponse.Data(
-                team = TeamIngressTypesResponse.Team(
-                    applications = TeamIngressTypesResponse.Applications(
-                        pageInfo = TeamIngressTypesResponse.PageInfo(
+        return mockResponse ?: ApplicationsForTeamResponse(
+            data = ApplicationsForTeamResponse.Data(
+                team = ApplicationsForTeamResponse.Team(
+                    applications = ApplicationsForTeamResponse.Applications(
+                        pageInfo = ApplicationsForTeamResponse.PageInfo(
                             hasNextPage = false,
                             endCursor = null
                         ),
-                        edges = listOf(
-                            TeamIngressTypesResponse.Edge(
-                                node = TeamIngressTypesResponse.Application(
-                                    name = "test-app",
-                                    ingresses = listOf(
-                                        TeamIngressTypesResponse.Ingress(type = "internal")
-                                    )
+                        nodes = listOf(
+                            ApplicationsForTeamResponse.Application(
+                                name = "test-app",
+                                ingresses = listOf(
+                                    ApplicationsForTeamResponse.Ingress(type = "internal")
                                 )
                             )
                         )
@@ -74,13 +72,11 @@ class MockNaisApiService(
                                             hasNextPage = false,
                                             endCursor = null
                                         ),
-                                        edges = listOf(
-                                            ApplicationsForUserResponse.Edge(
-                                                node = ApplicationsForUserResponse.Application(
-                                                    name = appName,
-                                                    ingresses = listOf(
-                                                        ApplicationsForUserResponse.Ingress(type = "internal")
-                                                    )
+                                        nodes = listOf(
+                                            ApplicationsForUserResponse.Application(
+                                                name = appName,
+                                                ingresses = listOf(
+                                                    ApplicationsForUserResponse.Ingress(type = "internal")
                                                 )
                                             )
                                         )
