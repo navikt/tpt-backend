@@ -14,6 +14,8 @@ import no.nav.appsecguide.infrastructure.cache.ValkeyClientFactory
 import no.nav.appsecguide.infrastructure.cisa.*
 import no.nav.appsecguide.infrastructure.config.AppConfig
 import no.nav.appsecguide.infrastructure.nais.*
+import no.nav.appsecguide.infrastructure.vulns.VulnService
+import no.nav.appsecguide.infrastructure.vulns.VulnServiceImpl
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
@@ -21,8 +23,9 @@ class Dependencies(
     config: AppConfig,
     val tokenIntrospectionService: TokenIntrospectionService,
     val naisApiService: NaisApiService,
-    val kevService: CachedKevService,
-    val httpClient: HttpClient
+    val kevService: KevService,
+    val httpClient: HttpClient,
+    val vulnService: VulnService
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -73,12 +76,15 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     )
     val kevService = CachedKevService(kevClient, kevCache)
 
+    val vulnService = VulnServiceImpl(naisApiService, kevService)
+
     val dependencies = Dependencies(
         config = config,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         kevService = kevService,
-        httpClient = httpClient
+        httpClient = httpClient,
+        vulnService = vulnService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

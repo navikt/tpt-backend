@@ -110,8 +110,9 @@ class CachedNaisApiServiceIntegrationTest {
         val response3 = cachedService.getApplicationsForTeam("test-team")
 
         assertEquals(1, apiCallCount, "API should only be called once due to caching")
-        assertEquals(response1.data?.team?.applications?.nodes?.size, response2.data?.team?.applications?.nodes?.size)
-        assertEquals(response1.data?.team?.applications?.nodes?.size, response3.data?.team?.applications?.nodes?.size)
+        assertEquals(response1.applications.size, response2.applications.size)
+        assertEquals(response1.applications.size, response3.applications.size)
+        assertEquals("test-app", response1.applications.first().name)
     }
 
     @Test

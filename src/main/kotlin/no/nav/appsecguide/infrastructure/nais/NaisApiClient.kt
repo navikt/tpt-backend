@@ -9,7 +9,7 @@ class NaisApiClient(
     private val httpClient: HttpClient,
     private val apiUrl: String,
     private val token: String
-) : NaisApiService {
+) {
 
     private val applicationsForTeamQuery = this::class.java.classLoader
         .getResource("graphql/applications-for-team.graphql")
@@ -42,7 +42,7 @@ class NaisApiClient(
         )
     }
 
-    override suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
+    suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
         val allNodes = mutableListOf<ApplicationsForTeamResponse.Application>()
         var cursor: String? = null
         var hasNextPage = true
@@ -106,7 +106,7 @@ class NaisApiClient(
         )
     }
 
-    override suspend fun getApplicationsForUser(email: String): ApplicationsForUserResponse {
+    suspend fun getApplicationsForUser(email: String): ApplicationsForUserResponse {
         val allTeamNodes = mutableListOf<ApplicationsForUserResponse.TeamNode>()
         var cursor: String? = null
         var hasNextPage = true
@@ -191,7 +191,7 @@ class NaisApiClient(
         )
     }
 
-    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): VulnerabilitiesForTeamResponse {
+    suspend fun getVulnerabilitiesForTeam(teamSlug: String): VulnerabilitiesForTeamResponse {
         val request = VulnerabilitiesForTeamRequest(
             query = vulnerabilitiesForTeamQuery,
             variables = VulnerabilitiesForTeamRequest.Variables(
@@ -210,7 +210,7 @@ class NaisApiClient(
         return response.body()
     }
 
-    override suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
+    suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
         val allTeamNodes = mutableListOf<VulnerabilitiesForUserResponse.TeamNode>()
         var workloadCursor: String? = null
         var hasNextPage = true

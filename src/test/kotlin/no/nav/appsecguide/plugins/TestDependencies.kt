@@ -10,19 +10,19 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import no.nav.appsecguide.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.appsecguide.infrastructure.auth.TokenIntrospectionService
-import no.nav.appsecguide.infrastructure.cisa.CachedKevService
+import no.nav.appsecguide.infrastructure.cisa.KevService
 import no.nav.appsecguide.infrastructure.cisa.createMockCachedKevService
 import no.nav.appsecguide.infrastructure.config.AppConfig
 import no.nav.appsecguide.infrastructure.nais.MockNaisApiService
 import no.nav.appsecguide.infrastructure.nais.NaisApiService
+import no.nav.appsecguide.infrastructure.vulns.VulnServiceImpl
 import no.nav.appsecguide.routes.healthRoutes
-import no.nav.appsecguide.routes.naisRoutes
-import no.nav.appsecguide.routes.userRoutes
+import no.nav.appsecguide.routes.vulnRoutes
 
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: CachedKevService = createMockCachedKevService(),
+    kevService: KevService = createMockCachedKevService(),
     httpClient: HttpClient? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
@@ -51,12 +51,15 @@ fun Application.installTestDependencies(
         cacheTtlMinutes = 1
     )
 
+    val vulnService = VulnServiceImpl(naisApiService, kevService)
+
     val dependencies = Dependencies(
         config = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         kevService = kevService,
-        httpClient = client
+        httpClient = client,
+        vulnService = vulnService
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -65,7 +68,7 @@ fun Application.installTestDependencies(
 fun Application.testModule(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: CachedKevService = createMockCachedKevService()
+    kevService: KevService = createMockCachedKevService()
 ) {
     installTestDependencies(tokenIntrospectionService, naisApiService, kevService)
 
@@ -80,8 +83,7 @@ fun Application.testModule(
 
     routing {
         healthRoutes()
-        userRoutes()
-        naisRoutes()
+        vulnRoutes()
     }
 }
 

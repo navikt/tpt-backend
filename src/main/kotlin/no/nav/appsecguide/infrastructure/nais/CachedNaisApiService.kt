@@ -11,11 +11,12 @@ class CachedNaisApiService(
     private val logger = LoggerFactory.getLogger(CachedNaisApiService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun getApplicationsForTeam(teamSlug: String): ApplicationsForTeamResponse {
+    override suspend fun getApplicationsForTeam(teamSlug: String): TeamApplicationsData {
         val cacheKey = "team:$teamSlug"
 
         cache.get(cacheKey)?.let { jsonString ->
-            return json.decodeFromString(ApplicationsForTeamResponse.serializer(), jsonString)
+            val response = json.decodeFromString(ApplicationsForTeamResponse.serializer(), jsonString)
+            return response.toData(teamSlug)
         }
 
         val response = apiClient.getApplicationsForTeam(teamSlug)
@@ -27,14 +28,15 @@ class CachedNaisApiService(
             cache.put(cacheKey, jsonString)
         }
 
-        return response
+        return response.toData(teamSlug)
     }
 
-    override suspend fun getApplicationsForUser(email: String): ApplicationsForUserResponse {
+    override suspend fun getApplicationsForUser(email: String): UserApplicationsData {
         val cacheKey = "user:$email"
 
         cache.get(cacheKey)?.let { jsonString ->
-            return json.decodeFromString(ApplicationsForUserResponse.serializer(), jsonString)
+            val response = json.decodeFromString(ApplicationsForUserResponse.serializer(), jsonString)
+            return response.toData()
         }
 
         val response = apiClient.getApplicationsForUser(email)
@@ -46,14 +48,15 @@ class CachedNaisApiService(
             cache.put(cacheKey, jsonString)
         }
 
-        return response
+        return response.toData()
     }
 
-    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): VulnerabilitiesForTeamResponse {
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): TeamVulnerabilitiesData {
         val cacheKey = "vulnerabilities:team:$teamSlug"
 
         cache.get(cacheKey)?.let { jsonString ->
-            return json.decodeFromString(VulnerabilitiesForTeamResponse.serializer(), jsonString)
+            val response = json.decodeFromString(VulnerabilitiesForTeamResponse.serializer(), jsonString)
+            return response.toData(teamSlug)
         }
 
         val response = apiClient.getVulnerabilitiesForTeam(teamSlug)
@@ -65,14 +68,15 @@ class CachedNaisApiService(
             cache.put(cacheKey, jsonString)
         }
 
-        return response
+        return response.toData(teamSlug)
     }
 
-    override suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
+    override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
         val cacheKey = "vulnerabilities:user:$email"
 
         cache.get(cacheKey)?.let { jsonString ->
-            return json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonString)
+            val response = json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonString)
+            return response.toData()
         }
 
         val response = apiClient.getVulnerabilitiesForUser(email)
@@ -84,6 +88,6 @@ class CachedNaisApiService(
             cache.put(cacheKey, jsonString)
         }
 
-        return response
+        return response.toData()
     }
 }

@@ -6,7 +6,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class CachedKevService(
-    private val delegate: KevClient,
+    private val kevClient: KevClient,
     private val cache: Cache<String, KevCatalog>
 ) : KevService {
     private val logger = LoggerFactory.getLogger(CachedKevService::class.java)
@@ -15,10 +15,12 @@ class CachedKevService(
         val cacheKey = generateCacheKey()
 
         cache.get(cacheKey)?.let { cachedCatalog ->
+            logger.info("Returning KEV catalog from cache")
             return cachedCatalog
         }
 
-        val catalog = delegate.getKevCatalog()
+        logger.info("Fetching KEV catalog from kevClient")
+        val catalog = kevClient.getKevCatalog()
 
         cache.put(cacheKey, catalog)
 

@@ -13,8 +13,7 @@ import no.nav.appsecguide.plugins.DependenciesPlugin
 import no.nav.appsecguide.plugins.configureAuthentication
 import no.nav.appsecguide.plugins.dependencies
 import no.nav.appsecguide.routes.healthRoutes
-import no.nav.appsecguide.routes.naisRoutes
-import no.nav.appsecguide.routes.userRoutes
+import no.nav.appsecguide.routes.vulnRoutes
 import org.slf4j.event.Level
 
 fun main() {
@@ -49,8 +48,7 @@ fun Application.module() {
 
     routing {
         healthRoutes()
-        userRoutes()
-        naisRoutes()
+        vulnRoutes()
     }
 }
 
