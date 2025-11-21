@@ -6,7 +6,6 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import io.ktor.server.plugins.calllogging.*
-import io.ktor.server.plugins.openapi.openAPI
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.request.*
 import kotlinx.serialization.json.Json
@@ -50,7 +49,6 @@ fun Application.module() {
     routing {
         healthRoutes()
         vulnRoutes()
-        openAPI(path="openapi", swaggerFile = "openapi/documentation.yaml")
     }
 }
 
