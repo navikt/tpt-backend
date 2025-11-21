@@ -21,6 +21,16 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load applications-for-user.graphql")
 
+    private val vulnerabilitiesForTeamQuery = this::class.java.classLoader
+        .getResource("graphql/vulnerabilities-for-team.graphql")
+        ?.readText()
+        ?: error("Could not load vulnerabilities-for-team.graphql")
+
+    private val vulnerabilitiesForUserQuery = this::class.java.classLoader
+        .getResource("graphql/vulnerabilities-for-user.graphql")
+        ?.readText()
+        ?: error("Could not load vulnerabilities-for-user.graphql")
+
     private fun createApplicationsForTeamRequest(teamSlug: String, cursor: String? = null): ApplicationsForTeamRequest {
         return ApplicationsForTeamRequest(
             query = applicationsForTeamQuery,
@@ -180,5 +190,116 @@ class NaisApiClient(
             )
         )
     }
-}
 
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): VulnerabilitiesForTeamResponse {
+        val request = VulnerabilitiesForTeamRequest(
+            query = vulnerabilitiesForTeamQuery,
+            variables = VulnerabilitiesForTeamRequest.Variables(
+                teamSlug = teamSlug,
+                workloadFirst = 50,
+                vulnFirst = 50
+            )
+        )
+
+        val response = httpClient.post(apiUrl) {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(request)
+        }
+
+        return response.body()
+    }
+
+    override suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
+        val allTeamNodes = mutableListOf<VulnerabilitiesForUserResponse.TeamNode>()
+        var workloadCursor: String? = null
+        var hasNextPage = true
+
+        while (hasNextPage) {
+            val request = VulnerabilitiesForUserRequest(
+                query = vulnerabilitiesForUserQuery,
+                variables = VulnerabilitiesForUserRequest.Variables(
+                    email = email,
+                    workloadFirst = 50,
+                    workloadAfter = workloadCursor,
+                    vulnFirst = 100
+                )
+            )
+
+            val response = httpClient.post(apiUrl) {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token)
+                setBody(request)
+            }
+
+            val pageResponse: VulnerabilitiesForUserResponse = response.body()
+
+            if (pageResponse.errors != null && pageResponse.errors.isNotEmpty()) {
+                return pageResponse
+            }
+
+            if (pageResponse.data?.user == null) {
+                return VulnerabilitiesForUserResponse(
+                    errors = listOf(
+                        VulnerabilitiesForUserResponse.GraphQLError(
+                            message = "User not found or no data returned",
+                            path = listOf("user")
+                        )
+                    )
+                )
+            }
+
+            val teams = pageResponse.data.user.teams
+            for (teamNode in teams.nodes) {
+                val existingTeamNode = allTeamNodes.find { it.team.slug == teamNode.team.slug }
+                if (existingTeamNode != null) {
+                    val mergedWorkloads = existingTeamNode.team.workloads.nodes + teamNode.team.workloads.nodes
+                    allTeamNodes.remove(existingTeamNode)
+                    allTeamNodes.add(
+                        VulnerabilitiesForUserResponse.TeamNode(
+                            team = VulnerabilitiesForUserResponse.Team(
+                                slug = teamNode.team.slug,
+                                workloads = VulnerabilitiesForUserResponse.Workloads(
+                                    pageInfo = teamNode.team.workloads.pageInfo,
+                                    nodes = mergedWorkloads
+                                )
+                            )
+                        )
+                    )
+                } else {
+                    allTeamNodes.add(teamNode)
+                }
+
+                hasNextPage = teamNode.team.workloads.pageInfo.hasNextPage
+                workloadCursor = teamNode.team.workloads.pageInfo.endCursor
+            }
+
+            if (!hasNextPage) break
+        }
+
+        val finalTeamNodes = allTeamNodes.map { teamNode ->
+            VulnerabilitiesForUserResponse.TeamNode(
+                team = VulnerabilitiesForUserResponse.Team(
+                    slug = teamNode.team.slug,
+                    workloads = VulnerabilitiesForUserResponse.Workloads(
+                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                            hasNextPage = false,
+                            endCursor = null
+                        ),
+                        nodes = teamNode.team.workloads.nodes
+                    )
+                )
+            )
+        }
+
+        return VulnerabilitiesForUserResponse(
+            data = VulnerabilitiesForUserResponse.Data(
+                user = VulnerabilitiesForUserResponse.User(
+                    teams = VulnerabilitiesForUserResponse.Teams(
+                        nodes = finalTeamNodes
+                    )
+                )
+            )
+        )
+    }
+}

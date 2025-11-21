@@ -48,5 +48,42 @@ class CachedNaisApiService(
 
         return response
     }
-}
 
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): VulnerabilitiesForTeamResponse {
+        val cacheKey = "vulnerabilities:team:$teamSlug"
+
+        cache.get(cacheKey)?.let { jsonString ->
+            return json.decodeFromString(VulnerabilitiesForTeamResponse.serializer(), jsonString)
+        }
+
+        val response = apiClient.getVulnerabilitiesForTeam(teamSlug)
+
+        if (response.errors != null && response.errors.isNotEmpty()) {
+            logger.warn("Not caching error response for team vulnerabilities: $teamSlug")
+        } else {
+            val jsonString = json.encodeToString(VulnerabilitiesForTeamResponse.serializer(), response)
+            cache.put(cacheKey, jsonString)
+        }
+
+        return response
+    }
+
+    override suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
+        val cacheKey = "vulnerabilities:user:$email"
+
+        cache.get(cacheKey)?.let { jsonString ->
+            return json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonString)
+        }
+
+        val response = apiClient.getVulnerabilitiesForUser(email)
+
+        if (response.errors != null && response.errors.isNotEmpty()) {
+            logger.warn("Not caching error response for user vulnerabilities: $email")
+        } else {
+            val jsonString = json.encodeToString(VulnerabilitiesForUserResponse.serializer(), response)
+            cache.put(cacheKey, jsonString)
+        }
+
+        return response
+    }
+}

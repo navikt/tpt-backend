@@ -141,3 +141,174 @@ data class ApplicationsForUserResponse(
     ) : GraphQLErrorInterface
 }
 
+@Serializable
+data class VulnerabilitiesForTeamRequest(
+    val query: String,
+    val variables: Variables
+) {
+    @Serializable
+    data class Variables(
+        val teamSlug: String,
+        val workloadFirst: Int = 50,
+        val workloadAfter: String? = null,
+        val vulnFirst: Int = 50,
+        val vulnAfter: String? = null
+    )
+}
+
+@Serializable
+data class VulnerabilitiesForTeamResponse(
+    val data: Data? = null,
+    val errors: List<GraphQLError>? = null
+) {
+    @Serializable
+    data class Data(
+        val team: Team?
+    )
+
+    @Serializable
+    data class Team(
+        val workloads: Workloads
+    )
+
+    @Serializable
+    data class Workloads(
+        val pageInfo: PageInfo,
+        val nodes: List<WorkloadNode>
+    )
+
+    @Serializable
+    data class PageInfo(
+        val hasNextPage: Boolean,
+        val endCursor: String?
+    )
+
+    @Serializable
+    data class WorkloadNode(
+        val name: String,
+        val image: Image?
+    )
+
+    @Serializable
+    data class Image(
+        val vulnerabilities: Vulnerabilities
+    )
+
+    @Serializable
+    data class Vulnerabilities(
+        val pageInfo: PageInfo,
+        val nodes: List<Vulnerability>
+    )
+
+    @Serializable
+    data class Vulnerability(
+        val identifier: String,
+        val severity: String,
+        val suppression: Suppression?
+    )
+
+    @Serializable
+    data class Suppression(
+        val state: String
+    )
+
+    @Serializable
+    data class GraphQLError(
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
+}
+
+@Serializable
+data class VulnerabilitiesForUserRequest(
+    val query: String,
+    val variables: Variables
+) {
+    @Serializable
+    data class Variables(
+        val email: String,
+        val workloadFirst: Int = 50,
+        val workloadAfter: String? = null,
+        val vulnFirst: Int = 50,
+        val vulnAfter: String? = null
+    )
+}
+
+@Serializable
+data class VulnerabilitiesForUserResponse(
+    val data: Data? = null,
+    val errors: List<GraphQLError>? = null
+) {
+    @Serializable
+    data class Data(
+        val user: User?
+    )
+
+    @Serializable
+    data class User(
+        val teams: Teams
+    )
+
+    @Serializable
+    data class Teams(
+        val nodes: List<TeamNode>
+    )
+
+    @Serializable
+    data class TeamNode(
+        val team: Team
+    )
+
+    @Serializable
+    data class Team(
+        val slug: String,
+        val workloads: Workloads
+    )
+
+    @Serializable
+    data class Workloads(
+        val pageInfo: PageInfo,
+        val nodes: List<WorkloadNode>
+    )
+
+    @Serializable
+    data class PageInfo(
+        val hasNextPage: Boolean,
+        val endCursor: String?
+    )
+
+    @Serializable
+    data class WorkloadNode(
+        val name: String,
+        val image: Image?
+    )
+
+    @Serializable
+    data class Image(
+        val vulnerabilities: Vulnerabilities
+    )
+
+    @Serializable
+    data class Vulnerabilities(
+        val pageInfo: PageInfo,
+        val nodes: List<Vulnerability>
+    )
+
+    @Serializable
+    data class Vulnerability(
+        val identifier: String,
+        val severity: String,
+        val suppression: Suppression?
+    )
+
+    @Serializable
+    data class Suppression(
+        val state: String
+    )
+
+    @Serializable
+    data class GraphQLError(
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
+}

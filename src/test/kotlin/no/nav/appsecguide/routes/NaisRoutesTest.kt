@@ -29,7 +29,10 @@ class NaisRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
 
         val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertNotNull(json["data"])
+        assertNotNull(json["team"])
+        assertNotNull(json["applications"])
+        val applications = json["applications"]?.jsonArray
+        assertTrue(applications?.isNotEmpty() ?: false)
     }
 
     @Test
@@ -86,10 +89,8 @@ class NaisRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
 
         val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertNotNull(json["data"])
-        val user = json["data"]?.jsonObject?.get("user")?.jsonObject
-        assertNotNull(user)
-        val teams = user["teams"]?.jsonObject?.get("nodes")?.jsonArray
+        assertNotNull(json["teams"])
+        val teams = json["teams"]?.jsonArray
         assertNotNull(teams)
         assertTrue(teams.size > 0)
     }
@@ -165,16 +166,14 @@ class NaisRoutesTest {
             assertEquals(HttpStatusCode.OK, response1.status)
 
             val json1 = Json.parseToJsonElement(response1.bodyAsText()).jsonObject
-            assertNotNull(json1["data"])
-            val user1 = json1["data"]?.jsonObject?.get("user")?.jsonObject
-            assertNotNull(user1)
-            val teams1 = user1["teams"]?.jsonObject?.get("nodes")?.jsonArray
+            assertNotNull(json1["teams"])
+            val teams1 = json1["teams"]?.jsonArray
             assertNotNull(teams1)
             assertTrue(teams1.isNotEmpty())
-            val team1 = teams1[0].jsonObject["team"]?.jsonObject
+            val team1 = teams1[0].jsonObject
             assertNotNull(team1)
-            val team1Slug = team1["slug"]?.jsonPrimitive?.content
-            val apps1 = team1["applications"]?.jsonObject?.get("nodes")?.jsonArray
+            val team1Slug = team1["team"]?.jsonPrimitive?.content
+            val apps1 = team1["applications"]?.jsonArray
             assertNotNull(apps1)
             assertTrue(apps1.isNotEmpty())
             val app1Name = apps1[0].jsonObject["name"]?.jsonPrimitive?.content
@@ -201,16 +200,14 @@ class NaisRoutesTest {
             assertEquals(HttpStatusCode.OK, response2.status)
 
             val json2 = Json.parseToJsonElement(response2.bodyAsText()).jsonObject
-            assertNotNull(json2["data"])
-            val user2 = json2["data"]?.jsonObject?.get("user")?.jsonObject
-            assertNotNull(user2)
-            val teams2 = user2.get("teams")?.jsonObject?.get("nodes")?.jsonArray
+            assertNotNull(json2["teams"])
+            val teams2 = json2["teams"]?.jsonArray
             assertNotNull(teams2)
             assertTrue(teams2.isNotEmpty())
-            val team2 = teams2[0].jsonObject["team"]?.jsonObject
+            val team2 = teams2[0].jsonObject
             assertNotNull(team2)
-            val team2Slug = team2["slug"]?.jsonPrimitive?.content
-            val apps2 = team2["applications"]?.jsonObject?.get("nodes")?.jsonArray
+            val team2Slug = team2["team"]?.jsonPrimitive?.content
+            val apps2 = team2["applications"]?.jsonArray
             assertNotNull(apps2)
             assertTrue(apps2.isNotEmpty())
             val app2Name = apps2[0].jsonObject["name"]?.jsonPrimitive?.content

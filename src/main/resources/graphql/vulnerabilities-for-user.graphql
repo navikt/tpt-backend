@@ -3,11 +3,20 @@ query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloa
     teams {
       nodes {
         team {
+          slug
           workloads(first: $workloadFirst, after: $workloadAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             nodes {
               name
               image {
                 vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
                   nodes {
                     identifier
                     severity

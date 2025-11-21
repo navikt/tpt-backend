@@ -1,10 +1,18 @@
 query VulnerabilitiesForTeam($teamSlug: Slug!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
   team(slug: $teamSlug) {
     workloads(first: $workloadFirst, after: $workloadAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       nodes {
         name
         image {
           vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             nodes {
               identifier
               severity
