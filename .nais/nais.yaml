@@ -21,6 +21,9 @@ spec:
       enabled: true
       autoLogin: true
   accessPolicy:
+    inbound:
+      rules:
+        - application: tpt-frontend
     outbound:
       external:
         - host: console.nav.cloud.nais.io
