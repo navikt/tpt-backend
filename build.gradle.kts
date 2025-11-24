@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.bundles.ktor)
     implementation(libs.bundles.logging)
     implementation(libs.valkey.java)
+    implementation(libs.jakarta.validation.api)
 
     testImplementation(libs.bundles.testing)
     testImplementation(platform(libs.junit.bom))
