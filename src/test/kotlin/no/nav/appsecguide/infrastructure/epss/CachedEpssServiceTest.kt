@@ -69,10 +69,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result1 = service.getEpssScores(listOf("CVE-2021-44228"))
         assertEquals(1, result1.size)
@@ -118,10 +117,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         service.getEpssScores(listOf("CVE-2021-44228"))
         assertEquals(1, requestCount)
@@ -169,10 +167,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         service.getEpssScores(listOf("CVE-2021-44228", "CVE-2022-22965"))
         assertEquals(1, requestCount)
@@ -194,10 +191,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(emptyList())
         assertTrue(result.isEmpty())
@@ -220,10 +216,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
         assertTrue(result.isEmpty())
@@ -246,10 +241,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
         assertTrue(result.isEmpty())
@@ -272,10 +266,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
         assertTrue(result.isEmpty())
@@ -290,7 +283,7 @@ class CachedEpssServiceTest {
             assertTrue(cveParam.length <= 2000, "CVE parameter length ${cveParam.length} exceeds 2000 characters")
 
             val cves = cveParam.split(",")
-            val data = cves.map {
+            val data = cves.joinToString(",") {
                 """
                 {
                     "cve": "$it",
@@ -299,7 +292,7 @@ class CachedEpssServiceTest {
                     "date": "2025-11-20"
                 }
                 """.trimIndent()
-            }.joinToString(",")
+            }
 
             respond(
                 content = """
@@ -322,10 +315,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val largeCveList = (1..150).map { "CVE-2023-${it.toString().padStart(5, '0')}" }
         val paramLength = largeCveList.joinToString(",").length
@@ -375,10 +367,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228", "INVALID-CVE", "CVE-123", "not-a-cve"))
 
@@ -400,10 +391,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("INVALID-CVE", "CVE-123", "not-a-cve"))
         assertTrue(result.isEmpty())
@@ -417,7 +407,7 @@ class CachedEpssServiceTest {
             val cveParam = request.url.parameters["cve"] ?: ""
             val cves = cveParam.split(",")
 
-            val data = cves.map {
+            val data = cves.joinToString(",") {
                 """
                 {
                     "cve": "$it",
@@ -426,7 +416,7 @@ class CachedEpssServiceTest {
                     "date": "2025-11-20"
                 }
                 """.trimIndent()
-            }.joinToString(",")
+            }
 
             respond(
                 content = """
@@ -449,10 +439,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val validCves = listOf(
             "CVE-2021-44228",
@@ -475,7 +464,7 @@ class CachedEpssServiceTest {
             val cveParam = request.url.parameters["cve"] ?: ""
             val cves = cveParam.split(",")
 
-            val data = cves.map {
+            val data = cves.joinToString(",") {
                 """
                 {
                     "cve": "$it",
@@ -484,7 +473,7 @@ class CachedEpssServiceTest {
                     "date": "2025-11-20"
                 }
                 """.trimIndent()
-            }.joinToString(",")
+            }
 
             respond(
                 content = """
@@ -507,10 +496,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         // First request: fetch CVE-2021-44228 and CVE-2022-22965
         val firstResult = service.getEpssScores(listOf("CVE-2021-44228", "CVE-2022-22965"))
@@ -540,10 +528,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = true)
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
         assertTrue(result.isEmpty())
@@ -566,10 +553,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = false)
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
 
@@ -608,11 +594,10 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = true)
         circuitBreaker.setOpen(false) // Allow this test call to go through
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
 
@@ -663,10 +648,9 @@ class CachedEpssServiceTest {
         }
 
         val epssClient = EpssClient(httpClient)
-        val batchCache = InMemoryCache<String, Map<String, EpssScore>>()
-        val individualCache = InMemoryCache<String, EpssScore>()
+        val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
-        val service = CachedEpssService(epssClient, batchCache, individualCache, circuitBreaker)
+        val service = CachedEpssService(epssClient, cache, circuitBreaker)
 
         val result = service.getEpssScores(listOf("CVE-2021-44228", "CVE-2022-22965", "CVE-2023-12345"))
 
