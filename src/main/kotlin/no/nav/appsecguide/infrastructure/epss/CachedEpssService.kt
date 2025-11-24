@@ -6,7 +6,8 @@ import java.security.MessageDigest
 
 class CachedEpssService(
     private val epssClient: EpssClient,
-    private val cache: Cache<String, Map<String, EpssScore>>
+    private val batchCache: Cache<String, Map<String, EpssScore>>,
+    private val individualCache: Cache<String, EpssScore>
 ) : EpssService {
     private val logger = LoggerFactory.getLogger(CachedEpssService::class.java)
 
@@ -34,35 +35,59 @@ class CachedEpssService(
             return emptyMap()
         }
 
-        val cacheKey = generateCacheKey(validCveIds)
+        val batchCacheKey = generateCacheKey(validCveIds)
 
-        cache.get(cacheKey)?.let { cachedScores ->
-            logger.info("Cache hit for EPSS scores (${validCveIds.size} CVEs)")
+        // Strategy 1: Try batch cache first (fast path for repeated queries of same CVE set)
+        batchCache.get(batchCacheKey)?.let { cachedScores ->
+            logger.debug("Batch cache hit for EPSS scores (${validCveIds.size} CVEs)")
             return cachedScores
         }
 
-        logger.debug("Cache miss for EPSS scores, fetching from API for ${validCveIds.size} CVEs")
+        logger.debug("Batch cache miss, checking individual cache for ${validCveIds.size} CVEs")
 
+        // Strategy 2: Try individual cache with pipelining (handles partial cache hits)
+        val individualCached = individualCache.getMany(validCveIds)
+        val missingCveIds = validCveIds.filterNot { individualCached.containsKey(it) }
+
+        if (missingCveIds.isEmpty()) {
+            logger.debug("Individual cache hit for all ${validCveIds.size} CVEs")
+            // Cache the full batch for future queries
+            batchCache.put(batchCacheKey, individualCached)
+            return individualCached
+        }
+
+        logger.debug("Fetching ${missingCveIds.size} missing CVEs from EPSS API (${individualCached.size} found in cache)")
+
+        // Strategy 3: Fetch missing CVEs from API
         return try {
-            val batches = createBatches(validCveIds)
-            logger.debug("Split ${validCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
+            val batches = createBatches(missingCveIds)
+            logger.debug("Split ${missingCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
 
-            val allScores = batches.flatMap { batch ->
+            val fetchedScores = batches.flatMap { batch ->
                 val response = epssClient.getEpssScores(batch)
                 response.data
             }.associateBy { it.cve }
 
-            cache.put(cacheKey, allScores)
+            // Cache individual scores for future partial hits
+            individualCache.putMany(fetchedScores)
+
+            // Combine cached + fetched scores
+            val allScores = individualCached + fetchedScores
+
+            // Cache the complete batch
+            batchCache.put(batchCacheKey, allScores)
+
+            logger.debug("Successfully fetched and cached ${fetchedScores.size} new EPSS scores")
             allScores
-        } catch (e: EpssRateLimitException) {
-            logger.error("Rate limit exceeded for EPSS API. Returning empty scores.")
-            emptyMap()
+        } catch (_: EpssRateLimitException) {
+            logger.error("Rate limit exceeded for EPSS API. Returning ${individualCached.size} cached scores.")
+            individualCached
         } catch (e: EpssApiException) {
-            logger.error("EPSS API error: ${e.message}. Returning empty scores.")
-            emptyMap()
+            logger.error("EPSS API error: ${e.message}. Returning ${individualCached.size} cached scores.")
+            individualCached
         } catch (e: Exception) {
-            logger.error("Unexpected error fetching EPSS scores: ${e.message}", e)
-            emptyMap()
+            logger.error("Unexpected error fetching EPSS scores: ${e.message}. Returning ${individualCached.size} cached scores.", e)
+            individualCached
         }
     }
 

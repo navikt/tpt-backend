@@ -78,6 +78,54 @@ class ValkeyCache<K, V>(
         }
     }
 
+    override suspend fun getMany(keys: List<K>): Map<K, V> = withContext(Dispatchers.IO) {
+        if (keys.isEmpty()) return@withContext emptyMap()
+
+        try {
+            pool.resource.use { client ->
+                val pipeline = client.pipelined()
+                val redisKeys = keys.map { "$keyPrefix:$it" }
+
+                val responses = redisKeys.map { pipeline.get(it) }
+                pipeline.sync()
+
+                val result = mutableMapOf<K, V>()
+                keys.forEachIndexed { index, key ->
+                    try {
+                        val value = responses[index].get()
+                        if (value != null) {
+                            result[key] = json.decodeFromString(valueSerializer, value)
+                        }
+                    } catch (e: Exception) {
+                        logger.debug("Failed to decode value for key: {}", key, e)
+                    }
+                }
+                result
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to get many from cache", e)
+            emptyMap()
+        }
+    }
+
+    override suspend fun putMany(entries: Map<K, V>): Unit = withContext(Dispatchers.IO) {
+        if (entries.isEmpty()) return@withContext
+
+        try {
+            pool.resource.use { client ->
+                val pipeline = client.pipelined()
+                entries.forEach { (key, value) ->
+                    val redisKey = "$keyPrefix:$key"
+                    val serialized = json.encodeToString(valueSerializer, value)
+                    pipeline.setex(redisKey, ttl.inWholeSeconds, serialized)
+                }
+                pipeline.sync()
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to put many to cache", e)
+        }
+    }
+
     fun close() {
         pool.close()
     }

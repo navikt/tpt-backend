@@ -79,13 +79,19 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val kevService = CachedKevService(kevClient, kevCache)
 
     val epssClient = EpssClient(httpClient)
-    val epssCache = ValkeyCache<String, Map<String, EpssScore>>(
+    val epssBatchCache = ValkeyCache<String, Map<String, EpssScore>>(
+        pool = valkeyPool,
+        ttl = 24.minutes * 60,
+        keyPrefix = "epss-batch",
+        valueSerializer = kotlinx.serialization.serializer()
+    )
+    val epssIndividualCache = ValkeyCache<String, EpssScore>(
         pool = valkeyPool,
         ttl = 24.minutes * 60,
         keyPrefix = "epss",
-        valueSerializer = kotlinx.serialization.serializer()
+        valueSerializer = EpssScore.serializer()
     )
-    val epssService = CachedEpssService(epssClient, epssCache)
+    val epssService = CachedEpssService(epssClient, epssBatchCache, epssIndividualCache)
 
     val vulnService = VulnServiceImpl(naisApiService, kevService, epssService)
 
