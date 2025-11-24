@@ -26,7 +26,7 @@ class CachedEpssService(
         val invalidCveIds = cveIds.filterNot { it.matches(CVE_PATTERN) }
 
         if (invalidCveIds.isNotEmpty()) {
-            logger.warn("Filtered out ${invalidCveIds.size} invalid CVE ID(s): ${invalidCveIds.take(5).joinToString(", ")}${if (invalidCveIds.size > 5) "..." else ""}")
+            logger.info("Filtered out ${invalidCveIds.size} invalid CVE ID(s): ${invalidCveIds.take(5).joinToString(", ")}${if (invalidCveIds.size > 5) "..." else ""}")
         }
 
         if (validCveIds.isEmpty()) {
@@ -47,7 +47,7 @@ class CachedEpssService(
             return cachedScores
         }
 
-        logger.debug("Fetching ${missingCveIds.size} missing CVEs from EPSS API (${cachedScores.size} found in cache)")
+        logger.info("Fetching ${missingCveIds.size} missing CVEs from EPSS API (${cachedScores.size} found in cache)")
 
         return try {
             val batches = createBatches(missingCveIds)
