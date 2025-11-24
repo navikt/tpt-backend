@@ -91,7 +91,11 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         keyPrefix = "epss",
         valueSerializer = EpssScore.serializer()
     )
-    val epssService = CachedEpssService(epssClient, epssBatchCache, epssIndividualCache)
+    val epssCircuitBreaker = ValkeyCircuitBreaker(
+        pool = valkeyPool,
+        keyPrefix = "epss"
+    )
+    val epssService = CachedEpssService(epssClient, epssBatchCache, epssIndividualCache, epssCircuitBreaker)
 
     val vulnService = VulnServiceImpl(naisApiService, kevService, epssService)
 

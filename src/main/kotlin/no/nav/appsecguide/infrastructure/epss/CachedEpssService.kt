@@ -7,7 +7,8 @@ import java.security.MessageDigest
 class CachedEpssService(
     private val epssClient: EpssClient,
     private val batchCache: Cache<String, Map<String, EpssScore>>,
-    private val individualCache: Cache<String, EpssScore>
+    private val individualCache: Cache<String, EpssScore>,
+    private val circuitBreaker: CircuitBreaker
 ) : EpssService {
     private val logger = LoggerFactory.getLogger(CachedEpssService::class.java)
 
@@ -56,9 +57,15 @@ class CachedEpssService(
             return individualCached
         }
 
+        // Strategy 3: Check circuit breaker before making API calls
+        if (circuitBreaker.isOpen()) {
+            logger.warn("Circuit breaker is OPEN - skipping EPSS API calls. Returning ${individualCached.size} cached scores.")
+            return individualCached
+        }
+
         logger.debug("Fetching ${missingCveIds.size} missing CVEs from EPSS API (${individualCached.size} found in cache)")
 
-        // Strategy 3: Fetch missing CVEs from API
+        // Strategy 4: Fetch missing CVEs from API
         return try {
             val batches = createBatches(missingCveIds)
             logger.debug("Split ${missingCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
@@ -67,6 +74,9 @@ class CachedEpssService(
                 val response = epssClient.getEpssScores(batch)
                 response.data
             }.associateBy { it.cve }
+
+            // Record success to reset circuit breaker if it was open
+            circuitBreaker.recordSuccess()
 
             // Cache individual scores for future partial hits
             individualCache.putMany(fetchedScores)
@@ -79,8 +89,9 @@ class CachedEpssService(
 
             logger.debug("Successfully fetched and cached ${fetchedScores.size} new EPSS scores")
             allScores
-        } catch (_: EpssRateLimitException) {
-            logger.error("Rate limit exceeded for EPSS API. Returning ${individualCached.size} cached scores.")
+        } catch (e: EpssRateLimitException) {
+            logger.error("Rate limit exceeded for EPSS API. Opening circuit breaker for 24 hours. Returning ${individualCached.size} cached scores.")
+            circuitBreaker.recordFailure()
             individualCached
         } catch (e: EpssApiException) {
             logger.error("EPSS API error: ${e.message}. Returning ${individualCached.size} cached scores.")
