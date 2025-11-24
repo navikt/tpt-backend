@@ -55,6 +55,7 @@ class VulnServiceImpl(
 
                 if (vulnerabilities.isNotEmpty()) {
                     VulnWorkloadDto(
+                        id = workload.id,
                         name = workload.name,
                         ingressTypes = appIngressMap[workload.name] ?: emptyList(),
                         vulnerabilities = vulnerabilities

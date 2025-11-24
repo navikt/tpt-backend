@@ -42,6 +42,7 @@ internal fun VulnerabilitiesForTeamResponse.toData(teamSlug: String): TeamVulner
         } ?: emptyList()
 
         WorkloadData(
+            id = workloadNode.id,
             name = workloadNode.name,
             vulnerabilities = vulnerabilities
         )
@@ -65,6 +66,7 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
             } ?: emptyList()
 
             WorkloadData(
+                id = workloadNode.id,
                 name = workloadNode.name,
                 vulnerabilities = vulnerabilities
             )

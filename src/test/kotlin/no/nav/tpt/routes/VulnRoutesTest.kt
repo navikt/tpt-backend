@@ -47,6 +47,7 @@ class VulnRoutesTest {
                         teamSlug = "team-alpha",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-1",
                                 name = "app1",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
@@ -255,6 +256,7 @@ class VulnRoutesTest {
                         teamSlug = "team-one",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-2",
                                 name = "app-a",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(identifier = "CVE-2023-11111", severity = "LOW", suppressed = false)
@@ -266,6 +268,7 @@ class VulnRoutesTest {
                         teamSlug = "team-two",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-3",
                                 name = "app-b",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(identifier = "CVE-2023-22222", severity = "HIGH", suppressed = false)

@@ -60,6 +60,7 @@ class MockNaisApiService(
             teamSlug = teamSlug,
             workloads = listOf(
                 WorkloadData(
+                    id = "test-workload-id",
                     name = "test-workload",
                     vulnerabilities = listOf(
                         VulnerabilityData(
@@ -84,6 +85,7 @@ class MockNaisApiService(
                     teamSlug = "test-team",
                     workloads = listOf(
                         WorkloadData(
+                            id = "test-workload-id",
                             name = "test-workload",
                             vulnerabilities = listOf(
                                 VulnerabilityData(

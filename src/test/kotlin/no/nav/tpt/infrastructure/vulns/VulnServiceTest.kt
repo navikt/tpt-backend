@@ -31,6 +31,7 @@ class VulnServiceTest {
                         teamSlug = "team-alpha",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-1",
                                 name = "app1",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
@@ -119,7 +120,7 @@ class VulnServiceTest {
                     TeamVulnerabilitiesData(
                         teamSlug = "team-beta",
                         workloads = listOf(
-                            WorkloadData(name = "app1", vulnerabilities = emptyList())
+                            WorkloadData(id = "workload-2", name = "app1", vulnerabilities = emptyList())
                         )
                     )
                 )
@@ -185,6 +186,7 @@ class VulnServiceTest {
                         teamSlug = "team-delta",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-3",
                                 name = "unknown-app",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
@@ -245,6 +247,7 @@ class VulnServiceTest {
                         teamSlug = "team-one",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-4",
                                 name = "app-a",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
@@ -260,6 +263,7 @@ class VulnServiceTest {
                         teamSlug = "team-two",
                         workloads = listOf(
                             WorkloadData(
+                                id = "workload-5",
                                 name = "app-b",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(

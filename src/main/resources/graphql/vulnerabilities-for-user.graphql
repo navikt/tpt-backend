@@ -10,8 +10,11 @@ query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloa
               endCursor
             }
             nodes {
+              id
               name
               image {
+                name
+                tag
                 vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
                   pageInfo {
                     hasNextPage

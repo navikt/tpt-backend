@@ -6,8 +6,11 @@ query VulnerabilitiesForTeam($teamSlug: Slug!, $workloadFirst: Int = 50, $worklo
         endCursor
       }
       nodes {
+        id
         name
         image {
+          name
+          tag
           vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
             pageInfo {
               hasNextPage

@@ -21,6 +21,7 @@ data class VulnerabilityData(
 )
 
 data class WorkloadData(
+    val id: String,
     val name: String,
     val vulnerabilities: List<VulnerabilityData>
 )

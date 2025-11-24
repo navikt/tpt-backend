@@ -185,12 +185,15 @@ data class VulnerabilitiesForTeamResponse(
 
     @Serializable
     data class WorkloadNode(
+        val id: String,
         val name: String,
         val image: Image?
     )
 
     @Serializable
     data class Image(
+        val name: String,
+        val tag: String,
         val vulnerabilities: Vulnerabilities
     )
 
@@ -279,12 +282,15 @@ data class VulnerabilitiesForUserResponse(
 
     @Serializable
     data class WorkloadNode(
+        val id: String,
         val name: String,
         val image: Image?
     )
 
     @Serializable
     data class Image(
+        val name: String,
+        val tag: String,
         val vulnerabilities: Vulnerabilities
     )
 

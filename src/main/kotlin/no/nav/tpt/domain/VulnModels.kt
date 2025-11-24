@@ -15,6 +15,7 @@ data class VulnTeamDto(
 
 @Serializable
 data class VulnWorkloadDto(
+    val id: String,
     val name: String,
     val ingressTypes: List<String>,
     val vulnerabilities: List<VulnVulnerabilityDto>

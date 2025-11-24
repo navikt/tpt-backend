@@ -103,10 +103,14 @@ components:
     VulnWorkloadDto:
       type: object
       required:
+        - id
         - name
         - ingressTypes
         - vulnerabilities
       properties:
+        id:
+          type: string
+          description: Unique workload identifier
         name:
           type: string
           description: Workload name
