@@ -36,7 +36,7 @@ class VulnRoutesTest {
                     TeamApplicationsData(
                         teamSlug = "team-alpha",
                         applications = listOf(
-                            ApplicationData(name = "app1", ingressTypes = listOf("internal"))
+                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL))
                         )
                     )
                 )
@@ -49,6 +49,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
@@ -242,11 +243,11 @@ class VulnRoutesTest {
                 teams = listOf(
                     TeamApplicationsData(
                         teamSlug = "team-one",
-                        applications = listOf(ApplicationData(name = "app-a", ingressTypes = listOf("external")))
+                        applications = listOf(ApplicationData(name = "app-a", ingressTypes = listOf(IngressType.EXTERNAL)))
                     ),
                     TeamApplicationsData(
                         teamSlug = "team-two",
-                        applications = listOf(ApplicationData(name = "app-b", ingressTypes = listOf("internal")))
+                        applications = listOf(ApplicationData(name = "app-b", ingressTypes = listOf(IngressType.INTERNAL)))
                     )
                 )
             ),
@@ -258,6 +259,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-2",
                                 name = "app-a",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(identifier = "CVE-2023-11111", severity = "LOW", suppressed = false)
                                 )
@@ -270,6 +272,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-3",
                                 name = "app-b",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(identifier = "CVE-2023-22222", severity = "HIGH", suppressed = false)
                                 )

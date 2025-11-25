@@ -18,7 +18,7 @@ class MockNaisApiService(
             applications = listOf(
                 ApplicationData(
                     name = "test-app",
-                    ingressTypes = listOf("internal")
+                    ingressTypes = listOf(IngressType.INTERNAL)
                 )
             )
         )
@@ -43,7 +43,7 @@ class MockNaisApiService(
                     applications = listOf(
                         ApplicationData(
                             name = appName,
-                            ingressTypes = listOf("internal")
+                            ingressTypes = listOf(IngressType.INTERNAL)
                         )
                     )
                 )
@@ -62,6 +62,7 @@ class MockNaisApiService(
                 WorkloadData(
                     id = "test-workload-id",
                     name = "test-workload",
+                    imageTag = "2025.11.20-06.22-4c8872c",
                     vulnerabilities = listOf(
                         VulnerabilityData(
                             identifier = "CVE-2023-12345",
@@ -87,6 +88,7 @@ class MockNaisApiService(
                         WorkloadData(
                             id = "test-workload-id",
                             name = "test-workload",
+                            imageTag = "2025.11.20-06.22-4c8872c",
                             vulnerabilities = listOf(
                                 VulnerabilityData(
                                     identifier = "CVE-2023-12345",

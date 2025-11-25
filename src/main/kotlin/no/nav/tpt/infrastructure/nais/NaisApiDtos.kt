@@ -2,7 +2,7 @@ package no.nav.tpt.infrastructure.nais
 
 data class ApplicationData(
     val name: String,
-    val ingressTypes: List<String>
+    val ingressTypes: List<IngressType>
 )
 
 data class TeamApplicationsData(
@@ -23,6 +23,7 @@ data class VulnerabilityData(
 data class WorkloadData(
     val id: String,
     val name: String,
+    val imageTag: String?,
     val vulnerabilities: List<VulnerabilityData>
 )
 

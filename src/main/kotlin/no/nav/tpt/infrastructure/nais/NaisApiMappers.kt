@@ -4,7 +4,7 @@ internal fun ApplicationsForTeamResponse.toData(teamSlug: String): TeamApplicati
     val applications = data?.team?.applications?.nodes?.map { app ->
         ApplicationData(
             name = app.name,
-            ingressTypes = app.ingresses.map { it.type }.distinct()
+            ingressTypes = app.ingresses.map { IngressType.fromString(it.type) }.distinct()
         )
     } ?: emptyList()
 
@@ -19,7 +19,7 @@ internal fun ApplicationsForUserResponse.toData(): UserApplicationsData {
         val applications = teamNode.team.applications.nodes.map { app ->
             ApplicationData(
                 name = app.name,
-                ingressTypes = app.ingresses.map { it.type }.distinct()
+                ingressTypes = app.ingresses.map { IngressType.fromString(it.type) }.distinct()
             )
         }
         TeamApplicationsData(
@@ -44,6 +44,7 @@ internal fun VulnerabilitiesForTeamResponse.toData(teamSlug: String): TeamVulner
         WorkloadData(
             id = workloadNode.id,
             name = workloadNode.name,
+            imageTag = workloadNode.image?.tag,
             vulnerabilities = vulnerabilities
         )
     } ?: emptyList()
@@ -68,6 +69,7 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
             WorkloadData(
                 id = workloadNode.id,
                 name = workloadNode.name,
+                imageTag = workloadNode.image?.tag,
                 vulnerabilities = vulnerabilities
             )
         }

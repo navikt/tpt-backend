@@ -117,12 +117,25 @@ components:
         ingressTypes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/IngressType'
           description: List of ingress types for this workload
+        buildTime:
+          type: string
+          nullable: true
+          description: Build date extracted from the container image tag (ISO 8601 date format, e.g., 2025-11-20)
+          example: "2025-11-20"
         vulnerabilities:
           type: array
           items:
             $ref: '#/components/schemas/VulnVulnerabilityDto'
+    IngressType:
+      type: string
+      enum:
+        - UNKNOWN
+        - EXTERNAL
+        - INTERNAL
+        - AUTHENTICATED
+      description: Type of ingress exposure for a workload
     VulnVulnerabilityDto:
       type: object
       required:

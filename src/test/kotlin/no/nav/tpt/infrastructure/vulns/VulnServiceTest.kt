@@ -19,8 +19,8 @@ class VulnServiceTest {
                     TeamApplicationsData(
                         teamSlug = "team-alpha",
                         applications = listOf(
-                            ApplicationData(name = "app1", ingressTypes = listOf("internal", "external")),
-                            ApplicationData(name = "app2", ingressTypes = listOf("internal"))
+                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL, IngressType.EXTERNAL)),
+                            ApplicationData(name = "app2", ingressTypes = listOf(IngressType.INTERNAL))
                         )
                     )
                 )
@@ -33,6 +33,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
@@ -85,7 +86,7 @@ class VulnServiceTest {
         assertEquals("team-alpha", result.teams[0].team)
         assertEquals(1, result.teams[0].workloads.size)
         assertEquals("app1", result.teams[0].workloads[0].name)
-        assertEquals(listOf("internal", "external"), result.teams[0].workloads[0].ingressTypes)
+        assertEquals(listOf("INTERNAL", "EXTERNAL"), result.teams[0].workloads[0].ingressTypes)
         assertEquals(2, result.teams[0].workloads[0].vulnerabilities.size)
 
         val highVuln = result.teams[0].workloads[0].vulnerabilities.find { it.identifier == "CVE-2023-12345" }
@@ -110,7 +111,7 @@ class VulnServiceTest {
                     TeamApplicationsData(
                         teamSlug = "team-beta",
                         applications = listOf(
-                            ApplicationData(name = "app1", ingressTypes = listOf("internal"))
+                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL))
                         )
                     )
                 )
@@ -120,7 +121,7 @@ class VulnServiceTest {
                     TeamVulnerabilitiesData(
                         teamSlug = "team-beta",
                         workloads = listOf(
-                            WorkloadData(id = "workload-2", name = "app1", vulnerabilities = emptyList())
+                            WorkloadData(id = "workload-2", name = "app1", imageTag = null, vulnerabilities = emptyList())
                         )
                     )
                 )
@@ -188,6 +189,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-3",
                                 name = "unknown-app",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-99999",
@@ -230,13 +232,13 @@ class VulnServiceTest {
                     TeamApplicationsData(
                         teamSlug = "team-one",
                         applications = listOf(
-                            ApplicationData(name = "app-a", ingressTypes = listOf("external"))
+                            ApplicationData(name = "app-a", ingressTypes = listOf(IngressType.EXTERNAL))
                         )
                     ),
                     TeamApplicationsData(
                         teamSlug = "team-two",
                         applications = listOf(
-                            ApplicationData(name = "app-b", ingressTypes = listOf("internal"))
+                            ApplicationData(name = "app-b", ingressTypes = listOf(IngressType.INTERNAL))
                         )
                     )
                 )
@@ -249,6 +251,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-4",
                                 name = "app-a",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-11111",
@@ -265,6 +268,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-5",
                                 name = "app-b",
+                                imageTag = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-22222",

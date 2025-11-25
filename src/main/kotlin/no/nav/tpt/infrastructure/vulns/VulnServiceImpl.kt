@@ -6,6 +6,7 @@ import no.nav.tpt.domain.VulnVulnerabilityDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
+import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 
 class VulnServiceImpl(
@@ -54,10 +55,14 @@ class VulnServiceImpl(
                 }
 
                 if (vulnerabilities.isNotEmpty()) {
+                    val buildTime = workload.imageTag?.let { tag ->
+                        ImageTagParser.extractBuildDate(tag)?.toString()
+                    }
                     VulnWorkloadDto(
                         id = workload.id,
                         name = workload.name,
-                        ingressTypes = appIngressMap[workload.name] ?: emptyList(),
+                        ingressTypes = appIngressMap[workload.name]?.map { it.name } ?: emptyList(),
+                        buildTime = buildTime,
                         vulnerabilities = vulnerabilities
                     )
                 } else {
