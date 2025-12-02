@@ -39,7 +39,7 @@ internal fun VulnerabilitiesForTeamResponse.toData(teamSlug: String): TeamVulner
                 severity = vuln.severity,
                 suppressed = vuln.suppression?.state == "SUPPRESSED"
             )
-        } ?: emptyList()
+        }?.distinct() ?: emptyList()
 
         WorkloadData(
             id = workloadNode.id,
@@ -64,7 +64,7 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
                     severity = vuln.severity,
                     suppressed = vuln.suppression?.state == "SUPPRESSED"
                 )
-            } ?: emptyList()
+            }?.distinct() ?: emptyList()
 
             WorkloadData(
                 id = workloadNode.id,
