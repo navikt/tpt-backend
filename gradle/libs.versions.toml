@@ -1,14 +1,14 @@
 [versions]
 kotlin = "2.2.21"
-ktor = "3.3.2"
+ktor = "3.3.3"
 logback = "1.5.21"
-logstash-encoder = "8.1"
+logstash-encoder = "9.0"
 kotlin-test = "2.2.21"
 valkey = "5.5.0"
 testcontainers = "1.21.3"
 kotlinx-coroutines = "1.10.2"
 junit = "6.0.1"
-fabrikt = "1.24.0"
+fabrikt = "1.25.0"
 jakarta-validation = "3.1.1"
 
 [libraries]
