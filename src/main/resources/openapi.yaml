@@ -143,6 +143,7 @@ components:
         - severity
         - suppressed
         - hasKevEntry
+        - riskScore
       properties:
         identifier:
           type: string
@@ -159,11 +160,16 @@ components:
         epssScore:
           type: string
           nullable: true
-          description: EPSS score for the vulnerability
+          description: EPSS score for the vulnerability (0-1 range, where higher scores indicate higher probability of exploitation)
         epssPercentile:
           type: string
           nullable: true
           description: EPSS percentile for the vulnerability
+        riskScore:
+          type: number
+          format: double
+          description: Calculated risk score using multiplier-based system. Base severity score multiplied by exposure (ingress type), KEV presence, EPSS probability, and suppression status. Higher scores indicate higher priority vulnerabilities.
+          example: 300.0
     ProblemDetail:
       type: object
       required:
