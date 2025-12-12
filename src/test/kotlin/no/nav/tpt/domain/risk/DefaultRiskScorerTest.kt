@@ -19,7 +19,7 @@ class DefaultRiskScorerTest {
                 suppressed = true,
                 environment = null
             )
-        )
+        ).score
 
         val normalScore = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -30,7 +30,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertEquals(0.3, suppressedScore / normalScore, 0.001)
         assertTrue(suppressedScore > 0.0)
@@ -47,7 +47,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val mediumExternal = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -58,7 +58,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(criticalExternal > mediumExternal)
     }
@@ -77,9 +77,9 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
-        assertEquals(baseScore * externalMultiplier, score)
+        assertEquals(baseScore * externalMultiplier, score, 0.001)
     }
 
     @Test
@@ -93,7 +93,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val withoutKev = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -104,7 +104,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertEquals(1.5, withKev / withoutKev, 0.001)
     }
@@ -120,7 +120,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val noEpss = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -131,7 +131,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(highEpss > noEpss)
     }
@@ -152,7 +152,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val expected = baseScore * externalMultiplier * kevMultiplier * epssMultiplier
         assertEquals(expected, score, 0.001)
@@ -169,7 +169,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val internal = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -180,7 +180,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(external > internal)
     }
@@ -196,7 +196,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val authenticated = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -207,7 +207,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(external > authenticated)
     }
@@ -223,7 +223,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val noEpss = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -234,7 +234,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertEquals(lowEpss, noEpss)
     }
@@ -250,7 +250,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val noIngress = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -261,7 +261,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(noIngress < withIngress)
     }
@@ -277,7 +277,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertTrue(score > 0.0)
     }
@@ -293,7 +293,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val externalOnly = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -304,7 +304,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertEquals(externalOnly, mixed)
     }
@@ -320,7 +320,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = "prod-gcp"
             )
-        )
+        ).score
 
         val devScore = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -331,7 +331,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = "dev-gcp"
             )
-        )
+        ).score
 
         assertEquals(1.1, prodScore / devScore, 0.001)
     }
@@ -347,7 +347,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = "prod-fss"
             )
-        )
+        ).score
 
         val devScore = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -358,7 +358,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = "dev-fss"
             )
-        )
+        ).score
 
         assertEquals(1.1, prodScore / devScore, 0.001)
     }
@@ -374,7 +374,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = "dev-gcp"
             )
-        )
+        ).score
 
         val noEnvScore = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -385,7 +385,7 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         assertEquals(devGcpScore, noEnvScore)
     }
@@ -401,13 +401,13 @@ class DefaultRiskScorerTest {
                 suppressed = false,
                 environment = null
             )
-        )
+        ).score
 
         val baseScore = 70.0
         val externalMultiplier = 2.0
         val expected = baseScore * externalMultiplier
 
-        assertEquals(expected, score)
+        assertEquals(expected, score, 0.001)
     }
 }
 

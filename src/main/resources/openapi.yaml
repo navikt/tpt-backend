@@ -105,7 +105,6 @@ components:
       required:
         - id
         - name
-        - ingressTypes
         - vulnerabilities
       properties:
         id:
@@ -114,11 +113,6 @@ components:
         name:
           type: string
           description: Workload name
-        ingressTypes:
-          type: array
-          items:
-            $ref: '#/components/schemas/IngressType'
-          description: List of ingress types for this workload
         environment:
           type: string
           nullable: true
@@ -129,38 +123,17 @@ components:
           nullable: true
           description: GitHub repository name (e.g., navikt/app-name)
           example: "navikt/my-application"
-        buildTime:
-          type: string
-          nullable: true
-          description: Build date extracted from the container image tag (ISO 8601 date format, e.g., 2025-11-20)
-          example: "2025-11-20"
         vulnerabilities:
           type: array
           items:
             $ref: '#/components/schemas/VulnVulnerabilityDto'
-    IngressType:
-      type: string
-      enum:
-        - UNKNOWN
-        - EXTERNAL
-        - INTERNAL
-        - AUTHENTICATED
-      description: Type of ingress exposure for a workload
     VulnVulnerabilityDto:
       type: object
       required:
-        - identifier
-        - severity
         - suppressed
-        - hasKevEntry
         - riskScore
+        - riskScoreReason
       properties:
-        identifier:
-          type: string
-          description: Vulnerability identifier (e.g., CVE-2024-1234)
-        severity:
-          type: string
-          description: Severity level of the vulnerability
         packageName:
           type: string
           nullable: true
@@ -168,22 +141,15 @@ components:
         suppressed:
           type: boolean
           description: Whether the vulnerability has been suppressed
-        hasKevEntry:
-          type: boolean
-          description: Whether the vulnerability is in CISA's KEV catalog
-        epssScore:
-          type: string
-          nullable: true
-          description: EPSS score for the vulnerability (0-1 range, where higher scores indicate higher probability of exploitation)
-        epssPercentile:
-          type: string
-          nullable: true
-          description: EPSS percentile for the vulnerability
         riskScore:
           type: number
           format: double
           description: Calculated risk score using multiplier-based system. Base severity score multiplied by exposure (ingress type), KEV presence, EPSS probability, and suppression status. Higher scores indicate higher priority vulnerabilities.
           example: 300.0
+        riskScoreReason:
+          type: string
+          description: Human-readable explanation of how the risk score was calculated, showing the base score and all multipliers applied
+          example: "Base: HIGH severity (70), External exposure (×2.0), CISA KEV listed (×1.5), EPSS 45% (×1.2), Production environment (×1.1) = 277"
     ProblemDetail:
       type: object
       required:

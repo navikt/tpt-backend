@@ -107,8 +107,8 @@ class VulnRoutesTest {
         assertEquals(1, vulnResponse.teams[0].workloads.size)
         assertEquals("app1", vulnResponse.teams[0].workloads[0].name)
         assertEquals(1, vulnResponse.teams[0].workloads[0].vulnerabilities.size)
-        assertEquals("CVE-2023-12345", vulnResponse.teams[0].workloads[0].vulnerabilities[0].identifier)
-        assertTrue(vulnResponse.teams[0].workloads[0].vulnerabilities[0].hasKevEntry)
+        assertTrue(vulnResponse.teams[0].workloads[0].vulnerabilities[0].riskScore > 0)
+        assertTrue(vulnResponse.teams[0].workloads[0].vulnerabilities[0].riskScoreReason.isNotEmpty())
     }
 
     @Test
@@ -319,4 +319,3 @@ class VulnRoutesTest {
         assertEquals(1, teamTwo.workloads.size)
     }
 }
-

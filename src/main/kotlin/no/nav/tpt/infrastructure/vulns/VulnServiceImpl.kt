@@ -7,7 +7,6 @@ import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
-import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 
 class VulnServiceImpl(
@@ -58,31 +57,22 @@ class VulnServiceImpl(
                         suppressed = vuln.suppressed,
                         environment = environment
                     )
-                    val riskScoreValue = riskScorer.calculateRiskScore(riskContext)
+                    val riskResult = riskScorer.calculateRiskScore(riskContext)
 
                     VulnVulnerabilityDto(
-                        identifier = vuln.identifier,
-                        severity = vuln.severity,
                         packageName = vuln.packageName,
                         suppressed = vuln.suppressed,
-                        hasKevEntry = hasKevEntry,
-                        epssScore = epssScore?.epss,
-                        epssPercentile = epssScore?.percentile,
-                        riskScore = riskScoreValue
+                        riskScore = riskResult.score,
+                        riskScoreReason = riskResult.reason
                     )
                 }
 
                 if (vulnerabilities.isNotEmpty()) {
-                    val buildTime = workload.imageTag?.let { tag ->
-                        ImageTagParser.extractBuildDate(tag)?.toString()
-                    }
                     VulnWorkloadDto(
                         id = workload.id,
                         name = workload.name,
-                        ingressTypes = ingressTypes,
                         environment = environment,
                         repository = workload.repository,
-                        buildTime = buildTime,
                         vulnerabilities = vulnerabilities
                     )
                 } else {

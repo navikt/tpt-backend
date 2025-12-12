@@ -90,21 +90,15 @@ class VulnServiceTest {
         assertEquals("team-alpha", result.teams[0].team)
         assertEquals(1, result.teams[0].workloads.size)
         assertEquals("app1", result.teams[0].workloads[0].name)
-        assertEquals(listOf("INTERNAL", "EXTERNAL"), result.teams[0].workloads[0].ingressTypes)
         assertEquals(2, result.teams[0].workloads[0].vulnerabilities.size)
         assertTrue(result.teams[0].workloads[0].vulnerabilities[0].riskScore > 0)
+        assertTrue(result.teams[0].workloads[0].vulnerabilities[0].riskScoreReason.isNotEmpty())
 
-        val highVuln = result.teams[0].workloads[0].vulnerabilities.find { it.identifier == "CVE-2023-12345" }
-        assertNotNull(highVuln)
-        assertEquals("HIGH", highVuln.severity)
+        val highVuln = result.teams[0].workloads[0].vulnerabilities[0]
         assertFalse(highVuln.suppressed)
-        assertTrue(highVuln.hasKevEntry)
 
-        val mediumVuln = result.teams[0].workloads[0].vulnerabilities.find { it.identifier == "CVE-2023-54321" }
-        assertNotNull(mediumVuln)
-        assertEquals("MEDIUM", mediumVuln.severity)
+        val mediumVuln = result.teams[0].workloads[0].vulnerabilities[1]
         assertTrue(mediumVuln.suppressed)
-        assertFalse(mediumVuln.hasKevEntry)
     }
 
     @Test
@@ -230,7 +224,6 @@ class VulnServiceTest {
         assertEquals(1, result.teams.size)
         assertEquals(1, result.teams[0].workloads.size)
         assertEquals("unknown-app", result.teams[0].workloads[0].name)
-        assertEquals(emptyList(), result.teams[0].workloads[0].ingressTypes)
     }
 
     @Test
@@ -330,12 +323,12 @@ class VulnServiceTest {
         val teamOne = result.teams.find { it.team == "team-one" }
         assertNotNull(teamOne)
         assertEquals(1, teamOne.workloads.size)
-        assertFalse(teamOne.workloads[0].vulnerabilities[0].hasKevEntry)
+        assertEquals(1, teamOne.workloads[0].vulnerabilities.size)
 
         val teamTwo = result.teams.find { it.team == "team-two" }
         assertNotNull(teamTwo)
         assertEquals(1, teamTwo.workloads.size)
-        assertTrue(teamTwo.workloads[0].vulnerabilities[0].hasKevEntry)
+        assertEquals(1, teamTwo.workloads[0].vulnerabilities.size)
     }
 
     @Test
@@ -363,4 +356,3 @@ class VulnServiceTest {
         assertEquals(0, result.teams.size)
     }
 }
-
