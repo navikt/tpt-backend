@@ -19,6 +19,7 @@ data class VulnWorkloadDto(
     val name: String,
     val ingressTypes: List<String>,
     val environment: String?,
+    val repository: String?,
     val buildTime: String?,
     val vulnerabilities: List<VulnVulnerabilityDto>
 )
@@ -27,6 +28,7 @@ data class VulnWorkloadDto(
 data class VulnVulnerabilityDto(
     val identifier: String,
     val severity: String,
+    val packageName: String?,
     val suppressed: Boolean,
     val hasKevEntry: Boolean,
     val epssScore: String? = null,

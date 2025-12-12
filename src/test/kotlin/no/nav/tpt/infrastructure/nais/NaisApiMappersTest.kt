@@ -19,6 +19,7 @@ class NaisApiMappersTest {
                             VulnerabilitiesForTeamResponse.WorkloadNode(
                                 id = "workload-1",
                                 name = "test-workload",
+                                deployments = VulnerabilitiesForTeamResponse.Deployments(nodes = emptyList()),
                                 image = VulnerabilitiesForTeamResponse.Image(
                                     name = "test-image",
                                     tag = "1.0.0",
@@ -31,16 +32,19 @@ class NaisApiMappersTest {
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1234",
                                                 severity = "HIGH",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1234",
                                                 severity = "HIGH",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-5678",
                                                 severity = "MEDIUM",
+                                                packageName = null,
                                                 suppression = null
                                             )
                                         )
@@ -81,6 +85,7 @@ class NaisApiMappersTest {
                                             VulnerabilitiesForUserResponse.WorkloadNode(
                                                 id = "workload-1",
                                                 name = "test-workload",
+                                                deployments = VulnerabilitiesForUserResponse.Deployments(nodes = emptyList()),
                                                 image = VulnerabilitiesForUserResponse.Image(
                                                     name = "test-image",
                                                     tag = "1.0.0",
@@ -93,16 +98,19 @@ class NaisApiMappersTest {
                                                             VulnerabilitiesForUserResponse.Vulnerability(
                                                                 identifier = "CVE-2023-1234",
                                                                 severity = "HIGH",
+                                                                packageName = null,
                                                                 suppression = null
                                                             ),
                                                             VulnerabilitiesForUserResponse.Vulnerability(
                                                                 identifier = "CVE-2023-1234",
                                                                 severity = "CRITICAL",
+                                                                packageName = null,
                                                                 suppression = null
                                                             ),
                                                             VulnerabilitiesForUserResponse.Vulnerability(
                                                                 identifier = "CVE-2023-9999",
                                                                 severity = "LOW",
+                                                                packageName = null,
                                                                 suppression = null
                                                             )
                                                         )
@@ -146,6 +154,7 @@ class NaisApiMappersTest {
                             VulnerabilitiesForTeamResponse.WorkloadNode(
                                 id = "workload-1",
                                 name = "test-workload",
+                                deployments = VulnerabilitiesForTeamResponse.Deployments(nodes = emptyList()),
                                 image = VulnerabilitiesForTeamResponse.Image(
                                     name = "test-image",
                                     tag = "1.0.0",
@@ -158,11 +167,13 @@ class NaisApiMappersTest {
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1234",
                                                 severity = "HIGH",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1234",
                                                 severity = "MEDIUM",
+                                                packageName = null,
                                                 suppression = VulnerabilitiesForTeamResponse.Suppression(
                                                     state = "SUPPRESSED"
                                                 )
@@ -203,6 +214,7 @@ class NaisApiMappersTest {
                             VulnerabilitiesForTeamResponse.WorkloadNode(
                                 id = "workload-1",
                                 name = "test-workload",
+                                deployments = VulnerabilitiesForTeamResponse.Deployments(nodes = emptyList()),
                                 image = VulnerabilitiesForTeamResponse.Image(
                                     name = "test-image",
                                     tag = "1.0.0",
@@ -242,6 +254,7 @@ class NaisApiMappersTest {
                             VulnerabilitiesForTeamResponse.WorkloadNode(
                                 id = "workload-1",
                                 name = "app-1",
+                                deployments = VulnerabilitiesForTeamResponse.Deployments(nodes = emptyList()),
                                 image = VulnerabilitiesForTeamResponse.Image(
                                     name = "test-image",
                                     tag = "1.0.0",
@@ -254,11 +267,13 @@ class NaisApiMappersTest {
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1111",
                                                 severity = "HIGH",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-1111",
                                                 severity = "HIGH",
+                                                packageName = null,
                                                 suppression = null
                                             )
                                         )
@@ -268,6 +283,7 @@ class NaisApiMappersTest {
                             VulnerabilitiesForTeamResponse.WorkloadNode(
                                 id = "workload-2",
                                 name = "app-2",
+                                deployments = VulnerabilitiesForTeamResponse.Deployments(nodes = emptyList()),
                                 image = VulnerabilitiesForTeamResponse.Image(
                                     name = "test-image",
                                     tag = "2.0.0",
@@ -280,16 +296,19 @@ class NaisApiMappersTest {
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-2222",
                                                 severity = "CRITICAL",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-2222",
                                                 severity = "CRITICAL",
+                                                packageName = null,
                                                 suppression = null
                                             ),
                                             VulnerabilitiesForTeamResponse.Vulnerability(
                                                 identifier = "CVE-2023-3333",
                                                 severity = "LOW",
+                                                packageName = null,
                                                 suppression = null
                                             )
                                         )

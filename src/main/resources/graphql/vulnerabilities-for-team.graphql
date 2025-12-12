@@ -8,6 +8,11 @@ query VulnerabilitiesForTeam($teamSlug: Slug!, $workloadFirst: Int = 50, $worklo
       nodes {
         id
         name
+        deployments(first: 1) {
+          nodes {
+            repository
+          }
+        }
         image {
           name
           tag
@@ -19,6 +24,7 @@ query VulnerabilitiesForTeam($teamSlug: Slug!, $workloadFirst: Int = 50, $worklo
             nodes {
               identifier
               severity
+              package
               suppression {
                 state
               }

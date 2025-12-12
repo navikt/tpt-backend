@@ -122,8 +122,13 @@ components:
         environment:
           type: string
           nullable: true
-          description: Deployment environment name (e.g., prod, dev)
-          example: "prod"
+          description: Deployment environment name (e.g., prod-gcp, dev-gcp)
+          example: "prod-gcp"
+        repository:
+          type: string
+          nullable: true
+          description: GitHub repository name (e.g., navikt/app-name)
+          example: "navikt/my-application"
         buildTime:
           type: string
           nullable: true
@@ -156,6 +161,10 @@ components:
         severity:
           type: string
           description: Severity level of the vulnerability
+        packageName:
+          type: string
+          nullable: true
+          description: Package name affected by the vulnerability
         suppressed:
           type: boolean
           description: Whether the vulnerability has been suppressed

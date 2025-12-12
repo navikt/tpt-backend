@@ -39,6 +39,7 @@ internal fun VulnerabilitiesForTeamResponse.toData(teamSlug: String): TeamVulner
             VulnerabilityData(
                 identifier = vuln.identifier,
                 severity = vuln.severity,
+                packageName = vuln.packageName,
                 suppressed = vuln.suppression?.state == "SUPPRESSED"
             )
         }?.distinct() ?: emptyList()
@@ -47,6 +48,7 @@ internal fun VulnerabilitiesForTeamResponse.toData(teamSlug: String): TeamVulner
             id = workloadNode.id,
             name = workloadNode.name,
             imageTag = workloadNode.image?.tag,
+            repository = workloadNode.deployments.nodes.firstOrNull()?.repository,
             vulnerabilities = vulnerabilities
         )
     } ?: emptyList()
@@ -64,6 +66,7 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
                 VulnerabilityData(
                     identifier = vuln.identifier,
                     severity = vuln.severity,
+                    packageName = vuln.packageName,
                     suppressed = vuln.suppression?.state == "SUPPRESSED"
                 )
             }?.distinct() ?: emptyList()
@@ -72,6 +75,7 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
                 id = workloadNode.id,
                 name = workloadNode.name,
                 imageTag = workloadNode.image?.tag,
+                repository = workloadNode.deployments.nodes.firstOrNull()?.repository,
                 vulnerabilities = vulnerabilities
             )
         }

@@ -34,15 +34,18 @@ class VulnServiceTest {
                                 id = "workload-1",
                                 name = "app1",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
                                         severity = "HIGH",
+                                        packageName = null,
                                         suppressed = false
                                     ),
                                     VulnerabilityData(
                                         identifier = "CVE-2023-54321",
                                         severity = "MEDIUM",
+                                        packageName = null,
                                         suppressed = true
                                     )
                                 )
@@ -123,7 +126,7 @@ class VulnServiceTest {
                     TeamVulnerabilitiesData(
                         teamSlug = "team-beta",
                         workloads = listOf(
-                            WorkloadData(id = "workload-2", name = "app1", imageTag = null, vulnerabilities = emptyList())
+                            WorkloadData(id = "workload-2", name = "app1", imageTag = null, repository = null, vulnerabilities = emptyList())
                         )
                     )
                 )
@@ -194,10 +197,12 @@ class VulnServiceTest {
                                 id = "workload-3",
                                 name = "unknown-app",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-99999",
                                         severity = "CRITICAL",
+                                        packageName = null,
                                         suppressed = false
                                     )
                                 )
@@ -257,10 +262,12 @@ class VulnServiceTest {
                                 id = "workload-4",
                                 name = "app-a",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-11111",
                                         severity = "LOW",
+                                        packageName = null,
                                         suppressed = false
                                     )
                                 )
@@ -274,10 +281,12 @@ class VulnServiceTest {
                                 id = "workload-5",
                                 name = "app-b",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-22222",
                                         severity = "HIGH",
+                                        packageName = null,
                                         suppressed = false
                                     )
                                 )

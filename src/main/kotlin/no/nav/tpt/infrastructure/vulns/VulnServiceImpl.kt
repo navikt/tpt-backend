@@ -63,6 +63,7 @@ class VulnServiceImpl(
                     VulnVulnerabilityDto(
                         identifier = vuln.identifier,
                         severity = vuln.severity,
+                        packageName = vuln.packageName,
                         suppressed = vuln.suppressed,
                         hasKevEntry = hasKevEntry,
                         epssScore = epssScore?.epss,
@@ -80,6 +81,7 @@ class VulnServiceImpl(
                         name = workload.name,
                         ingressTypes = ingressTypes,
                         environment = environment,
+                        repository = workload.repository,
                         buildTime = buildTime,
                         vulnerabilities = vulnerabilities
                     )

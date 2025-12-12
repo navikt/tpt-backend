@@ -18,6 +18,7 @@ data class UserApplicationsData(
 data class VulnerabilityData(
     val identifier: String,
     val severity: String,
+    val packageName: String?,
     val suppressed: Boolean
 )
 
@@ -25,6 +26,7 @@ data class WorkloadData(
     val id: String,
     val name: String,
     val imageTag: String?,
+    val repository: String?,
     val vulnerabilities: List<VulnerabilityData>
 )
 

@@ -12,6 +12,11 @@ query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloa
             nodes {
               id
               name
+              deployments(first: 1) {
+                nodes {
+                  repository
+                }
+              }
               image {
                 name
                 tag
@@ -23,6 +28,7 @@ query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloa
                   nodes {
                     identifier
                     severity
+                    package
                     suppression {
                       state
                     }

@@ -65,10 +65,12 @@ class MockNaisApiService(
                     id = "test-workload-id",
                     name = "test-workload",
                     imageTag = "2025.11.20-06.22-4c8872c",
+                    repository = null,
                     vulnerabilities = listOf(
                         VulnerabilityData(
                             identifier = "CVE-2023-12345",
                             severity = "HIGH",
+                            packageName = null,
                             suppressed = false
                         )
                     )
@@ -91,10 +93,12 @@ class MockNaisApiService(
                             id = "test-workload-id",
                             name = "test-workload",
                             imageTag = "2025.11.20-06.22-4c8872c",
+                            repository = null,
                             vulnerabilities = listOf(
                                 VulnerabilityData(
                                     identifier = "CVE-2023-12345",
                                     severity = "HIGH",
+                                    packageName = null,
                                     suppressed = false
                                 )
                             )

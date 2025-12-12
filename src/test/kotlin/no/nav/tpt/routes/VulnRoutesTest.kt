@@ -50,10 +50,12 @@ class VulnRoutesTest {
                                 id = "workload-1",
                                 name = "app1",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
                                         severity = "HIGH",
+                                        packageName = null,
                                         suppressed = false
                                     )
                                 )
@@ -260,8 +262,9 @@ class VulnRoutesTest {
                                 id = "workload-2",
                                 name = "app-a",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
-                                    VulnerabilityData(identifier = "CVE-2023-11111", severity = "LOW", suppressed = false)
+                                    VulnerabilityData(identifier = "CVE-2023-11111", severity = "LOW", packageName = null, suppressed = false)
                                 )
                             )
                         )
@@ -273,8 +276,9 @@ class VulnRoutesTest {
                                 id = "workload-3",
                                 name = "app-b",
                                 imageTag = null,
+                                repository = null,
                                 vulnerabilities = listOf(
-                                    VulnerabilityData(identifier = "CVE-2023-22222", severity = "HIGH", suppressed = false)
+                                    VulnerabilityData(identifier = "CVE-2023-22222", severity = "HIGH", packageName = null, suppressed = false)
                                 )
                             )
                         )

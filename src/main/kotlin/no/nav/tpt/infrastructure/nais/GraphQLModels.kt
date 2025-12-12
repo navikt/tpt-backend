@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.nais
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 interface GraphQLErrorInterface {
@@ -198,7 +199,18 @@ data class VulnerabilitiesForTeamResponse(
     data class WorkloadNode(
         val id: String,
         val name: String,
+        val deployments: Deployments,
         val image: Image?
+    )
+
+    @Serializable
+    data class Deployments(
+        val nodes: List<Deployment>
+    )
+
+    @Serializable
+    data class Deployment(
+        val repository: String?
     )
 
     @Serializable
@@ -218,6 +230,8 @@ data class VulnerabilitiesForTeamResponse(
     data class Vulnerability(
         val identifier: String,
         val severity: String,
+        @SerialName("package")
+        val packageName: String?,
         val suppression: Suppression?
     )
 
@@ -295,7 +309,18 @@ data class VulnerabilitiesForUserResponse(
     data class WorkloadNode(
         val id: String,
         val name: String,
+        val deployments: Deployments,
         val image: Image?
+    )
+
+    @Serializable
+    data class Deployments(
+        val nodes: List<Deployment>
+    )
+
+    @Serializable
+    data class Deployment(
+        val repository: String?
     )
 
     @Serializable
@@ -315,6 +340,8 @@ data class VulnerabilitiesForUserResponse(
     data class Vulnerability(
         val identifier: String,
         val severity: String,
+        @SerialName("package")
+        val packageName: String?,
         val suppression: Suppression?
     )
 
