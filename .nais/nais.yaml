@@ -56,4 +56,4 @@ spec:
     - name: CACHE_TTL_MINUTES
       value: "60"
   envFrom:
-    - secret: appsec-guide
+    - secret: tpt-backend
