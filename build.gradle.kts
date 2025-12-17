@@ -9,7 +9,7 @@ group = "no.nav.tpt"
 version = "0.0.1"
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 application {
@@ -28,8 +28,6 @@ dependencies {
 
     testImplementation(libs.bundles.testing)
     testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.test {

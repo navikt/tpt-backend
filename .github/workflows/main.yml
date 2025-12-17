@@ -6,11 +6,10 @@ on:
     paths-ignore:
       - "*.md"
 jobs:
-  test-build-deploy:
+  test-build:
     permissions:
       actions: read # for sarif
       contents: write # for dependency graph & sarif
-      security-events: write # push sarif to github security
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest
     outputs:
@@ -21,7 +20,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-java@v5
         with:
-          java-version: 21
+          java-version: 25
           distribution: temurin
       - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
       - name: Test & build
@@ -34,22 +33,13 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
-      - name: Scan docker image for secrets
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
-        with:
-          image-ref: '${{ steps.docker-push.outputs.image }}'
-          format: 'sarif'
-          scanners: 'secret'
-          output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
-        with:
-          sarif_file: 'trivy.sarif'
+
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    needs: test-build-deploy
+    needs: test-build
     steps:
       - uses: actions/checkout@v6
         with:
@@ -59,3 +49,25 @@ jobs:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
           IMAGE: ${{ needs.test-build-deploy.outputs.image }}
+
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write # for dependency graph & sarif
+      security-events: write # push sarif to github security
+    needs: test-build
+    steps:
+      - uses: nais/login@v0
+        with:
+          team: appsec
+      - name: Scan docker image for secrets
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: '${{ needs.test-build-deploy.outputs.image }}'
+          format: 'sarif'
+          scanners: 'secret'
+          output: 'trivy.sarif'
+      - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+        with:
+          sarif_file: 'trivy.sarif'

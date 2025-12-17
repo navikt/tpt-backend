@@ -1,0 +1,63 @@
+name: "CodeQL"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '32 13 * * 1'
+  workflow_dispatch:
+jobs:
+  analyze-kotlin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-extended,security-and-quality
+          config: |
+            threat-models: local
+
+      - name: Gradle build
+        run: ./gradlew build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+  analyze-github-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+        with:
+          languages: actions
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
