@@ -48,7 +48,7 @@ jobs:
         env:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
-          IMAGE: ${{ needs.test-build-deploy.outputs.image }}
+          IMAGE: ${{ needs.test-build.outputs.image }}
 
   trivy:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
       - name: Scan docker image for secrets
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
-          image-ref: '${{ needs.test-build-deploy.outputs.image }}'
+          image-ref: '${{ needs.test-build.outputs.image }}'
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
