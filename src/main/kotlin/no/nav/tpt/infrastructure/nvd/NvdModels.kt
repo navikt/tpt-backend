@@ -25,16 +25,16 @@ data class VulnerabilityItem(
 @Serializable
 data class CveItem(
     val id: String,
-    val sourceIdentifier: String?,
+    val sourceIdentifier: String? = null,
     val published: String,
     val lastModified: String,
-    val vulnStatus: String?,
+    val vulnStatus: String? = null,
 
-    // CISA KEV fields (embedded in NVD API!)
-    val cisaExploitAdd: String?,
-    val cisaActionDue: String?,
-    val cisaRequiredAction: String?,
-    val cisaVulnerabilityName: String?,
+    // CISA KEV fields (embedded in NVD API - all optional!)
+    val cisaExploitAdd: String? = null,
+    val cisaActionDue: String? = null,
+    val cisaRequiredAction: String? = null,
+    val cisaVulnerabilityName: String? = null,
 
     val descriptions: List<CveDescription>,
     val metrics: CveMetrics? = null,

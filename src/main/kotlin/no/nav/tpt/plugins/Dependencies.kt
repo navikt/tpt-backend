@@ -15,7 +15,6 @@ import no.nav.tpt.infrastructure.cisa.*
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.epss.*
-import no.nav.tpt.plugins.LeaderElection
 import no.nav.tpt.infrastructure.nais.*
 import no.nav.tpt.infrastructure.nvd.*
 import no.nav.tpt.infrastructure.vulns.VulnService
@@ -48,6 +47,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
                 prettyPrint = true
                 isLenient = true
                 ignoreUnknownKeys = true
+                explicitNulls = false  // Treat missing fields as null for nullable properties
+                coerceInputValues = true  // Coerce unexpected values to defaults
             })
         }
     }
