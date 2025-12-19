@@ -63,12 +63,22 @@ fun Application.installTestDependencies(
     val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
     val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
 
+    // Stub database for tests - creates a minimal database instance that won't actually be used
+    // Real database tests use testcontainers in specific integration tests
+    val stubDatabase = org.jetbrains.exposed.sql.Database.connect(
+        url = "jdbc:postgresql://stub:5432/stub",
+        driver = "org.postgresql.Driver",
+        user = "stub",
+        password = "stub"
+    )
+
     val dependencies = Dependencies(
         config = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         kevService = kevService,
         epssService = epssService,
+        database = stubDatabase,
         nvdRepository = mockNvdRepository,
         nvdSyncService = mockNvdSyncService,
         httpClient = client,
