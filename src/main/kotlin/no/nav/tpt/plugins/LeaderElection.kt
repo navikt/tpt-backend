@@ -10,7 +10,7 @@ import java.net.InetAddress
 
 class LeaderElection(private val httpClient: HttpClient) {
     private val logger = LoggerFactory.getLogger(LeaderElection::class.java)
-    private val electorUrl = System.getenv("ELECTOR_PATH") ?: ""
+    private val electorUrl = System.getenv("ELECTOR_GET_URL") ?: ""
     private val hostname = try {
         InetAddress.getLocalHost().hostName
     } catch (e: Exception) {
@@ -20,7 +20,7 @@ class LeaderElection(private val httpClient: HttpClient) {
 
     suspend fun isLeader(): Boolean {
         if (electorUrl.isEmpty()) {
-            logger.debug("ELECTOR_PATH not set, assuming single instance (leader)")
+            logger.debug("ELECTOR_GET_URL not set, assuming single instance (leader)")
             return true
         }
 
