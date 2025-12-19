@@ -53,6 +53,39 @@ class NvdClient(
         }
     }
 
+    suspend fun getCvesByPublishedDate(
+        pubStartDate: LocalDateTime,
+        pubEndDate: LocalDateTime,
+        startIndex: Int = 0,
+        resultsPerPage: Int = 2000
+    ): NvdResponse {
+        return try {
+            val response = httpClient.get(baseUrl) {
+                parameter("pubStartDate", formatDateForNvd(pubStartDate))
+                parameter("pubEndDate", formatDateForNvd(pubEndDate))
+                parameter("startIndex", startIndex)
+                parameter("resultsPerPage", resultsPerPage)
+                apiKey?.let { header("apiKey", it) }
+                contentType(ContentType.Application.Json)
+            }
+
+            if (!response.status.isSuccess()) {
+                val errorBody = response.bodyAsText()
+                logger.error(
+                    "NVD API returned error status ${response.status.value}: $errorBody. " +
+                    "URL: $baseUrl?pubStartDate=${formatDateForNvd(pubStartDate)}&" +
+                    "pubEndDate=${formatDateForNvd(pubEndDate)}&startIndex=$startIndex&resultsPerPage=$resultsPerPage"
+                )
+                throw IllegalStateException("NVD API returned ${response.status.value}: $errorBody")
+            }
+
+            response.body()
+        } catch (e: Exception) {
+            logger.error("Failed to fetch CVEs from NVD API", e)
+            throw e
+        }
+    }
+
     private fun formatDateForNvd(dateTime: LocalDateTime): String {
         // NVD API requires ISO 8601 format with UTC timezone (e.g., 2024-01-01T00:00:00.000Z)
         return dateTime.atZone(java.time.ZoneOffset.UTC)

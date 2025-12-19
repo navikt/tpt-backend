@@ -50,9 +50,9 @@ data class CveDescription(
 
 @Serializable
 data class CveMetrics(
-    val cvssMetricV31: List<CvssMetricV31>?,
-    val cvssMetricV30: List<CvssMetricV30>?,
-    val cvssMetricV2: List<CvssMetricV2>?
+    val cvssMetricV31: List<CvssMetricV31>? = null,
+    val cvssMetricV30: List<CvssMetricV30>? = null,
+    val cvssMetricV2: List<CvssMetricV2>? = null
 )
 
 @Serializable
