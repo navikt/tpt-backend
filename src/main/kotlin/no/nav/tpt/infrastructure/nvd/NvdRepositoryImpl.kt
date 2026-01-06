@@ -36,59 +36,72 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
         var addedCount = 0
         var updatedCount = 0
 
-        cves.chunked(500).forEach { chunk ->
-            chunk.forEach { cveData ->
-                val exists = NvdCves.selectAll().where { NvdCves.cveId eq cveData.cveId }.count() > 0
+        // Process in smaller chunks to avoid memory issues
+        cves.chunked(100).forEach { chunk ->
+            // Batch check which CVEs already exist
+            val cveIds = chunk.map { it.cveId }
+            val existingCveIds = NvdCves
+                .select(NvdCves.cveId)
+                .where { NvdCves.cveId inList cveIds }
+                .map { it[NvdCves.cveId] }
+                .toSet()
 
-                if (exists) {
-                    NvdCves.update({ NvdCves.cveId eq cveData.cveId }) {
-                        it[sourceIdentifier] = cveData.sourceIdentifier
-                        it[vulnStatus] = cveData.vulnStatus
-                        it[publishedDate] = cveData.publishedDate.toInstant()
-                        it[lastModifiedDate] = cveData.lastModifiedDate.toInstant()
-                        it[cisaExploitAdd] = cveData.cisaExploitAdd
-                        it[cisaActionDue] = cveData.cisaActionDue
-                        it[cisaRequiredAction] = cveData.cisaRequiredAction
-                        it[cisaVulnerabilityName] = cveData.cisaVulnerabilityName
-                        it[cvssV31Score] = cveData.cvssV31Score?.toBigDecimal()
-                        it[cvssV31Severity] = cveData.cvssV31Severity
-                        it[cvssV30Score] = cveData.cvssV30Score?.toBigDecimal()
-                        it[cvssV30Severity] = cveData.cvssV30Severity
-                        it[cvssV2Score] = cveData.cvssV2Score?.toBigDecimal()
-                        it[cvssV2Severity] = cveData.cvssV2Severity
-                        it[description] = cveData.description
-                        it[nvdReferences] = json.encodeToString<List<String>>(cveData.references)
-                        it[cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
-                        it[hasExploitReference] = cveData.hasExploitReference
-                        it[hasPatchReference] = cveData.hasPatchReference
-                        it[updatedAt] = LocalDateTime.now().toInstant()
-                    }
-                    updatedCount++
-                } else {
-                    NvdCves.insert {
-                        it[cveId] = cveData.cveId
-                        it[sourceIdentifier] = cveData.sourceIdentifier
-                        it[vulnStatus] = cveData.vulnStatus
-                        it[publishedDate] = cveData.publishedDate.toInstant()
-                        it[lastModifiedDate] = cveData.lastModifiedDate.toInstant()
-                        it[cisaExploitAdd] = cveData.cisaExploitAdd
-                        it[cisaActionDue] = cveData.cisaActionDue
-                        it[cisaRequiredAction] = cveData.cisaRequiredAction
-                        it[cisaVulnerabilityName] = cveData.cisaVulnerabilityName
-                        it[cvssV31Score] = cveData.cvssV31Score?.toBigDecimal()
-                        it[cvssV31Severity] = cveData.cvssV31Severity
-                        it[cvssV30Score] = cveData.cvssV30Score?.toBigDecimal()
-                        it[cvssV30Severity] = cveData.cvssV30Severity
-                        it[cvssV2Score] = cveData.cvssV2Score?.toBigDecimal()
-                        it[cvssV2Severity] = cveData.cvssV2Severity
-                        it[description] = cveData.description
-                        it[nvdReferences] = json.encodeToString<List<String>>(cveData.references)
-                        it[cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
-                        it[hasExploitReference] = cveData.hasExploitReference
-                        it[hasPatchReference] = cveData.hasPatchReference
-                    }
-                    addedCount++
+            // Separate into updates and inserts
+            val toUpdate = chunk.filter { it.cveId in existingCveIds }
+            val toInsert = chunk.filter { it.cveId !in existingCveIds }
+
+            // Batch update existing CVEs
+            toUpdate.forEach { cveData ->
+                NvdCves.update({ NvdCves.cveId eq cveData.cveId }) {
+                    it[sourceIdentifier] = cveData.sourceIdentifier
+                    it[vulnStatus] = cveData.vulnStatus
+                    it[publishedDate] = cveData.publishedDate.toInstant()
+                    it[lastModifiedDate] = cveData.lastModifiedDate.toInstant()
+                    it[cisaExploitAdd] = cveData.cisaExploitAdd
+                    it[cisaActionDue] = cveData.cisaActionDue
+                    it[cisaRequiredAction] = cveData.cisaRequiredAction
+                    it[cisaVulnerabilityName] = cveData.cisaVulnerabilityName
+                    it[cvssV31Score] = cveData.cvssV31Score?.toBigDecimal()
+                    it[cvssV31Severity] = cveData.cvssV31Severity
+                    it[cvssV30Score] = cveData.cvssV30Score?.toBigDecimal()
+                    it[cvssV30Severity] = cveData.cvssV30Severity
+                    it[cvssV2Score] = cveData.cvssV2Score?.toBigDecimal()
+                    it[cvssV2Severity] = cveData.cvssV2Severity
+                    it[description] = cveData.description
+                    it[nvdReferences] = json.encodeToString<List<String>>(cveData.references)
+                    it[cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
+                    it[hasExploitReference] = cveData.hasExploitReference
+                    it[hasPatchReference] = cveData.hasPatchReference
+                    it[updatedAt] = LocalDateTime.now().toInstant()
                 }
+            }
+            updatedCount += toUpdate.size
+
+            // Batch insert new CVEs
+            if (toInsert.isNotEmpty()) {
+                NvdCves.batchInsert(toInsert) { cveData ->
+                    this[NvdCves.cveId] = cveData.cveId
+                    this[NvdCves.sourceIdentifier] = cveData.sourceIdentifier
+                    this[NvdCves.vulnStatus] = cveData.vulnStatus
+                    this[NvdCves.publishedDate] = cveData.publishedDate.toInstant()
+                    this[NvdCves.lastModifiedDate] = cveData.lastModifiedDate.toInstant()
+                    this[NvdCves.cisaExploitAdd] = cveData.cisaExploitAdd
+                    this[NvdCves.cisaActionDue] = cveData.cisaActionDue
+                    this[NvdCves.cisaRequiredAction] = cveData.cisaRequiredAction
+                    this[NvdCves.cisaVulnerabilityName] = cveData.cisaVulnerabilityName
+                    this[NvdCves.cvssV31Score] = cveData.cvssV31Score?.toBigDecimal()
+                    this[NvdCves.cvssV31Severity] = cveData.cvssV31Severity
+                    this[NvdCves.cvssV30Score] = cveData.cvssV30Score?.toBigDecimal()
+                    this[NvdCves.cvssV30Severity] = cveData.cvssV30Severity
+                    this[NvdCves.cvssV2Score] = cveData.cvssV2Score?.toBigDecimal()
+                    this[NvdCves.cvssV2Severity] = cveData.cvssV2Severity
+                    this[NvdCves.description] = cveData.description
+                    this[NvdCves.nvdReferences] = json.encodeToString<List<String>>(cveData.references)
+                    this[NvdCves.cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
+                    this[NvdCves.hasExploitReference] = cveData.hasExploitReference
+                    this[NvdCves.hasPatchReference] = cveData.hasPatchReference
+                }
+                addedCount += toInsert.size
             }
         }
 

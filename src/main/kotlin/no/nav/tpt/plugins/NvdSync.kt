@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 fun Application.configureNvdSync() {
     val logger = LoggerFactory.getLogger("NvdSync")
@@ -23,6 +24,7 @@ fun Application.configureNvdSync() {
     // Check if we need initial sync
     launch {
         try {
+            delay(30.seconds)
             val lastModified = nvdRepository.getLastModifiedDate()
 
             if (lastModified == null) {
@@ -47,7 +49,7 @@ fun Application.configureNvdSync() {
                                 logger.info("Initial NVD sync completed successfully!")
                                 syncCompleted = true
                             } else {
-                                logger.info("This pod is not the leader - waiting 1 minute before checking again")
+                                logger.info("This pod is not the leader - waiting 5 minutes before checking again")
                                 delay(5.minutes) // Wait 5 minutes before checking leadership again
                             }
                         } catch (e: Exception) {
