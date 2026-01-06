@@ -23,8 +23,10 @@ open class NvdSyncService(
         var chunkNumber = 0
         var totalCvesProcessed = 0
         var totalCvesAdded = 0
+        var failedChunks = 0
 
         while (currentStart.isBefore(now)) {
+            // Calculate end date: start + 90 days, but ensure we don't exceed current time
             val currentEnd = currentStart.plusDays(daysPerChunk.toLong()).let {
                 if (it.isAfter(now)) now else it
             }
@@ -32,17 +34,35 @@ open class NvdSyncService(
             chunkNumber++
             logger.info("Syncing CVEs chunk $chunkNumber: ${currentStart.toLocalDate()} to ${currentEnd.toLocalDate()}")
 
-            val (cvesInChunk, addedCount) = syncPublishedDateRangeWithStats(currentStart, currentEnd)
-            totalCvesProcessed += cvesInChunk
-            totalCvesAdded += addedCount
+            try {
+                val (cvesInChunk, addedCount) = syncPublishedDateRangeWithStats(currentStart, currentEnd)
+                totalCvesProcessed += cvesInChunk
+                totalCvesAdded += addedCount
+                logger.info("Chunk $chunkNumber completed successfully: $cvesInChunk CVEs processed")
+            } catch (e: Exception) {
+                failedChunks++
+                logger.error("Failed to sync chunk $chunkNumber (${currentStart.toLocalDate()} to ${currentEnd.toLocalDate()}). Continuing with next chunk.", e)
+                // Continue with next chunk instead of stopping the entire sync
+            }
+
+            // Move to next chunk: start right after the current end
+            // This ensures no gaps or overlaps in date ranges
+            currentStart = currentEnd.plusNanos(1)
+
+            // If the next start is not before now, we're done
+            if (!currentStart.isBefore(now)) {
+                break
+            }
 
             // Respect rate limits: 6 seconds between requests (safe for both free and paid tiers)
             delay(6000)
-
-            currentStart = currentEnd.plusSeconds(1)
         }
 
-        logger.info("Initial NVD sync completed successfully after $chunkNumber chunks. Total CVEs: $totalCvesProcessed (added: $totalCvesAdded)")
+        logger.info("Initial NVD sync completed after $chunkNumber chunks. Total CVEs: $totalCvesProcessed (added: $totalCvesAdded). Failed chunks: $failedChunks")
+
+        if (failedChunks > 0) {
+            logger.warn("$failedChunks chunks failed during initial sync. Consider re-running the sync to fetch missing data.")
+        }
     }
 
     suspend fun performIncrementalSync() {
@@ -67,6 +87,8 @@ open class NvdSyncService(
         var totalProcessed = 0
         var totalAdded = 0
         var totalUpdated = 0
+        var consecutiveErrors = 0
+        val maxConsecutiveErrors = 3
 
         do {
             try {
@@ -76,6 +98,9 @@ open class NvdSyncService(
                     startIndex = startIndex,
                     resultsPerPage = resultsPerPage
                 )
+
+                // Reset error counter on success
+                consecutiveErrors = 0
 
                 // If no results at all, break immediately (nothing to sync in this range)
                 if (response.totalResults == 0) {
@@ -108,8 +133,17 @@ open class NvdSyncService(
                 delay(6000)
 
             } catch (e: Exception) {
-                logger.error("Error syncing CVEs at index $startIndex", e)
-                throw e
+                consecutiveErrors++
+                logger.error("Error syncing CVEs at index $startIndex (attempt $consecutiveErrors/$maxConsecutiveErrors): ${e.message}", e)
+
+                if (consecutiveErrors >= maxConsecutiveErrors) {
+                    logger.error("Too many consecutive errors ($maxConsecutiveErrors), aborting this range")
+                    throw e
+                }
+
+                // Wait longer before retry
+                logger.info("Retrying after 30 seconds...")
+                delay(30000)
             }
 
         } while (true)
@@ -127,6 +161,8 @@ open class NvdSyncService(
         val resultsPerPage = 2000 // Max allowed by NVD API
         var totalProcessed = 0
         var totalAdded = 0
+        var consecutiveErrors = 0
+        val maxConsecutiveErrors = 3
 
         do {
             try {
@@ -136,6 +172,9 @@ open class NvdSyncService(
                     startIndex = startIndex,
                     resultsPerPage = resultsPerPage
                 )
+
+                // Reset error counter on success
+                consecutiveErrors = 0
 
                 // If no results at all, break immediately (nothing to sync in this range)
                 if (response.totalResults == 0) {
@@ -166,8 +205,17 @@ open class NvdSyncService(
                 delay(6000)
 
             } catch (e: Exception) {
-                logger.error("Error syncing CVEs at index $startIndex", e)
-                throw e
+                consecutiveErrors++
+                logger.error("Error syncing CVEs at index $startIndex (attempt $consecutiveErrors/$maxConsecutiveErrors): ${e.message}", e)
+
+                if (consecutiveErrors >= maxConsecutiveErrors) {
+                    logger.error("Too many consecutive errors ($maxConsecutiveErrors), aborting this chunk")
+                    throw e
+                }
+
+                // Wait longer before retry
+                logger.info("Retrying after 30 seconds...")
+                delay(30000)
             }
 
         } while (true)
