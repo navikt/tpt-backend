@@ -12,6 +12,9 @@ fun Application.configureNvdSync() {
     val nvdRepository = dependencies.nvdRepository
     val leaderElection = dependencies.leaderElection
 
+    // Start leader election checks
+    leaderElection.startLeaderElectionChecks(this)
+
     // Check if we need initial sync
     launch {
         try {

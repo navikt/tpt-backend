@@ -67,7 +67,6 @@ class NvdRepositoryIntegrationTest {
     fun cleanDatabase() {
         transaction(database) {
             NvdCves.deleteAll()
-            NvdSyncStatus.deleteAll()
         }
     }
 

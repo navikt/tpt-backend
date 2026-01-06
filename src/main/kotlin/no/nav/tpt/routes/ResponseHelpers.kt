@@ -21,19 +21,6 @@ suspend fun ApplicationCall.respondBadRequest(detail: String) {
     )
 }
 
-suspend fun ApplicationCall.respondUnauthorized(detail: String) {
-    respond(
-        HttpStatusCode.Unauthorized,
-        ProblemDetail(
-            type = "about:blank",
-            title = "Unauthorized",
-            status = HttpStatusCode.Unauthorized.value,
-            detail = detail,
-            instance = request.local.uri
-        )
-    )
-}
-
 suspend fun ApplicationCall.respondInternalServerError(errorContext: String, exception: Exception) {
     logger.error("$errorContext for request ${request.local.method.value} ${request.local.uri}", exception)
     respond(

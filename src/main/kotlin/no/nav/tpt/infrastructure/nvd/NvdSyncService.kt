@@ -22,6 +22,7 @@ open class NvdSyncService(
         var currentStart = startDate
         var chunkNumber = 0
         var totalCvesProcessed = 0
+        var totalCvesAdded = 0
 
         while (currentStart.isBefore(now)) {
             val currentEnd = currentStart.plusDays(daysPerChunk.toLong()).let {
@@ -31,8 +32,9 @@ open class NvdSyncService(
             chunkNumber++
             logger.info("Syncing CVEs chunk $chunkNumber: ${currentStart.toLocalDate()} to ${currentEnd.toLocalDate()}")
 
-            val cvesInChunk = syncPublishedDateRange(currentStart, currentEnd)
+            val (cvesInChunk, addedCount) = syncPublishedDateRangeWithStats(currentStart, currentEnd)
             totalCvesProcessed += cvesInChunk
+            totalCvesAdded += addedCount
 
             // Respect rate limits: 6 seconds between requests (safe for both free and paid tiers)
             delay(6000)
@@ -40,7 +42,7 @@ open class NvdSyncService(
             currentStart = currentEnd.plusSeconds(1)
         }
 
-        logger.info("Initial NVD sync completed successfully after $chunkNumber chunks. Total CVEs: $totalCvesProcessed")
+        logger.info("Initial NVD sync completed successfully after $chunkNumber chunks. Total CVEs: $totalCvesProcessed (added: $totalCvesAdded)")
     }
 
     suspend fun performIncrementalSync() {
@@ -50,14 +52,21 @@ open class NvdSyncService(
         val now = LocalDateTime.now()
 
         logger.info("Performing incremental sync for CVEs modified between $lastModified and $now")
-        val cvesProcessed = syncDateRange(lastModified, now)
-        logger.info("Incremental sync completed. Processed $cvesProcessed CVEs")
+        val (cvesProcessed, addedCount, updatedCount) = syncDateRangeWithStats(lastModified, now)
+        logger.info("Incremental sync completed. Processed $cvesProcessed CVEs (added: $addedCount, updated: $updatedCount)")
     }
 
     suspend fun syncDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Int {
+        val (processed, _, _) = syncDateRangeWithStats(startDate, endDate)
+        return processed
+    }
+
+    suspend fun syncDateRangeWithStats(startDate: LocalDateTime, endDate: LocalDateTime): Triple<Int, Int, Int> {
         var startIndex = 0
         val resultsPerPage = 2000 // Max allowed by NVD API
         var totalProcessed = 0
+        var totalAdded = 0
+        var totalUpdated = 0
 
         do {
             try {
@@ -79,8 +88,10 @@ open class NvdSyncService(
                         .map { it.cve }
                         .map { nvdClient.mapToNvdCveData(it) }
 
-                    repository.upsertCves(cveDataList)
+                    val stats = repository.upsertCves(cveDataList)
                     totalProcessed += cveDataList.size
+                    totalAdded += stats.added
+                    totalUpdated += stats.updated
                 }
 
                 logger.info("Processed ${totalProcessed} of ${response.totalResults} CVEs (batch of ${response.vulnerabilities.size})")
@@ -103,13 +114,19 @@ open class NvdSyncService(
 
         } while (true)
 
-        return totalProcessed
+        return Triple(totalProcessed, totalAdded, totalUpdated)
     }
 
     suspend fun syncPublishedDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Int {
+        val (processed, _) = syncPublishedDateRangeWithStats(startDate, endDate)
+        return processed
+    }
+
+    suspend fun syncPublishedDateRangeWithStats(startDate: LocalDateTime, endDate: LocalDateTime): Pair<Int, Int> {
         var startIndex = 0
         val resultsPerPage = 2000 // Max allowed by NVD API
         var totalProcessed = 0
+        var totalAdded = 0
 
         do {
             try {
@@ -131,8 +148,9 @@ open class NvdSyncService(
                         .map { it.cve }
                         .map { nvdClient.mapToNvdCveData(it) }
 
-                    repository.upsertCves(cveDataList)
+                    val stats = repository.upsertCves(cveDataList)
                     totalProcessed += cveDataList.size
+                    totalAdded += stats.added
                 }
 
                 logger.info("Processed ${totalProcessed} of ${response.totalResults} CVEs (batch of ${response.vulnerabilities.size})")
@@ -154,7 +172,7 @@ open class NvdSyncService(
 
         } while (true)
 
-        return totalProcessed
+        return Pair(totalProcessed, totalAdded)
     }
 
     suspend fun syncSingleCve(cveId: String): NvdCveData? {

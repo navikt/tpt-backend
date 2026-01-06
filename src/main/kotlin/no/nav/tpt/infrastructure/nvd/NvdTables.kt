@@ -1,6 +1,5 @@
 package no.nav.tpt.infrastructure.nvd
 
-import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
 import org.jetbrains.exposed.sql.javatime.date
@@ -43,17 +42,3 @@ object NvdCves : Table("nvd_cves") {
 
     override val primaryKey = PrimaryKey(cveId)
 }
-
-object NvdSyncStatus : IntIdTable("nvd_sync_status") {
-    val syncType = varchar("sync_type", 20) // 'initial', 'incremental'
-    val lastSyncStart = timestamp("last_sync_start")
-    val lastSyncEnd = timestamp("last_sync_end").nullable()
-    val lastModifiedCheck = timestamp("last_modified_check")
-    val status = varchar("status", 20) // 'running', 'completed', 'failed'
-    val cvesProcessed = integer("cves_processed").default(0)
-    val cvesAdded = integer("cves_added").default(0)
-    val cvesUpdated = integer("cves_updated").default(0)
-    val errorMessage = text("error_message").nullable()
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-}
-

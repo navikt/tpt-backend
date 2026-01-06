@@ -3,10 +3,16 @@ package no.nav.tpt.plugins
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.seconds
 
 class LeaderElection(private val httpClient: HttpClient) {
     private val logger = LoggerFactory.getLogger(LeaderElection::class.java)
@@ -18,28 +24,49 @@ class LeaderElection(private val httpClient: HttpClient) {
         "unknown"
     }
 
-    suspend fun isLeader(): Boolean {
+    private val cachedLeaderStatus = AtomicBoolean(false)
+    private val checkIntervalSeconds = 60L
+
+    fun startLeaderElectionChecks(scope: CoroutineScope) {
         if (electorUrl.isEmpty()) {
-            logger.debug("ELECTOR_GET_URL not set, assuming single instance (leader)")
-            return true
+            logger.info("ELECTOR_GET_URL not set, assuming single instance (leader)")
+            cachedLeaderStatus.set(true)
+            return
         }
 
-        return try {
+        scope.launch {
+            logger.info("Starting leader election checks every ${checkIntervalSeconds}s")
+            while (isActive) {
+                checkLeaderStatus()
+                delay(checkIntervalSeconds.seconds)
+            }
+        }
+    }
+
+    private suspend fun checkLeaderStatus() {
+        try {
             val response = httpClient.get(electorUrl)
             val leaderInfo: LeaderInfo = response.body()
             val isLeader = hostname == leaderInfo.name
+            val wasLeader = cachedLeaderStatus.getAndSet(isLeader)
 
-            if (isLeader) {
+            if (isLeader && !wasLeader) {
+                logger.info("Leadership acquired: This pod ($hostname) is now the leader")
+            } else if (!isLeader && wasLeader) {
+                logger.info("Leadership lost: This pod ($hostname) is no longer the leader. Leader is: ${leaderInfo.name}")
+            } else if (isLeader) {
                 logger.debug("This pod ($hostname) is the leader")
             } else {
                 logger.debug("This pod ($hostname) is not the leader. Leader is: ${leaderInfo.name}")
             }
-
-            isLeader
         } catch (e: Exception) {
-            logger.warn("Failed to check leader election status, assuming not leader", e)
-            false
+            logger.warn("Failed to check leader election status", e)
+            cachedLeaderStatus.set(false)
         }
+    }
+
+    fun isLeader(): Boolean {
+        return cachedLeaderStatus.get()
     }
 
     suspend fun <T> ifLeader(operation: suspend () -> T): T? {

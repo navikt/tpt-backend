@@ -13,12 +13,21 @@ class MockNvdRepository : NvdRepository {
 
     override suspend fun getCveData(cveId: String): NvdCveData? = cves[cveId]
 
-    override suspend fun upsertCve(cve: NvdCveData) {
+    override suspend fun upsertCve(cve: NvdCveData): UpsertStats {
+        val isUpdate = cves.containsKey(cve.cveId)
         cves[cve.cveId] = cve
+        return if (isUpdate) UpsertStats(0, 1) else UpsertStats(1, 0)
     }
 
-    override suspend fun upsertCves(cves: List<NvdCveData>) {
-        cves.forEach { upsertCve(it) }
+    override suspend fun upsertCves(cves: List<NvdCveData>): UpsertStats {
+        var added = 0
+        var updated = 0
+        cves.forEach { cve ->
+            val stats = upsertCve(cve)
+            added += stats.added
+            updated += stats.updated
+        }
+        return UpsertStats(added, updated)
     }
 
     override suspend fun getLastModifiedDate(): LocalDateTime? =

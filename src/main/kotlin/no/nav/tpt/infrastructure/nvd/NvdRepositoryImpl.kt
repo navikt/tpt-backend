@@ -24,14 +24,17 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
             .singleOrNull()
     }
 
-    override suspend fun upsertCve(cve: NvdCveData) = dbQuery {
+    override suspend fun upsertCve(cve: NvdCveData): UpsertStats = dbQuery {
         upsertCves(listOf(cve))
     }
 
-    override suspend fun upsertCves(cves: List<NvdCveData>) = dbQuery {
-        if (cves.isEmpty()) return@dbQuery
+    override suspend fun upsertCves(cves: List<NvdCveData>): UpsertStats = dbQuery {
+        if (cves.isEmpty()) return@dbQuery UpsertStats(0, 0)
 
         logger.info("Upserting ${cves.size} CVEs")
+
+        var addedCount = 0
+        var updatedCount = 0
 
         cves.chunked(500).forEach { chunk ->
             chunk.forEach { cveData ->
@@ -60,6 +63,7 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
                         it[hasPatchReference] = cveData.hasPatchReference
                         it[updatedAt] = LocalDateTime.now().toInstant()
                     }
+                    updatedCount++
                 } else {
                     NvdCves.insert {
                         it[cveId] = cveData.cveId
@@ -83,11 +87,13 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
                         it[hasExploitReference] = cveData.hasExploitReference
                         it[hasPatchReference] = cveData.hasPatchReference
                     }
+                    addedCount++
                 }
             }
         }
 
-        logger.info("Successfully upserted ${cves.size} CVEs")
+        logger.info("Successfully upserted ${cves.size} CVEs (added: $addedCount, updated: $updatedCount)")
+        UpsertStats(addedCount, updatedCount)
     }
 
     override suspend fun getLastModifiedDate(): LocalDateTime? = dbQuery {
