@@ -171,6 +171,65 @@ components:
             production: 1.1
             old_build_days: 120.0
             old_build: 1.1
+        riskScoreBreakdown:
+          allOf:
+            - $ref: '#/components/schemas/RiskScoreBreakdown'
+          nullable: true
+          description: Detailed breakdown of how the risk score was calculated
+    RiskScoreBreakdown:
+      type: object
+      required:
+        - baseScore
+        - factors
+        - totalScore
+      properties:
+        baseScore:
+          type: number
+          format: double
+          description: Base severity score before multipliers
+          example: 70.0
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactorExplanation'
+          description: List of factors that contributed to the risk score
+        totalScore:
+          type: number
+          format: double
+          description: Final calculated risk score
+          example: 184.8
+    RiskFactorExplanation:
+      type: object
+      required:
+        - name
+        - contribution
+        - percentage
+        - explanation
+        - impact
+      properties:
+        name:
+          type: string
+          description: Factor name (e.g., exposure, kev, epss)
+          example: "exposure"
+        contribution:
+          type: number
+          format: double
+          description: Numeric contribution of this factor to the total score
+          example: 70.0
+        percentage:
+          type: number
+          format: double
+          description: Percentage contribution to the total score
+          example: 37.9
+        explanation:
+          type: string
+          description: Human-readable explanation of the factor
+          example: "Application is externally accessible"
+        impact:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
+          description: Impact level of this factor
+          example: "CRITICAL"
     ProblemDetail:
       type: object
       required:

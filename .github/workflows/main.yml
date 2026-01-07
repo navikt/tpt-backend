@@ -5,6 +5,7 @@ on:
       - main
     paths-ignore:
       - "*.md"
+  pull_request:
 jobs:
   test-build:
     permissions:
@@ -31,11 +32,14 @@ jobs:
         with:
           team: appsec
           pull: true
+          push_image: ${{ github.ref == 'refs/heads/main' }}
       - name: Generate and submit dependency graph
+        if: github.ref == 'refs/heads/main'
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
 
   deploy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
@@ -52,6 +56,7 @@ jobs:
 
   trivy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       contents: write # for dependency graph & sarif

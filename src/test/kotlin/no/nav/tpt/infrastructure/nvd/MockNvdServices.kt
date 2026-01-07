@@ -13,6 +13,9 @@ class MockNvdRepository : NvdRepository {
 
     override suspend fun getCveData(cveId: String): NvdCveData? = cves[cveId]
 
+    override suspend fun getCveDataBatch(cveIds: List<String>): Map<String, NvdCveData> =
+        cves.filterKeys { it in cveIds }
+
     override suspend fun upsertCve(cve: NvdCveData): UpsertStats {
         val isUpdate = cves.containsKey(cve.cveId)
         cves[cve.cveId] = cve
