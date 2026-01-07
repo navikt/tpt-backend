@@ -107,7 +107,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val leaderElection = LeaderElection(httpClient)
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, riskScorer)
+    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer)
 
     val dependencies = Dependencies(
         config = config,

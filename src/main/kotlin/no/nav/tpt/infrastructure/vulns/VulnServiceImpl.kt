@@ -10,10 +10,13 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 
+import no.nav.tpt.infrastructure.nvd.NvdRepository
+
 class VulnServiceImpl(
     private val naisApiService: NaisApiService,
     private val kevService: KevService,
     private val epssService: EpssService,
+    private val nvdRepository: NvdRepository,
     private val riskScorer: RiskScorer
 ) : VulnService {
 
@@ -31,6 +34,7 @@ class VulnServiceImpl(
             .distinct()
 
         val epssScores = epssService.getEpssScores(allCveIds)
+        val nvdData = nvdRepository.getCveDataBatch(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
             val teamSlug = teamVulns.teamSlug
@@ -52,6 +56,7 @@ class VulnServiceImpl(
                 val vulnerabilities = workload.vulnerabilities.map { vuln ->
                     val epssScore = epssScores[vuln.identifier]
                     val hasKevEntry = kevCveIds.contains(vuln.identifier)
+                    val cveData = nvdData[vuln.identifier]
 
                     val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
                         severity = vuln.severity,
@@ -60,7 +65,10 @@ class VulnServiceImpl(
                         epssScore = epssScore?.epss,
                         suppressed = vuln.suppressed,
                         environment = environment,
-                        buildDate = buildDate
+                        buildDate = buildDate,
+                        hasExploitReference = cveData?.hasExploitReference ?: false,
+                        hasPatchReference = cveData?.hasPatchReference ?: false,
+                        cveDaysOld = cveData?.daysOld
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -70,7 +78,8 @@ class VulnServiceImpl(
                         description = vuln.description,
                         vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
                         riskScore = riskResult.score,
-                        riskScoreMultipliers = riskResult.multipliers
+                        riskScoreMultipliers = riskResult.multipliers,
+                        riskScoreBreakdown = riskResult.breakdown
                     )
                 }
 

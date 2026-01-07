@@ -58,11 +58,12 @@ fun Application.installTestDependencies(
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, riskScorer)
 
     // Mock NVD services for tests (not using real database)
     val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
     val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
+
+    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, mockNvdRepository, riskScorer)
 
     // Stub database for tests - creates a minimal database instance that won't actually be used
     // Real database tests use testcontainers in specific integration tests

@@ -24,6 +24,13 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
             .singleOrNull()
     }
 
+    override suspend fun getCveDataBatch(cveIds: List<String>): Map<String, NvdCveData> = dbQuery {
+        if (cveIds.isEmpty()) return@dbQuery emptyMap()
+        NvdCves.selectAll().where { NvdCves.cveId inList cveIds }
+            .mapNotNull { toNvdCveData(it) }
+            .associateBy { it.cveId }
+    }
+
     override suspend fun upsertCve(cve: NvdCveData): UpsertStats = dbQuery {
         upsertCves(listOf(cve))
     }
