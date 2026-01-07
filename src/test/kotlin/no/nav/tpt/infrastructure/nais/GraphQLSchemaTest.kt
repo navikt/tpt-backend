@@ -22,6 +22,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -132,6 +136,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {

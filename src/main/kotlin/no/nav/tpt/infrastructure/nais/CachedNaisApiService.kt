@@ -41,7 +41,7 @@ class CachedNaisApiService(
 
         val response = apiClient.getApplicationsForUser(email)
 
-        if (response.errors != null && response.errors.isNotEmpty()) {
+        if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for user $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
             val jsonString = json.encodeToString(ApplicationsForUserResponse.serializer(), response)
@@ -61,7 +61,7 @@ class CachedNaisApiService(
 
         val response = apiClient.getVulnerabilitiesForTeam(teamSlug)
 
-        if (response.errors != null && response.errors.isNotEmpty()) {
+        if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for team vulnerabilities $teamSlug: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
             val jsonString = json.encodeToString(VulnerabilitiesForTeamResponse.serializer(), response)
@@ -81,7 +81,7 @@ class CachedNaisApiService(
 
         val response = apiClient.getVulnerabilitiesForUser(email)
 
-        if (response.errors != null && response.errors.isNotEmpty()) {
+        if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for user vulnerabilities $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
             val jsonString = json.encodeToString(VulnerabilitiesForUserResponse.serializer(), response)

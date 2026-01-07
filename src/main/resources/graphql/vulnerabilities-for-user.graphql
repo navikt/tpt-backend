@@ -1,6 +1,10 @@
-query VulnerabilitiesForUser($email: String!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+query VulnerabilitiesForUser($email: String!, $teamFirst: Int = 2, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
   user(email: $email) {
-    teams(first: 2) {
+    teams(first: $teamFirst, after: $teamAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       nodes {
         team {
           slug

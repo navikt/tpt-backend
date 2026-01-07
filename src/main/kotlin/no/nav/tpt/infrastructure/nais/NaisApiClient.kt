@@ -237,16 +237,17 @@ class NaisApiClient(
 
     suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
         val allTeamNodes = mutableListOf<VulnerabilitiesForUserResponse.TeamNode>()
-        var workloadCursor: String? = null
-        var hasNextPage = true
+        var teamCursor: String? = null
+        var hasMoreTeams = true
 
-        while (hasNextPage) {
+        while (hasMoreTeams) {
             val request = VulnerabilitiesForUserRequest(
                 query = vulnerabilitiesForUserQuery,
                 variables = VulnerabilitiesForUserRequest.Variables(
                     email = email,
+                    teamFirst = 50,
+                    teamAfter = teamCursor,
                     workloadFirst = 50,
-                    workloadAfter = workloadCursor,
                     vulnFirst = 100
                 )
             )
@@ -282,30 +283,12 @@ class NaisApiClient(
 
             val teams = pageResponse.data.user.teams
             for (teamNode in teams.nodes) {
-                val existingTeamNode = allTeamNodes.find { it.team.slug == teamNode.team.slug }
-                if (existingTeamNode != null) {
-                    val mergedWorkloads = existingTeamNode.team.workloads.nodes + teamNode.team.workloads.nodes
-                    allTeamNodes.remove(existingTeamNode)
-                    allTeamNodes.add(
-                        VulnerabilitiesForUserResponse.TeamNode(
-                            team = VulnerabilitiesForUserResponse.Team(
-                                slug = teamNode.team.slug,
-                                workloads = VulnerabilitiesForUserResponse.Workloads(
-                                    pageInfo = teamNode.team.workloads.pageInfo,
-                                    nodes = mergedWorkloads
-                                )
-                            )
-                        )
-                    )
-                } else {
-                    allTeamNodes.add(teamNode)
-                }
-
-                hasNextPage = teamNode.team.workloads.pageInfo.hasNextPage
-                workloadCursor = teamNode.team.workloads.pageInfo.endCursor
+                val fullTeamNode = fetchAllWorkloadsForTeam(email, teamNode)
+                allTeamNodes.add(fullTeamNode)
             }
 
-            if (!hasNextPage) break
+            hasMoreTeams = teams.pageInfo.hasNextPage
+            teamCursor = teams.pageInfo.endCursor
         }
 
         val finalTeamNodes = allTeamNodes.map { teamNode ->
@@ -327,8 +310,65 @@ class NaisApiClient(
             data = VulnerabilitiesForUserResponse.Data(
                 user = VulnerabilitiesForUserResponse.User(
                     teams = VulnerabilitiesForUserResponse.Teams(
+                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                            hasNextPage = false,
+                            endCursor = null
+                        ),
                         nodes = finalTeamNodes
                     )
+                )
+            )
+        )
+    }
+
+    private suspend fun fetchAllWorkloadsForTeam(
+        email: String,
+        initialTeamNode: VulnerabilitiesForUserResponse.TeamNode
+    ): VulnerabilitiesForUserResponse.TeamNode {
+        val allWorkloads = initialTeamNode.team.workloads.nodes.toMutableList()
+        var workloadCursor = initialTeamNode.team.workloads.pageInfo.endCursor
+        var hasMoreWorkloads = initialTeamNode.team.workloads.pageInfo.hasNextPage
+
+        while (hasMoreWorkloads) {
+            val request = VulnerabilitiesForUserRequest(
+                query = vulnerabilitiesForUserQuery,
+                variables = VulnerabilitiesForUserRequest.Variables(
+                    email = email,
+                    teamFirst = 1,
+                    workloadFirst = 50,
+                    workloadAfter = workloadCursor,
+                    vulnFirst = 100
+                )
+            )
+
+            val response = httpClient.post(apiUrl) {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token)
+                setBody(request)
+            }
+
+            val pageResponse: VulnerabilitiesForUserResponse = response.body()
+            val teamNode = pageResponse.data?.user?.teams?.nodes
+                ?.find { it.team.slug == initialTeamNode.team.slug }
+
+            if (teamNode != null) {
+                allWorkloads.addAll(teamNode.team.workloads.nodes)
+                hasMoreWorkloads = teamNode.team.workloads.pageInfo.hasNextPage
+                workloadCursor = teamNode.team.workloads.pageInfo.endCursor
+            } else {
+                hasMoreWorkloads = false
+            }
+        }
+
+        return VulnerabilitiesForUserResponse.TeamNode(
+            team = VulnerabilitiesForUserResponse.Team(
+                slug = initialTeamNode.team.slug,
+                workloads = VulnerabilitiesForUserResponse.Workloads(
+                    pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                        hasNextPage = false,
+                        endCursor = null
+                    ),
+                    nodes = allWorkloads
                 )
             )
         )

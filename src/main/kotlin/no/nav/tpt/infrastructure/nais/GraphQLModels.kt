@@ -257,6 +257,8 @@ data class VulnerabilitiesForUserRequest(
     @Serializable
     data class Variables(
         val email: String,
+        val teamFirst: Int = 50,
+        val teamAfter: String? = null,
         val workloadFirst: Int = 50,
         val workloadAfter: String? = null,
         val vulnFirst: Int = 50,
@@ -281,6 +283,7 @@ data class VulnerabilitiesForUserResponse(
 
     @Serializable
     data class Teams(
+        val pageInfo: PageInfo,
         val nodes: List<TeamNode>
     )
 

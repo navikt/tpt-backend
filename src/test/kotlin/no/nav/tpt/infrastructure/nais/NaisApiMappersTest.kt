@@ -78,6 +78,10 @@ class NaisApiMappersTest {
             data = VulnerabilitiesForUserResponse.Data(
                 user = VulnerabilitiesForUserResponse.User(
                     teams = VulnerabilitiesForUserResponse.Teams(
+                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                            hasNextPage = false,
+                            endCursor = null
+                        ),
                         nodes = listOf(
                             VulnerabilitiesForUserResponse.TeamNode(
                                 team = VulnerabilitiesForUserResponse.Team(
