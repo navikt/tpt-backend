@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   analyze-kotlin:
+    if: false # Waits for support for kotlin 2.3.0 (https://github.com/github/codeql/issues/20661)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

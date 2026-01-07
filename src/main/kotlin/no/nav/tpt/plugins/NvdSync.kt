@@ -36,27 +36,25 @@ fun Application.configureNvdSync() {
                 // Run initial sync in background with leader election
                 // Keep retrying until a leader is elected and sync completes
                 initialSyncJob = launch {
-                    var syncCompleted = false
-                    while (!syncCompleted) {
+                    while (nvdRepository.getLastModifiedDate() == null) {
                         try {
                             val result = leaderElection.ifLeader {
                                 logger.info("This pod is the leader - performing initial NVD sync")
                                 nvdSyncService.performInitialSync()
-                                true // Mark as completed
                             }
 
                             if (result != null) {
                                 logger.info("Initial NVD sync completed successfully!")
-                                syncCompleted = true
                             } else {
-                                logger.info("This pod is not the leader - waiting 5 minutes before checking again")
-                                delay(5.minutes) // Wait 5 minutes before checking leadership again
+                                logger.info("This pod is not the leader - waiting 5 minutes before checking if data is available")
+                                delay(5.minutes)
                             }
                         } catch (e: Exception) {
                             logger.error("Initial NVD sync failed, will retry in 1 hour", e)
                             delay(1.hours)
                         }
                     }
+                    logger.info("NVD data is now available (lastModified: ${nvdRepository.getLastModifiedDate()})")
                 }
             } else {
                 logger.info("NVD data found. Last modified: $lastModified")

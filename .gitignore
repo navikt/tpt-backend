@@ -43,3 +43,4 @@ bin/
 .kotlin/
 risk_score_analysis/**
 scripts/**
+codeql-db/
