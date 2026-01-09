@@ -296,6 +296,7 @@ class CachedNaisApiServiceIntegrationTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
                 "nodes": [
                   {
                     "team": {
