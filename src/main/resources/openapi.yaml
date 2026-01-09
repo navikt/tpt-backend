@@ -187,9 +187,9 @@ components:
           additionalProperties:
             type: number
             format: double
-          description: Map of multipliers used in risk score calculation. Keys include base severity (e.g., base_high), exposure, kev, epss, suppressed, production, old_build_days, old_build. Only includes multipliers that were applied (excludes 1.0 values and missing data).
+          description: Map of multipliers used in risk score calculation. Keys include severity (base severity score), exposure, kev, epss, suppressed, production, old_build_days, old_build. Only includes multipliers that were applied (excludes 1.0 values and missing data).
           example:
-            base_high: 70.0
+            severity: 70.0
             exposure: 2.0
             kev: 1.5
             epss: 1.2

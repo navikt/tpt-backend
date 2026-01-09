@@ -37,7 +37,7 @@ class DefaultRiskScorer(
         factors: List<RiskFactor>
     ): Map<String, Double> {
         val multipliers = mutableMapOf<String, Double>()
-        multipliers["base_${severity.lowercase()}"] = baseScore
+        multipliers["severity"] = baseScore
 
         factors.forEach { factor ->
             when (factor.name) {
