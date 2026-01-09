@@ -25,8 +25,8 @@ class ConfigRoutesTest {
         val responseBody = response.bodyAsText()
         val config = json.decodeFromString<ConfigResponse>(responseBody)
 
-        assertEquals(150.0, config.thresholds.high)
-        assertEquals(75.0, config.thresholds.medium)
+        assertEquals(100.0, config.thresholds.high)
+        assertEquals(50.0, config.thresholds.medium)
         assertEquals(30.0, config.thresholds.low)
     }
 
