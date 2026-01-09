@@ -22,6 +22,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -132,6 +136,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -211,183 +219,16 @@ class GraphQLSchemaTest {
     }
 
     @Test
-    fun `NaisApiClient should successfully fetch and deserialize vulnerabilities for team with all required fields`() = kotlinx.coroutines.test.runTest {
-        val mockJsonResponse = """
-        {
-          "data": {
-            "team": {
-              "workloads": {
-                "pageInfo": {
-                  "hasNextPage": false,
-                  "endCursor": null
-                },
-                "nodes": [
-                  {
-                    "id": "workload-1",
-                    "name": "test-app",
-                    "deployments": {
-                      "nodes": [
-                        {
-                          "repository": "navikt/test-app"
-                        }
-                      ]
-                    },
-                    "image": {
-                      "name": "test-image",
-                      "tag": "1.0.0",
-                      "vulnerabilities": {
-                        "pageInfo": {
-                          "hasNextPage": false,
-                          "endCursor": null
-                        },
-                        "nodes": [
-                          {
-                            "identifier": "CVE-2023-1234",
-                            "description": "Test vulnerability description",
-                            "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-1234",
-                            "severity": "HIGH",
-                            "package": "test-package",
-                            "suppression": {
-                              "state": "NOT_SUPPRESSED"
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-        """.trimIndent()
-
-        val mockEngine = MockEngine { request ->
-            assertEquals(HttpMethod.Post, request.method)
-            assertTrue(request.body.contentType?.match(ContentType.Application.Json) == true)
-
-            respond(
-                content = mockJsonResponse,
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    isLenient = true
-                    ignoreUnknownKeys = true
-                })
-            }
-        }
-
-        val client = NaisApiClient(httpClient, "https://test.api", "test-token")
-        val response = client.getVulnerabilitiesForTeam("test-team")
-
-        assertNotNull(response.data)
-        val team = response.data?.team
-        assertNotNull(team)
-
-        val workload = team.workloads.nodes.firstOrNull()
-        assertNotNull(workload)
-        assertEquals("workload-1", workload.id)
-        assertEquals("test-app", workload.name)
-        assertEquals("navikt/test-app", workload.deployments.nodes.firstOrNull()?.repository)
-
-        val vulnerability = workload.image?.vulnerabilities?.nodes?.firstOrNull()
-        assertNotNull(vulnerability)
-        assertEquals("CVE-2023-1234", vulnerability.identifier)
-        assertEquals("Test vulnerability description", vulnerability.description)
-        assertEquals("https://nvd.nist.gov/vuln/detail/CVE-2023-1234", vulnerability.vulnerabilityDetailsLink)
-        assertEquals("HIGH", vulnerability.severity)
-        assertEquals("test-package", vulnerability.packageName)
-        assertEquals("NOT_SUPPRESSED", vulnerability.suppression?.state)
-
-        httpClient.close()
-    }
-
-    @Test
-    fun `should deserialize VulnerabilitiesForTeam response with all required fields`() {
-        val jsonResponse = """
-        {
-          "data": {
-            "team": {
-              "workloads": {
-                "pageInfo": {
-                  "hasNextPage": false,
-                  "endCursor": null
-                },
-                "nodes": [
-                  {
-                    "id": "workload-1",
-                    "name": "test-app",
-                    "deployments": {
-                      "nodes": [
-                        {
-                          "repository": "navikt/test-app"
-                        }
-                      ]
-                    },
-                    "image": {
-                      "name": "test-image",
-                      "tag": "1.0.0",
-                      "vulnerabilities": {
-                        "pageInfo": {
-                          "hasNextPage": false,
-                          "endCursor": null
-                        },
-                        "nodes": [
-                          {
-                            "identifier": "CVE-2023-1234",
-                            "description": "Test vulnerability description",
-                            "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-1234",
-                            "severity": "HIGH",
-                            "package": "test-package",
-                            "suppression": {
-                              "state": "NOT_SUPPRESSED"
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-        """.trimIndent()
-
-        val response = json.decodeFromString(VulnerabilitiesForTeamResponse.serializer(), jsonResponse)
-
-        assertNotNull(response.data)
-        assertNotNull(response.data?.team)
-
-        val workload = response.data?.team?.workloads?.nodes?.firstOrNull()
-        assertNotNull(workload)
-        assertEquals("workload-1", workload.id)
-        assertEquals("test-app", workload.name)
-        assertEquals("navikt/test-app", workload.deployments.nodes.firstOrNull()?.repository)
-
-        val vulnerability = workload.image?.vulnerabilities?.nodes?.firstOrNull()
-        assertNotNull(vulnerability)
-        assertEquals("CVE-2023-1234", vulnerability.identifier)
-        assertEquals("Test vulnerability description", vulnerability.description)
-        assertEquals("https://nvd.nist.gov/vuln/detail/CVE-2023-1234", vulnerability.vulnerabilityDetailsLink)
-        assertEquals("HIGH", vulnerability.severity)
-        assertEquals("test-package", vulnerability.packageName)
-        assertEquals("NOT_SUPPRESSED", vulnerability.suppression?.state)
-    }
-
-    @Test
     fun `NaisApiClient should fail when deployments field is missing from API response`() = kotlinx.coroutines.test.runTest {
         val mockJsonResponseMissingDeployments = """
         {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -462,6 +303,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -515,6 +360,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {
@@ -600,6 +449,10 @@ class GraphQLSchemaTest {
           "data": {
             "user": {
               "teams": {
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": null
+                },
                 "nodes": [
                   {
                     "team": {

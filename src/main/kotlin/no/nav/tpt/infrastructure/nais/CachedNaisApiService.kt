@@ -11,26 +11,6 @@ class CachedNaisApiService(
     private val logger = LoggerFactory.getLogger(CachedNaisApiService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun getApplicationsForTeam(teamSlug: String): TeamApplicationsData {
-        val cacheKey = "team:$teamSlug"
-
-        cache.get(cacheKey)?.let { jsonString ->
-            val response = json.decodeFromString(ApplicationsForTeamResponse.serializer(), jsonString)
-            return response.toData(teamSlug)
-        }
-
-        val response = apiClient.getApplicationsForTeam(teamSlug)
-
-        if (response.errors != null && response.errors.isNotEmpty()) {
-            logger.warn("GraphQL errors for team $teamSlug: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
-        } else {
-            val jsonString = json.encodeToString(ApplicationsForTeamResponse.serializer(), response)
-            cache.put(cacheKey, jsonString)
-        }
-
-        return response.toData(teamSlug)
-    }
-
     override suspend fun getApplicationsForUser(email: String): UserApplicationsData {
         val cacheKey = "user:$email"
 
@@ -41,7 +21,7 @@ class CachedNaisApiService(
 
         val response = apiClient.getApplicationsForUser(email)
 
-        if (response.errors != null && response.errors.isNotEmpty()) {
+        if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for user $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
             val jsonString = json.encodeToString(ApplicationsForUserResponse.serializer(), response)
@@ -49,26 +29,6 @@ class CachedNaisApiService(
         }
 
         return response.toData()
-    }
-
-    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): TeamVulnerabilitiesData {
-        val cacheKey = "vulnerabilities:team:$teamSlug"
-
-        cache.get(cacheKey)?.let { jsonString ->
-            val response = json.decodeFromString(VulnerabilitiesForTeamResponse.serializer(), jsonString)
-            return response.toData(teamSlug)
-        }
-
-        val response = apiClient.getVulnerabilitiesForTeam(teamSlug)
-
-        if (response.errors != null && response.errors.isNotEmpty()) {
-            logger.warn("GraphQL errors for team vulnerabilities $teamSlug: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
-        } else {
-            val jsonString = json.encodeToString(VulnerabilitiesForTeamResponse.serializer(), response)
-            cache.put(cacheKey, jsonString)
-        }
-
-        return response.toData(teamSlug)
     }
 
     override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
@@ -81,7 +41,7 @@ class CachedNaisApiService(
 
         val response = apiClient.getVulnerabilitiesForUser(email)
 
-        if (response.errors != null && response.errors.isNotEmpty()) {
+        if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for user vulnerabilities $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
             val jsonString = json.encodeToString(VulnerabilitiesForUserResponse.serializer(), response)

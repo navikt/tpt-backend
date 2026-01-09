@@ -1,6 +1,10 @@
-query ApplicationsForUser($email: String!, $appFirst: Int = 100, $appAfter: Cursor) {
+query ApplicationsForUser($email: String!, $appFirst: Int = 100, $appAfter: Cursor, $teamsFirst: Int= 10, $teamsAfter: Cursor) {
   user(email: $email) {
-    teams {
+    teams(first: $teamsFirst, after: $teamsAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       nodes {
         team {
           slug
