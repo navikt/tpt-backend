@@ -25,6 +25,7 @@ data class VulnWorkloadDto(
 @Serializable
 data class VulnVulnerabilityDto(
     val identifier: String,
+    val name: String?,
     val packageName: String?,
     val description: String?,
     val vulnerabilityDetailsLink: String?,

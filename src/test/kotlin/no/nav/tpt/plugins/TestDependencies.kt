@@ -15,10 +15,10 @@ import no.nav.tpt.infrastructure.cisa.createMockCachedKevService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
-import no.nav.tpt.plugins.LeaderElection
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
 
@@ -78,7 +78,7 @@ fun Application.installTestDependencies(
     val mockLeaderElection = LeaderElection(client)
 
     val dependencies = Dependencies(
-        config = testConfig,
+        appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         kevService = kevService,
@@ -113,6 +113,7 @@ fun Application.testModule(
 
     routing {
         healthRoutes()
+        configRoutes()
         vulnRoutes()
     }
 }

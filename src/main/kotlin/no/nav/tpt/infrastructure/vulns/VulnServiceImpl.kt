@@ -9,8 +9,8 @@ import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
-
 import no.nav.tpt.infrastructure.nvd.NvdRepository
+import no.nav.tpt.infrastructure.purl.PurlParser
 
 class VulnServiceImpl(
     private val naisApiService: NaisApiService,
@@ -74,6 +74,7 @@ class VulnServiceImpl(
 
                     VulnVulnerabilityDto(
                         identifier = vuln.identifier,
+                        name = PurlParser.extractPackageName(vuln.packageName),
                         packageName = vuln.packageName,
                         description = vuln.description,
                         vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,

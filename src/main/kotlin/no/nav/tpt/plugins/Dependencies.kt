@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
 class Dependencies(
-    config: AppConfig,
+    val appConfig: AppConfig,
     val tokenIntrospectionService: TokenIntrospectionService,
     val naisApiService: NaisApiService,
     val kevService: KevService,
@@ -110,7 +110,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer)
 
     val dependencies = Dependencies(
-        config = config,
+        appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
         kevService = kevService,
