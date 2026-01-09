@@ -50,10 +50,10 @@ data class AppConfig(
                 ?: 5L
 
             val riskThresholdHigh = System.getenv("RISK_THRESHOLD_HIGH")?.toDoubleOrNull()
-                ?: 100.0
+                ?: 130.0
 
             val riskThresholdMedium = System.getenv("RISK_THRESHOLD_MEDIUM")?.toDoubleOrNull()
-                ?: 50.0
+                ?: 75.0
 
             val riskThresholdLow = System.getenv("RISK_THRESHOLD_LOW")?.toDoubleOrNull()
                 ?: 30.0
