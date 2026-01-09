@@ -20,9 +20,9 @@ class VulnServiceImpl(
     private val riskScorer: RiskScorer
 ) : VulnService {
 
-    override suspend fun fetchVulnerabilitiesForUser(email: String): VulnResponse {
-        val applicationsData = naisApiService.getApplicationsForUser(email)
-        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email)
+    override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
+        val applicationsData = naisApiService.getApplicationsForUser(email, bypassCache)
+        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
         val kevCatalog = kevService.getKevCatalog()
 
         val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()

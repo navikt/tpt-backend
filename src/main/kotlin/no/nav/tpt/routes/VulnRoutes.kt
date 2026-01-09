@@ -19,9 +19,11 @@ fun Route.vulnRoutes() {
                 return@get
             }
 
+            val bypassCache = call.request.queryParameters["bypassCache"]?.toBoolean() ?: false
+
             try {
                 val vulnService = call.dependencies.vulnService
-                val response = vulnService.fetchVulnerabilitiesForUser(email)
+                val response = vulnService.fetchVulnerabilitiesForUser(email, bypassCache)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.respondInternalServerError("Failed to fetch vulnerabilities", e)

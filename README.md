@@ -52,14 +52,7 @@ Initial NVD sync takes ~12-15 hours on first deployment.
 
 ## API Endpoints
 
-### Health
-- `GET /isalive` - Liveness probe
-- `GET /isready` - Readiness probe
-
-### Vulnerabilities
-- `GET /vulnerabilities/user` - Get vulnerabilities for authenticated user
-
-All endpoints except health checks require Bearer token authentication.
+API documentation available at `/swagger` once the application is running.
 
 ## Authentication
 
@@ -67,11 +60,7 @@ Endpoints require a valid JWT Bearer token with:
 - `NAVident` claim for user identification
 - `preferred_username` claim for email
 
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:8080/vulnerabilities/user
-```
 
-## API Documentation
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

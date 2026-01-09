@@ -320,4 +320,76 @@ class VulnRoutesTest {
         assertNotNull(teamTwo)
         assertEquals(1, teamTwo.workloads.size)
     }
+
+    @Test
+    fun `should accept bypassCache query parameter`() = testApplication {
+        val tokenIntrospectionService = MockTokenIntrospectionService(
+            shouldSucceed = true,
+            navIdent = "test-ident",
+            preferredUsername = "test@example.com"
+        )
+
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserApplicationsData = UserApplicationsData(
+                teams = listOf(
+                    TeamApplicationsData(
+                        teamSlug = "team-alpha",
+                        applications = listOf(
+                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL), environment = null)
+                        )
+                    )
+                )
+            ),
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-alpha",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-1",
+                                name = "app1",
+                                imageTag = null,
+                                repository = null,
+                                vulnerabilities = listOf(
+                                    VulnerabilityData(
+                                        identifier = "CVE-2023-12345",
+                                        severity = "HIGH",
+                                        packageName = null,
+                                        description = null,
+                                        vulnerabilityDetailsLink = null,
+                                        suppressed = false
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val kevService = MockKevService(
+            KevCatalog(
+                title = "Test",
+                catalogVersion = "1.0",
+                dateReleased = "2023-01-01",
+                count = 0,
+                vulnerabilities = emptyList()
+            )
+        )
+
+        application {
+            testModule(tokenIntrospectionService, naisApiService, kevService)
+        }
+
+        val response = client.get("/vulnerabilities/user?bypassCache=true") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        val vulnResponse = Json.decodeFromString<VulnResponse>(response.bodyAsText())
+        assertEquals(1, vulnResponse.teams.size)
+        assertEquals("team-alpha", vulnResponse.teams[0].team)
+    }
 }
