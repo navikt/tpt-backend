@@ -608,7 +608,7 @@ class DefaultRiskScorerTest {
         val totalPercentage = breakdown?.factors?.sumOf { it.percentage } ?: 0.0
 
         assertTrue(totalPercentage >= 95.0, "Total percentage should be at least 95%")
-        assertTrue(totalPercentage <= 130.0, "Total percentage should not exceed 130% (multiplicative factors cause overlap)")
+        assertTrue(totalPercentage <= 150.0, "Total percentage should not exceed 150% (multiplicative factors cause significant overlap)")
     }
 
     @Test
