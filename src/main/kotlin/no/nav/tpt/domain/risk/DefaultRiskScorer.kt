@@ -26,7 +26,7 @@ class DefaultRiskScorer(
         val finalScore = baseScore * combinedMultiplier
 
         val multipliers = buildMultipliersMap(context.severity, baseScore, factors)
-        val breakdown = explanationGenerator.generateBreakdown(baseScore, factors, finalScore)
+        val breakdown = explanationGenerator.generateBreakdown(context.severity, baseScore, factors, finalScore)
 
         return RiskScoreResult(score = finalScore, multipliers = multipliers, breakdown = breakdown)
     }
@@ -37,7 +37,6 @@ class DefaultRiskScorer(
         factors: List<RiskFactor>
     ): Map<String, Double> {
         val multipliers = mutableMapOf<String, Double>()
-        multipliers["severity"] = baseScore
 
         factors.forEach { factor ->
             when (factor.name) {

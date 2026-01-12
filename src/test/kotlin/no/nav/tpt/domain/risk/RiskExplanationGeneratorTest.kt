@@ -36,7 +36,7 @@ class RiskExplanationGeneratorTest {
         )
 
         val factors = factorCalculators.map { it.calculate(context) }
-        val breakdown = generator.generateBreakdown(70.0, factors, 100.0)
+        val breakdown = generator.generateBreakdown("HIGH", 70.0, factors, 100.0)
 
         val factorNames = factorCalculators.map { it.calculate(context).name }.toSet()
 

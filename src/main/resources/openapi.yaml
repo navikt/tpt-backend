@@ -195,9 +195,8 @@ components:
           additionalProperties:
             type: number
             format: double
-          description: Map of multipliers used in risk score calculation. Keys include severity (base severity score), exposure, kev, epss, suppressed, production, old_build_days, old_build. Only includes multipliers that were applied (excludes 1.0 values and missing data).
+          description: Map of multipliers used in risk score calculation. Keys include exposure, kev, epss, suppressed, production, old_build_days, old_build. Only includes multipliers that were applied (excludes 1.0 values and missing data). Note - the base severity score is available in riskScoreBreakdown.factors.
           example:
-            severity: 70.0
             exposure: 2.0
             kev: 1.5
             epss: 1.2
@@ -225,7 +224,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/RiskFactorExplanation'
-          description: List of factors that contributed to the risk score
+          description: List of factors that contributed to the risk score, including the base severity score as a factor.
         totalScore:
           type: number
           format: double
@@ -242,7 +241,7 @@ components:
       properties:
         name:
           type: string
-          description: Factor name (e.g., exposure, kev, epss)
+          description: Factor name (e.g., severity, exposure, kev, epss). The severity factor represents the base score.
           example: "exposure"
         contribution:
           type: number
@@ -252,7 +251,7 @@ components:
         percentage:
           type: number
           format: double
-          description: Percentage contribution to the total score
+          description: Percentage contribution to the total score. All factors including base severity will sum to approximately 100% (may slightly exceed due to multiplicative factor interactions).
           example: 37.9
         explanation:
           type: string

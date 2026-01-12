@@ -8,7 +8,7 @@ data class RiskScoringConfig(
     val unknownBaseScore: Double = 10.0,
 
     val externalExposureMultiplier: Double = 2.0,
-    val authenticatedExposureMultiplier: Double = 1.5,
+    val authenticatedExposureMultiplier: Double = 1.2,
     val internalExposureMultiplier: Double = 1.0,
     val noIngressMultiplier: Double = 0.5,
 

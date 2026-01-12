@@ -3,29 +3,46 @@ package no.nav.tpt.domain.risk
 class RiskExplanationGenerator(private val config: RiskScoringConfig) {
 
     fun generateBreakdown(
+        severity: String,
         baseScore: Double,
         factors: List<RiskFactor>,
         finalScore: Double
     ): RiskScoreBreakdown {
-        val explanations = factors
-            .filter { factor -> factor.value != 1.0 }
-            .map { factor ->
-                val contribution = calculateContribution(baseScore, factor, factors)
-                val percentage = if (finalScore > 0) (contribution / finalScore) * 100 else 0.0
+        val allExplanations = mutableListOf<RiskFactorExplanation>()
 
-                RiskFactorExplanation(
-                    name = factor.name,
-                    contribution = contribution,
-                    percentage = percentage,
-                    explanation = generateExplanation(factor),
-                    impact = determineImpact(factor.value, factor.name)
-                )
-            }
-            .sortedByDescending { kotlin.math.abs(it.contribution) }
+        // Add base severity as the first factor
+        val basePercentage = if (finalScore > 0) (baseScore / finalScore) * 100 else 0.0
+        allExplanations.add(
+            RiskFactorExplanation(
+                name = "severity",
+                contribution = baseScore,
+                percentage = basePercentage,
+                explanation = generateSeverityExplanation(severity, baseScore),
+                impact = determineBaseSeverityImpact(baseScore)
+            )
+        )
+
+        // Add other factors
+        allExplanations.addAll(
+            factors
+                .filter { factor -> factor.value != 1.0 }
+                .map { factor ->
+                    val contribution = calculateContribution(baseScore, factor, factors)
+                    val percentage = if (finalScore > 0) (contribution / finalScore) * 100 else 0.0
+
+                    RiskFactorExplanation(
+                        name = factor.name,
+                        contribution = contribution,
+                        percentage = percentage,
+                        explanation = generateExplanation(factor),
+                        impact = determineImpact(factor.value, factor.name)
+                    )
+                }
+        )
 
         return RiskScoreBreakdown(
             baseScore = baseScore,
-            factors = explanations,
+            factors = allExplanations,
             totalScore = finalScore
         )
     }
@@ -89,6 +106,20 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             if (hasPatch) "Patch is available" else "No patch information"
         }
         else -> factor.name
+    }
+
+    private fun generateSeverityExplanation(severity: String, baseScore: Double): String {
+        return "Base severity score (${severity.uppercase()})"
+    }
+
+    private fun determineBaseSeverityImpact(baseScore: Double): ImpactLevel {
+        return when {
+            baseScore >= 100.0 -> ImpactLevel.CRITICAL
+            baseScore >= 70.0 -> ImpactLevel.HIGH
+            baseScore >= 40.0 -> ImpactLevel.MEDIUM
+            baseScore >= 20.0 -> ImpactLevel.LOW
+            else -> ImpactLevel.NONE
+        }
     }
 
     // Values >1.0 increase risk, <1.0 mitigate risk (both significant for scoring)
