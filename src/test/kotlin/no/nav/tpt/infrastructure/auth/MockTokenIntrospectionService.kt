@@ -3,9 +3,9 @@ package no.nav.tpt.infrastructure.auth
 import kotlinx.serialization.json.JsonPrimitive
 
 class MockTokenIntrospectionService(
-    private val shouldSucceed: Boolean = false,
-    private val navIdent: String? = null,
-    private val preferredUsername: String? = null
+    private val shouldSucceed: Boolean = true,
+    private val navIdent: String? = "Z999999",
+    private val preferredUsername: String? = "lokal.utvikler@nav.no"
 ) : TokenIntrospectionService {
     override suspend fun introspect(token: String): IntrospectionResponse {
         if (!shouldSucceed) {
