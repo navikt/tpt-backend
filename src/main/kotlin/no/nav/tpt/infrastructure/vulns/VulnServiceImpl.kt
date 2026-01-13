@@ -79,7 +79,6 @@ class VulnServiceImpl(
                         description = vuln.description,
                         vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
                         riskScore = riskResult.score,
-                        riskScoreMultipliers = riskResult.multipliers,
                         riskScoreBreakdown = riskResult.breakdown
                     )
                 }

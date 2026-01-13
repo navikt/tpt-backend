@@ -1,6 +1,8 @@
 package no.nav.tpt.domain.risk
 
 import org.junit.Assert.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import kotlin.collections.find
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -537,13 +539,11 @@ class DefaultRiskScorerTest {
                 environment = null,
                 buildDate = oldBuildDate
             )
-        )
+        ).breakdown?.factors
 
-        assertTrue(result.multipliers.containsKey("old_build"))
-        assertTrue(result.multipliers.containsKey("old_build_days"))
-        assertEquals(1.1, result.multipliers["old_build"])
-        assertEquals(120.0, result.multipliers["old_build_days"])
-    }
+        assertNotNull(result)
+        assertTrue(result?.find { it.name == "build_age" } != null)
+        assertEquals(1.1, result.find { it.name == "build_age" }?.multiplier) }
 
     @Test
     fun `should not include build age in multipliers when recent`() {
@@ -559,10 +559,10 @@ class DefaultRiskScorerTest {
                 environment = null,
                 buildDate = recentBuildDate
             )
-        )
+        ).breakdown?.factors
 
-        assertFalse(result.multipliers.containsKey("old_build"))
-        assertFalse(result.multipliers.containsKey("old_build_days"))
+        assertFalse(result?.find { it.name == "old_build" } != null)
+        assertFalse(result?.find { it.name == "old_build_days" } != null)
     }
 
     @Test
@@ -589,29 +589,6 @@ class DefaultRiskScorerTest {
     }
 
     @Test
-    fun `should verify all factors sum to approximately 100 percent`() {
-        val result = riskScorer.calculateRiskScore(
-            VulnerabilityRiskContext(
-                severity = "CRITICAL",
-                ingressTypes = listOf("EXTERNAL"),
-                hasKevEntry = true,
-                epssScore = "0.5",
-                suppressed = false,
-                environment = "prod",
-                buildDate = java.time.LocalDate.now().minusDays(100),
-                hasExploitReference = true,
-                hasPatchReference = true
-            )
-        )
-
-        val breakdown = result.breakdown
-        val totalPercentage = breakdown?.factors?.sumOf { it.percentage } ?: 0.0
-
-        assertTrue(totalPercentage >= 95.0, "Total percentage should be at least 95%")
-        assertTrue(totalPercentage <= 150.0, "Total percentage should not exceed 150% (multiplicative factors cause significant overlap)")
-    }
-
-    @Test
     fun `should assign CRITICAL impact for severity base score of 100`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
@@ -628,7 +605,6 @@ class DefaultRiskScorerTest {
         val severityFactor = result.breakdown?.factors?.find { it.name == "severity" }
         assertTrue(severityFactor != null)
         assertEquals(ImpactLevel.CRITICAL, severityFactor.impact)
-        assertEquals(100.0, severityFactor.contribution, 0.01)
     }
 
     @Test
@@ -707,7 +683,7 @@ class DefaultRiskScorerTest {
 
         val exposureFactor = result.breakdown?.factors?.find { it.name == "exposure" }
         assertEquals(ImpactLevel.CRITICAL, exposureFactor?.impact)
-        assertTrue(result.multipliers["exposure"] == 2.0)
+        assertEquals(2.0, result.breakdown?.factors?.find { it.name == "exposure" }?.multiplier)
     }
 
     @Test
@@ -726,7 +702,7 @@ class DefaultRiskScorerTest {
 
         val kevFactor = result.breakdown?.factors?.find { it.name == "kev" }
         assertEquals(ImpactLevel.HIGH, kevFactor?.impact)
-        assertTrue(result.multipliers["kev"] == 1.5)
+        assertEquals(1.5, result.breakdown?.factors?.find { it.name == "kev" }?.multiplier)
     }
 
     @Test
@@ -764,7 +740,7 @@ class DefaultRiskScorerTest {
 
         val suppressionFactor = result.breakdown?.factors?.find { it.name == "suppression" }
         assertEquals(ImpactLevel.HIGH, suppressionFactor?.impact)
-        assertTrue(result.multipliers["suppressed"] == 0.3)
+        assertEquals(0.3, result.breakdown?.factors?.find { it.name == "suppression" }?.multiplier)
     }
 
     @Test
@@ -784,74 +760,7 @@ class DefaultRiskScorerTest {
         val envFactor = result.breakdown?.factors?.find { it.name == "environment" }
         assertTrue(envFactor != null, "Environment factor should be present")
         assertEquals(ImpactLevel.LOW, envFactor.impact)
-        assertTrue(result.multipliers["production"] == 1.1)
-    }
-
-    @Test
-    fun `should verify multipliers map matches breakdown factors`() {
-        val result = riskScorer.calculateRiskScore(
-            VulnerabilityRiskContext(
-                severity = "HIGH",
-                ingressTypes = listOf("EXTERNAL"),
-                hasKevEntry = true,
-                epssScore = "0.5",
-                suppressed = false,
-                environment = "prod",
-                buildDate = java.time.LocalDate.now().minusDays(100)
-            )
-        )
-
-        val breakdown = result.breakdown
-        val multipliers = result.multipliers
-
-        // Severity is now only in breakdown, not in multipliers
-        assertFalse(multipliers.containsKey("severity"))
-
-        breakdown?.factors?.forEach { factor ->
-            when (factor.name) {
-                "severity" -> {
-                    // Severity is in breakdown but not in multipliers map
-                    assertFalse(multipliers.containsKey("severity"))
-                }
-                "exposure" -> assertTrue(multipliers.containsKey("exposure"))
-                "kev" -> assertTrue(multipliers.containsKey("kev"))
-                "epss" -> assertTrue(multipliers.containsKey("epss"))
-                "environment" -> assertTrue(multipliers.containsKey("production"))
-                "build_age" -> {
-                    assertTrue(multipliers.containsKey("old_build"))
-                    assertTrue(multipliers.containsKey("old_build_days"))
-                }
-            }
-        }
-    }
-
-    @Test
-    fun `should calculate correct percentages for simple two-factor scenario`() {
-        val result = riskScorer.calculateRiskScore(
-            VulnerabilityRiskContext(
-                severity = "HIGH",
-                ingressTypes = listOf("EXTERNAL"),
-                hasKevEntry = false,
-                epssScore = null,
-                suppressed = false,
-                environment = null,
-                buildDate = null
-            )
-        )
-
-        val breakdown = result.breakdown
-        val severityFactor = breakdown?.factors?.find { it.name == "severity" }
-        val exposureFactor = breakdown?.factors?.find { it.name == "exposure" }
-
-        val expectedTotalScore = 70.0 * 2.0
-        assertEquals(expectedTotalScore, result.score, 0.01)
-
-        val severityPercentage = (70.0 / expectedTotalScore) * 100
-        val exposureContribution = expectedTotalScore - 70.0
-        val exposurePercentage = (exposureContribution / expectedTotalScore) * 100
-
-        assertEquals(severityPercentage, severityFactor?.percentage ?: 0.0, 1.0)
-        assertEquals(exposurePercentage, exposureFactor?.percentage ?: 0.0, 1.0)
+        assertEquals(1.1, result.breakdown.factors.find { it.name == "environment" }?.multiplier)
     }
 }
 

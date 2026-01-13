@@ -110,7 +110,7 @@ class VulnRoutesTest {
         assertEquals("app1", vulnResponse.teams[0].workloads[0].name)
         assertEquals(1, vulnResponse.teams[0].workloads[0].vulnerabilities.size)
         assertTrue(vulnResponse.teams[0].workloads[0].vulnerabilities[0].riskScore > 0)
-        assertTrue(vulnResponse.teams[0].workloads[0].vulnerabilities[0].riskScoreMultipliers.isNotEmpty())
+        assertFalse(vulnResponse.teams[0].workloads[0].vulnerabilities[0].riskScoreBreakdown?.factors.isNullOrEmpty())
     }
 
     @Test

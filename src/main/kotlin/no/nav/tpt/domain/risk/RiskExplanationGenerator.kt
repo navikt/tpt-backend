@@ -10,13 +10,10 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
     ): RiskScoreBreakdown {
         val allExplanations = mutableListOf<RiskFactorExplanation>()
 
-        // Add base severity as the first factor
-        val basePercentage = if (finalScore > 0) (baseScore / finalScore) * 100 else 0.0
         allExplanations.add(
             RiskFactorExplanation(
                 name = "severity",
                 contribution = baseScore,
-                percentage = basePercentage,
                 explanation = generateSeverityExplanation(severity, baseScore),
                 impact = determineBaseSeverityImpact(baseScore),
                 multiplier = 1.0
@@ -29,12 +26,10 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
                 .filter { factor -> factor.value != 1.0 }
                 .map { factor ->
                     val contribution = calculateContribution(baseScore, factor, factors)
-                    val percentage = if (finalScore > 0) (contribution / finalScore) * 100 else 0.0
 
                     RiskFactorExplanation(
                         name = factor.name,
                         contribution = contribution,
-                        percentage = percentage,
                         explanation = generateExplanation(factor),
                         impact = determineImpact(factor.value, factor.name),
                         multiplier = factor.value

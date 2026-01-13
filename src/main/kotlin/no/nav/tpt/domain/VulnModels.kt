@@ -30,6 +30,5 @@ data class VulnVulnerabilityDto(
     val description: String?,
     val vulnerabilityDetailsLink: String?,
     val riskScore: Double,
-    val riskScoreMultipliers: Map<String, Double>,
     val riskScoreBreakdown: no.nav.tpt.domain.risk.RiskScoreBreakdown? = null
 )

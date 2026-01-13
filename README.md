@@ -48,7 +48,7 @@ Tests use mocked dependencies and testcontainers for Valkey and PostgreSQL.
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (Valkey-cached)
 - **EPSS** - Exploit Prediction Scoring System (Valkey-cached)
 
-Initial NVD sync takes ~12-15 hours on first deployment.
+Initial NVD sync takes ~1-2 hours on first deployment.
 
 ## API Endpoints
 

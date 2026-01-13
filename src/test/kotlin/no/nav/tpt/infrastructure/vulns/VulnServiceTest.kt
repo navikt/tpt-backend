@@ -97,7 +97,6 @@ class VulnServiceTest {
         assertEquals("app1", result.teams[0].workloads[0].name)
         assertEquals(2, result.teams[0].workloads[0].vulnerabilities.size)
         assertTrue(result.teams[0].workloads[0].vulnerabilities[0].riskScore > 0)
-        assertTrue(result.teams[0].workloads[0].vulnerabilities[0].riskScoreMultipliers.isNotEmpty())
     }
 
     @Test

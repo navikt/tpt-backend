@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RiskScoreResult(
     val score: Double,
-    val multipliers: Map<String, Double>,
     val breakdown: RiskScoreBreakdown? = null
 )
 
@@ -20,7 +19,6 @@ data class RiskScoreBreakdown(
 data class RiskFactorExplanation(
     val name: String,
     val contribution: Double,
-    val percentage: Double,
     val explanation: String,
     val impact: ImpactLevel,
     val multiplier: Double
