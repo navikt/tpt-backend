@@ -61,7 +61,9 @@ spec:
   env:
     - name: NAIS_API_URL
       value: "https://console.nav.cloud.nais.io/graphql"
+    - name: NVD_API_URL
+      value: "https://services.nvd.nist.gov/rest/json/cves/2.0"
     - name: CACHE_TTL_MINUTES
-      value: "60"
+      value: "15"
   envFrom:
     - secret: tpt-backend

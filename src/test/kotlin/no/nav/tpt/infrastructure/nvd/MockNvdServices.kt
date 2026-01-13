@@ -142,7 +142,7 @@ private fun createMockNvdClient(): NvdClient {
             }
         }
     }
-    return NvdClient(mockHttpClient, null)
+        return NvdClient(mockHttpClient, apiKey = null, baseUrl = "http://localhost:8080/mock-nvd-api")
 }
 
 /**

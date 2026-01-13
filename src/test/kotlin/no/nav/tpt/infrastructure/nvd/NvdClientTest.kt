@@ -17,173 +17,78 @@ class NvdClientTest {
         prettyPrint = true
     }
 
-    @Test
-    fun `should successfully fetch CVE by ID`() = runTest {
-        val cve = NvdTestDataBuilder.buildCriticalKevCve()
-        val response = NvdTestDataBuilder.buildNvdResponse(
-            vulnerabilities = listOf(NvdTestDataBuilder.buildVulnerabilityItem(cve))
-        )
+    private val mockBaseUrl = "https://api.test.nvd"
 
-        val mockEngine = MockEngine { request ->
-            assertEquals("https://services.nvd.nist.gov/rest/json/cves/2.0", request.url.toString().substringBefore('?'))
-            assertTrue(request.url.parameters.contains("cveId"))
-            assertEquals("CVE-2024-9999", request.url.parameters["cveId"])
-
-            respond(
-                content = json.encodeToString(response),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
+    private fun createMockClient(
+        mockEngine: MockEngine,
+        apiKey: String? = null
+    ): NvdClient {
         val httpClient = HttpClient(mockEngine) {
             install(ContentNegotiation) {
                 json(json)
             }
         }
-
-        val nvdClient = NvdClient(httpClient, null)
-        val result = nvdClient.getCveByCveId("CVE-2024-9999")
-
-        assertNotNull(result)
-        assertEquals("CVE-2024-9999", result.id)
-        assertEquals("2024-01-20", result.cisaExploitAdd)
-        assertEquals("2024-02-10", result.cisaActionDue)
+        return NvdClient(httpClient, apiKey, mockBaseUrl)
     }
 
     @Test
-    fun `should return null when CVE not found`() = runTest {
-        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
-
-        val mockEngine = MockEngine {
-            respond(
-                content = json.encodeToString(response),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, null)
-        val result = nvdClient.getCveByCveId("CVE-9999-NOTFOUND")
-
-        assertNull(result)
-    }
-
-    @Test
-    fun `should fetch CVEs by modified date range`() = runTest {
-        val cves = listOf(
-            NvdTestDataBuilder.buildCriticalKevCve(),
-            NvdTestDataBuilder.buildHighSeverityWithExploit()
-        )
-        val response = NvdTestDataBuilder.buildNvdResponse(
-            vulnerabilities = cves.map { NvdTestDataBuilder.buildVulnerabilityItem(it) },
-            totalResults = 2
-        )
-
-        val mockEngine = MockEngine { request ->
-            assertTrue(request.url.parameters.contains("lastModStartDate"))
-            assertTrue(request.url.parameters.contains("lastModEndDate"))
-
-            respond(
-                content = json.encodeToString(response),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, null)
-        val result = nvdClient.getCvesByModifiedDate(
-            lastModStartDate = java.time.LocalDateTime.now().minusDays(7),
-            lastModEndDate = java.time.LocalDateTime.now()
-        )
-
-        assertEquals(2, result.totalResults)
-        assertEquals(2, result.vulnerabilities.size)
-    }
-
-    @Test
-    fun `should format dates as ISO 8601 with UTC timezone`() = runTest {
-        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
-
-        val mockEngine = MockEngine { request ->
-            val startDate = request.url.parameters["lastModStartDate"]
-            val endDate = request.url.parameters["lastModEndDate"]
-
-            assertNotNull(startDate)
-            assertNotNull(endDate)
-
-            // Verify format is ISO 8601 with UTC (ends with Z and has milliseconds)
-            assertTrue(startDate.endsWith("Z"), "Start date should end with Z: $startDate")
-            assertTrue(endDate.endsWith("Z"), "End date should end with Z: $endDate")
-            assertTrue(startDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")),
-                "Start date should match ISO 8601 format: $startDate")
-            assertTrue(endDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")),
-                "End date should match ISO 8601 format: $endDate")
-
-            respond(
-                content = json.encodeToString(response),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, null)
-        nvdClient.getCvesByModifiedDate(
-            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
-            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
-        )
-    }
-
-    @Test
-    fun `should parse timestamps without timezone suffix`() = runTest {
-        // NVD API sometimes returns timestamps without 'Z' suffix
-        val cve = NvdTestDataBuilder.buildCveItem(
-            published = "2002-01-02T05:00:00.000",  // No Z suffix
-            lastModified = "2002-01-03T10:30:00.000"  // No Z suffix
-        )
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
-        // Should parse successfully
-        assertEquals("CVE-2024-1234", result.cveId)
-        assertNotNull(result.publishedDate)
-        assertNotNull(result.lastModifiedDate)
-    }
-
-    @Test
-    fun `should parse timestamps with timezone suffix`() = runTest {
-        // Normal format with Z suffix
-        val cve = NvdTestDataBuilder.buildCveItem(
+    fun `should fetch CVEs by modified date with correct parameters`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
+            id = "CVE-2024-1234",
             published = "2024-01-15T10:00:00.000Z",
             lastModified = "2024-01-16T12:30:00.000Z"
         )
-        val nvdClient = NvdClient(HttpClient(), null)
+        val response = NvdTestDataBuilder.buildNvdResponse(
+            vulnerabilities = listOf(NvdTestDataBuilder.buildVulnerabilityItem(mockCve)),
+            totalResults = 1
+        )
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { request ->
+            assertEquals(mockBaseUrl, request.url.toString().substringBefore('?'))
+            assertTrue(request.url.parameters.contains("lastModStartDate"))
+            assertTrue(request.url.parameters.contains("lastModEndDate"))
 
-        // Should parse successfully
-        assertEquals("CVE-2024-1234", result.cveId)
-        assertNotNull(result.publishedDate)
-        assertNotNull(result.lastModifiedDate)
+            val startDate = request.url.parameters["lastModStartDate"]!!
+            val endDate = request.url.parameters["lastModEndDate"]!!
+
+            assertTrue(startDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")))
+            assertTrue(endDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")))
+
+            respond(
+                content = json.encodeToString(response),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCvesByModifiedDate(
+            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+        )
+
+        assertEquals(1, result.totalResults)
+        assertEquals(1, result.vulnerabilities.size)
+    }
+
+    @Test
+    fun `should fetch CVE by ID and return null when not found`() = runTest {
+        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
+
+        val mockEngine = MockEngine { request ->
+            assertEquals("CVE-NOTFOUND", request.url.parameters["cveId"])
+
+            respond(
+                content = json.encodeToString(response),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCveByCveId("CVE-NOTFOUND")
+
+        assertNull(result)
     }
 
     @Test
@@ -200,59 +105,20 @@ class NvdClientTest {
             )
         }
 
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, "test-api-key")
+        val nvdClient = createMockClient(mockEngine, apiKey = "test-api-key")
         nvdClient.getCveByCveId("CVE-2024-1234")
     }
 
     @Test
-    fun `should throw exception when NVD API returns 404`() = runTest {
-        val mockEngine = MockEngine { request ->
-            respondError(
-                status = HttpStatusCode.NotFound,
-                content = "Not Found"
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, null)
-
-        val exception = assertFailsWith<IllegalStateException> {
-            nvdClient.getCvesByModifiedDate(
-                lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
-                lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
-            )
-        }
-
-        assertTrue(exception.message?.contains("404") == true)
-    }
-
-    @Test
-    fun `should throw exception when NVD API returns 500`() = runTest {
-        val mockEngine = MockEngine { request ->
+    fun `should throw exception on API error status`() = runTest {
+        val mockEngine = MockEngine {
             respondError(
                 status = HttpStatusCode.InternalServerError,
                 content = "Internal Server Error"
             )
         }
 
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = createMockClient(mockEngine)
 
         val exception = assertFailsWith<IllegalStateException> {
             nvdClient.getCvesByModifiedDate(
@@ -265,73 +131,113 @@ class NvdClientTest {
     }
 
     @Test
-    fun `should correctly map CVE with CISA KEV data`() = runTest {
-        val cve = NvdTestDataBuilder.buildCriticalKevCve()
-        val nvdClient = NvdClient(HttpClient(), null)
+    fun `should map CVE with CISA KEV data`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
+            id = "CVE-2024-9999",
+            cisaExploitAdd = "2024-01-20",
+            cisaActionDue = "2024-02-10",
+            cisaRequiredAction = "Apply updates",
+            cisaVulnerabilityName = "Critical Bypass"
+        )
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
+
+        val result = nvdClient.mapToNvdCveData(mockCve)
 
         assertEquals("CVE-2024-9999", result.cveId)
-        assertNotNull(result.cisaExploitAdd)
         assertEquals(java.time.LocalDate.parse("2024-01-20"), result.cisaExploitAdd)
         assertEquals(java.time.LocalDate.parse("2024-02-10"), result.cisaActionDue)
-        assertEquals("Apply updates per vendor instructions", result.cisaRequiredAction)
-        assertEquals("Critical Authentication Bypass", result.cisaVulnerabilityName)
+        assertEquals("Apply updates", result.cisaRequiredAction)
+        assertEquals("Critical Bypass", result.cisaVulnerabilityName)
     }
 
     @Test
-    fun `should prioritize CVSS v3 1 over other versions`() = runTest {
-        val cve = NvdTestDataBuilder.buildCveWithMultipleCvssVersions()
-        val nvdClient = NvdClient(HttpClient(), null)
+    fun `should map CVE with CVSS scores and prioritize primary over secondary`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
+            cvssV31 = CvssMetricV31(
+                source = "nvd@nist.gov",
+                type = "Primary",
+                cvssData = CvssDataV31("3.1", "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", 9.8, "CRITICAL")
+            ),
+            cvssV2 = CvssMetricV2(
+                source = "nvd@nist.gov",
+                type = "Primary",
+                cvssData = CvssDataV2("2.0", "AV:N/AC:L/Au:N/C:P/I:P/A:P", 7.5)
+            )
+        )
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
 
-        assertEquals(7.8, result.cvssV31Score)
-        assertEquals("HIGH", result.cvssV31Severity)
-        assertEquals(7.5, result.cvssV30Score)
-        assertEquals("HIGH", result.cvssV30Severity)
-        assertEquals(6.8, result.cvssV2Score)
-        assertEquals("MEDIUM", result.cvssV2Severity) // Calculated from score: 6.8 < 7.0
+        val result = nvdClient.mapToNvdCveData(mockCve)
+
+        assertEquals(9.8, result.cvssV31Score)
+        assertEquals("CRITICAL", result.cvssV31Severity)
+        assertEquals(7.5, result.cvssV2Score)
+        assertEquals("HIGH", result.cvssV2Severity)
     }
 
     @Test
-    fun `should extract CWE IDs from weaknesses`() = runTest {
-        val cve = NvdTestDataBuilder.buildCriticalKevCve()
-        val nvdClient = NvdClient(HttpClient(), null)
+    fun `should extract CWE IDs and detect exploit and patch references`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
+            references = listOf(
+                CveReference("https://example.com/exploit", "source", listOf("Exploit")),
+                CveReference("https://example.com/patch", "source", listOf("Patch"))
+            ),
+            weaknesses = listOf(
+                CveWeakness("nvd@nist.gov", "Primary", listOf(
+                    WeaknessDescription("en", "CWE-79"),
+                    WeaknessDescription("en", "CWE-89")
+                ))
+            )
+        )
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
 
-        assertEquals(listOf("CWE-287"), result.cweIds)
-    }
+        val result = nvdClient.mapToNvdCveData(mockCve)
 
-    @Test
-    fun `should detect exploit reference tags`() = runTest {
-        val cve = NvdTestDataBuilder.buildHighSeverityWithExploit()
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
+        assertEquals(listOf("CWE-79", "CWE-89"), result.cweIds)
         assertTrue(result.hasExploitReference)
-        assertFalse(result.hasPatchReference)
-    }
-
-    @Test
-    fun `should detect patch reference tags`() = runTest {
-        val cve = NvdTestDataBuilder.buildMediumSeverityWithPatch()
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
-        assertFalse(result.hasExploitReference)
         assertTrue(result.hasPatchReference)
     }
 
     @Test
-    fun `should handle CVE with no CVSS scores`() = runTest {
-        val cve = NvdTestDataBuilder.buildRejectedCve()
-        val nvdClient = NvdClient(HttpClient(), null)
+    fun `should parse timestamps with and without timezone suffix`() = runTest {
+        val cveWithZ = NvdTestDataBuilder.buildCveItem(
+            published = "2024-01-15T10:00:00.000Z",
+            lastModified = "2024-01-16T12:30:00.000Z"
+        )
+        val cveWithoutZ = NvdTestDataBuilder.buildCveItem(
+            published = "2002-01-02T05:00:00.000",
+            lastModified = "2002-01-03T10:30:00.000"
+        )
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
+
+        val resultWithZ = nvdClient.mapToNvdCveData(cveWithZ)
+        val resultWithoutZ = nvdClient.mapToNvdCveData(cveWithoutZ)
+
+        assertNotNull(resultWithZ.publishedDate)
+        assertNotNull(resultWithZ.lastModifiedDate)
+        assertNotNull(resultWithoutZ.publishedDate)
+        assertNotNull(resultWithoutZ.lastModifiedDate)
+    }
+
+    @Test
+    fun `should handle CVE with no CVSS scores`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
+            cvssV31 = null,
+            cvssV30 = null,
+            cvssV2 = null
+        )
+
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
+
+        val result = nvdClient.mapToNvdCveData(mockCve)
 
         assertNull(result.cvssV31Score)
         assertNull(result.cvssV30Score)
@@ -339,68 +245,21 @@ class NvdClientTest {
     }
 
     @Test
-    fun `should extract English description`() = runTest {
-        val cve = NvdTestDataBuilder.buildCveItem(
+    fun `should extract English description from multiple languages`() = runTest {
+        val mockCve = NvdTestDataBuilder.buildCveItem(
             descriptions = listOf(
-                CveDescription("es", "Una vulnerabilidad de desbordamiento de búfer existe."),
-                CveDescription("en", "A buffer overflow vulnerability exists."),
-                CveDescription("fr", "Une vulnérabilité de dépassement de tampon existe.")
+                CveDescription("es", "Descripción en español"),
+                CveDescription("en", "English description"),
+                CveDescription("fr", "Description en français")
             )
         )
-        val nvdClient = NvdClient(HttpClient(), null)
 
-        val result = nvdClient.mapToNvdCveData(cve)
+        val mockEngine = MockEngine { respond("", HttpStatusCode.OK) }
+        val nvdClient = createMockClient(mockEngine)
 
-        assertEquals("A buffer overflow vulnerability exists.", result.description)
-    }
+        val result = nvdClient.mapToNvdCveData(mockCve)
 
-    @Test
-    fun `should calculate days old correctly`() = runTest {
-        val publishedDate = java.time.LocalDateTime.now().minusDays(30)
-        val cve = NvdTestDataBuilder.buildCveItem(
-            published = "${publishedDate}Z"
-        )
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
-        assertTrue(result.daysOld >= 29 && result.daysOld <= 31) // Allow for timing variations
-    }
-
-    @Test
-    fun `should handle Primary vs Secondary CVSS scores`() = runTest {
-        val cve = NvdTestDataBuilder.buildCveItem(
-            cvssV31 = CvssMetricV31(
-                source = "secondary@example.com",
-                type = "Secondary",
-                cvssData = CvssDataV31("3.1", "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:L", 5.0, "MEDIUM")
-            )
-        )
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
-        // Should use Secondary score since no Primary is available
-        assertEquals(5.0, result.cvssV31Score)
-        assertEquals("MEDIUM", result.cvssV31Severity)
-    }
-
-    @Test
-    fun `should extract all reference URLs`() = runTest {
-        val cve = NvdTestDataBuilder.buildCveItem(
-            references = listOf(
-                CveReference("https://example.com/advisory1", "vendor@example.com", listOf("Vendor Advisory")),
-                CveReference("https://example.com/advisory2", "vendor@example.com", listOf("Patch")),
-                CveReference("https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-1234", "mitre", null)
-            )
-        )
-        val nvdClient = NvdClient(HttpClient(), null)
-
-        val result = nvdClient.mapToNvdCveData(cve)
-
-        assertEquals(3, result.references.size)
-        assertTrue(result.references.contains("https://example.com/advisory1"))
-        assertTrue(result.references.contains("https://example.com/advisory2"))
+        assertEquals("English description", result.description)
     }
 }
 

@@ -15,7 +15,7 @@ import java.time.temporal.ChronoUnit
 class NvdClient(
     private val httpClient: HttpClient,
     private val apiKey: String?,
-    private val baseUrl: String = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+    private val baseUrl: String
 ) {
 
     private val logger = LoggerFactory.getLogger(NvdClient::class.java)

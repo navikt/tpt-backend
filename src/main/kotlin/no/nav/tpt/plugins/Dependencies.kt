@@ -100,7 +100,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val epssService = CachedEpssService(epssClient, epssCache, epssCircuitBreaker)
 
     val database = DatabaseFactory.init(config)
-    val nvdClient = NvdClient(httpClient, config.nvdApiKey)
+    val nvdClient = NvdClient(httpClient, apiKey = config.nvdApiKey, baseUrl = config.nvdApiUrl)
     val nvdRepository = NvdRepositoryImpl(database)
     val nvdSyncService = NvdSyncService(nvdClient, nvdRepository)
 

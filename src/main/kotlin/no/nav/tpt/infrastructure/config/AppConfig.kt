@@ -5,6 +5,7 @@ data class AppConfig(
     val naisApiUrl: String,
     val naisApiToken: String,
     val dbJdbcUrl: String,
+    val nvdApiUrl: String,
     val nvdApiKey: String?,
     val valkeyHost: String,
     val valkeyPort: Int,
@@ -50,6 +51,8 @@ data class AppConfig(
 
             val nvdApiKey = System.getenv("NVD_API_KEY")
 
+            val nvdApiUrl = System.getenv("NVD_API_URL") ?: error("NVD_API_URL not configured")
+
             val cacheTtlMinutes = System.getenv("CACHE_TTL_MINUTES")?.toLongOrNull()
                 ?: 5L
 
@@ -59,6 +62,7 @@ data class AppConfig(
                 naisApiToken = naisApiToken,
                 dbJdbcUrl = dbJdbcUrl,
                 nvdApiKey = nvdApiKey,
+                nvdApiUrl = nvdApiUrl,
                 valkeyHost = valkeyHost,
                 valkeyPort = valkeyPort,
                 valkeyUsername = valkeyUsername,

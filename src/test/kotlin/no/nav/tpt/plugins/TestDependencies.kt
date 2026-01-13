@@ -49,6 +49,7 @@ fun Application.installTestDependencies(
         naisApiUrl = "http://test-nais-api",
         naisApiToken = "test-token",
         dbJdbcUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test",
+        nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         valkeyHost = "localhost",
         valkeyPort = 6379,

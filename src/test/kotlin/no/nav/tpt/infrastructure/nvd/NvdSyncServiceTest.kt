@@ -19,6 +19,8 @@ class NvdSyncServiceTest {
         prettyPrint = true
     }
 
+    private val testBaseUrl = "https://test.nvd.api"
+
     @Test
     fun `should sync date range successfully`() = runTest {
         val cves = listOf(
@@ -45,7 +47,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -106,7 +108,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -141,7 +143,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -170,7 +172,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -215,7 +217,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val syncService = NvdSyncService(nvdClient, repository)
 
         syncService.performIncrementalSync()
@@ -250,7 +252,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val syncService = NvdSyncService(nvdClient, repository)
 
         syncService.performIncrementalSync()
@@ -276,7 +278,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -305,7 +307,7 @@ class NvdSyncServiceTest {
             }
         }
 
-        val nvdClient = NvdClient(httpClient, null)
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
         val repository = InMemoryNvdRepository()
         val syncService = NvdSyncService(nvdClient, repository)
 
@@ -356,4 +358,3 @@ class InMemoryNvdRepository : NvdRepository {
 
     fun clear() = cves.clear()
 }
-

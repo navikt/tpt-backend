@@ -105,6 +105,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         naisApiUrl = "http://localhost:8080/mock-nais-api",
         naisApiToken = "mock-token",
         dbJdbcUrl = postgres.jdbcUrl,
+        nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         valkeyHost = valkey.host,
         valkeyPort = valkey.getMappedPort(6379),
