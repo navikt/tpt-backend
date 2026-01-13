@@ -22,7 +22,8 @@ data class RiskFactorExplanation(
     val contribution: Double,
     val percentage: Double,
     val explanation: String,
-    val impact: ImpactLevel
+    val impact: ImpactLevel,
+    val multiplier: Double
 )
 
 enum class ImpactLevel {

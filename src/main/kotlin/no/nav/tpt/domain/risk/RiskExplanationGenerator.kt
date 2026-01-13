@@ -18,7 +18,8 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
                 contribution = baseScore,
                 percentage = basePercentage,
                 explanation = generateSeverityExplanation(severity, baseScore),
-                impact = determineBaseSeverityImpact(baseScore)
+                impact = determineBaseSeverityImpact(baseScore),
+                multiplier = 1.0
             )
         )
 
@@ -35,7 +36,8 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
                         contribution = contribution,
                         percentage = percentage,
                         explanation = generateExplanation(factor),
-                        impact = determineImpact(factor.value, factor.name)
+                        impact = determineImpact(factor.value, factor.name),
+                        multiplier = factor.value
                     )
                 }
         )

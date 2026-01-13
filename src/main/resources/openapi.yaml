@@ -238,6 +238,7 @@ components:
         - percentage
         - explanation
         - impact
+        - multiplier
       properties:
         name:
           type: string
@@ -262,6 +263,11 @@ components:
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
           description: Impact level of this factor
           example: "CRITICAL"
+        multiplier:
+          type: number
+          format: double
+          description: The multiplier value applied for this factor. Values >1.0 increase risk, <1.0 decrease risk, =1.0 no effect (base severity).
+          example: 2.0
     ProblemDetail:
       type: object
       required:
