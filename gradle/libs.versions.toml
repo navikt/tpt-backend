@@ -13,7 +13,7 @@ jakarta-validation = "3.1.1"
 postgresql = "42.7.8"
 exposed = "0.61.0"
 hikaricp = "7.0.2"
-flyway = "11.19.1"
+flyway = "11.20.0"
 
 [libraries]
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
