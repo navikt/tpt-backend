@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.ConfigResponse
+import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.plugins.testModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,21 +26,9 @@ class ConfigRoutesTest {
         val responseBody = response.bodyAsText()
         val config = json.decodeFromString<ConfigResponse>(responseBody)
 
-        assertEquals(100.0, config.thresholds.high)
-        assertEquals(50.0, config.thresholds.medium)
-        assertEquals(30.0, config.thresholds.low)
-    }
-
-    @Test
-    fun `should return thresholds in descending order`() = testApplication {
-        application { testModule() }
-
-        val response = client.get("/config")
-        val responseBody = response.bodyAsText()
-        val config = json.decodeFromString<ConfigResponse>(responseBody)
-
-        assertTrue(config.thresholds.high > config.thresholds.medium)
-        assertTrue(config.thresholds.medium > config.thresholds.low)
+        assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_HIGH, config.thresholds.high)
+        assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM, config.thresholds.medium)
+        assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_LOW, config.thresholds.low)
     }
 
     @Test

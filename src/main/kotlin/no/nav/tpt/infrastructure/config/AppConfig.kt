@@ -11,11 +11,15 @@ data class AppConfig(
     val valkeyUsername: String,
     val valkeyPassword: String,
     val cacheTtlMinutes: Long,
-    val riskThresholdHigh: Double = 100.0,
-    val riskThresholdMedium: Double = 50.0,
-    val riskThresholdLow: Double = 30.0
+    val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
+    val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
+    val riskThresholdLow: Double = DEFAULT_RISK_THRESHOLD_LOW
 ) {
     companion object {
+        const val DEFAULT_RISK_THRESHOLD_HIGH = 220.0
+        const val DEFAULT_RISK_THRESHOLD_MEDIUM = 150.0
+        const val DEFAULT_RISK_THRESHOLD_LOW = 100.0
+
         fun fromEnvironment(): AppConfig {
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
                 ?: error("NAIS_TOKEN_INTROSPECTION_ENDPOINT not configured")
@@ -49,15 +53,6 @@ data class AppConfig(
             val cacheTtlMinutes = System.getenv("CACHE_TTL_MINUTES")?.toLongOrNull()
                 ?: 5L
 
-            val riskThresholdHigh = System.getenv("RISK_THRESHOLD_HIGH")?.toDoubleOrNull()
-                ?: 130.0
-
-            val riskThresholdMedium = System.getenv("RISK_THRESHOLD_MEDIUM")?.toDoubleOrNull()
-                ?: 75.0
-
-            val riskThresholdLow = System.getenv("RISK_THRESHOLD_LOW")?.toDoubleOrNull()
-                ?: 30.0
-
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
@@ -68,10 +63,7 @@ data class AppConfig(
                 valkeyPort = valkeyPort,
                 valkeyUsername = valkeyUsername,
                 valkeyPassword = valkeyPassword,
-                cacheTtlMinutes = cacheTtlMinutes,
-                riskThresholdHigh = riskThresholdHigh,
-                riskThresholdMedium = riskThresholdMedium,
-                riskThresholdLow = riskThresholdLow
+                cacheTtlMinutes = cacheTtlMinutes
             )
         }
     }
