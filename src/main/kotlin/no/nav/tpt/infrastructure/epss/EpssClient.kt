@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 class EpssClient(
     private val httpClient: HttpClient,
-    private val baseUrl: String = "https://api.first.org/data/v1"
+    private val baseUrl: String
 ) {
     private val logger = LoggerFactory.getLogger(EpssClient::class.java)
 

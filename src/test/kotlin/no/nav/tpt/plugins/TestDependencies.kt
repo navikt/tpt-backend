@@ -51,6 +51,7 @@ fun Application.installTestDependencies(
         dbJdbcUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test",
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
+        epssApiUrl = "http://localhost:8080/mock-epss-api",
         valkeyHost = "localhost",
         valkeyPort = 6379,
         valkeyUsername = "test",

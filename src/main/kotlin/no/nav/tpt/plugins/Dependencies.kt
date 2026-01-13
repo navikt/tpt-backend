@@ -86,7 +86,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     )
     val kevService = CachedKevService(kevClient, kevCache)
 
-    val epssClient = EpssClient(httpClient)
+    val epssClient = EpssClient(httpClient, baseUrl = config.epssApiUrl)
     val epssCache = ValkeyCache<String, EpssScore>(
         pool = valkeyPool,
         ttl = 24.minutes * 60,

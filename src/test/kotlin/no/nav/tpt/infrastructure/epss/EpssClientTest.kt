@@ -11,10 +11,12 @@ import kotlin.test.*
 
 class EpssClientTest {
 
+    private val testBaseUrl = "http://localhost:8080/mock-epss-api"
+
     @Test
     fun `should fetch EPSS scores for single CVE`() = runTest {
         val mockEngine = MockEngine { request ->
-            assertEquals("https://api.first.org/data/v1/epss?cve=CVE-2021-44228", request.url.toString())
+            assertEquals("$testBaseUrl/epss?cve=CVE-2021-44228", request.url.toString())
             respond(
                 content = """
                     {
@@ -42,7 +44,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val response = epssClient.getEpssScores(listOf("CVE-2021-44228"))
 
         assertEquals("OK", response.status)
@@ -92,7 +94,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val response = epssClient.getEpssScores(listOf("CVE-2021-44228", "CVE-2022-22965"))
 
         assertEquals("OK", response.status)
@@ -120,7 +122,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val response = epssClient.getEpssScores(emptyList())
 
         assertEquals("OK", response.status)
@@ -151,7 +153,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val response = epssClient.getEpssScores(listOf("CVE-9999-99999"))
 
         assertEquals("OK", response.status)
@@ -175,7 +177,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
 
         assertFailsWith<EpssRateLimitException> {
             epssClient.getEpssScores(listOf("CVE-2021-44228"))
@@ -198,7 +200,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
 
         assertFailsWith<EpssApiException> {
             epssClient.getEpssScores(listOf("CVE-2021-44228"))
@@ -221,7 +223,7 @@ class EpssClientTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
 
         assertFailsWith<EpssApiException> {
             epssClient.getEpssScores(listOf("CVE-2021-44228"))

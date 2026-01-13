@@ -107,6 +107,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         dbJdbcUrl = postgres.jdbcUrl,
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
+        epssApiUrl = "http://localhost:8080/mock-epss-api",
         valkeyHost = valkey.host,
         valkeyPort = valkey.getMappedPort(6379),
         valkeyUsername = "default",

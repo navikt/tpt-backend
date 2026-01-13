@@ -12,6 +12,8 @@ import kotlin.test.*
 
 class CachedEpssServiceTest {
 
+    private val testBaseUrl = "http://localhost:8080/mock-epss-api"
+
     private class InMemoryCache<K, V> : Cache<K, V> {
         private val storage = mutableMapOf<K, V>()
 
@@ -68,7 +70,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -116,7 +118,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -166,7 +168,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -190,7 +192,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -215,7 +217,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -240,7 +242,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -265,7 +267,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -314,7 +316,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -366,7 +368,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -390,7 +392,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -438,7 +440,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -495,7 +497,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -527,7 +529,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = true)
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -552,7 +554,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = false)
         val service = CachedEpssService(epssClient, cache, circuitBreaker)
@@ -593,7 +595,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker(open = true)
         circuitBreaker.setOpen(false) // Allow this test call to go through
@@ -647,7 +649,7 @@ class CachedEpssServiceTest {
             }
         }
 
-        val epssClient = EpssClient(httpClient)
+        val epssClient = EpssClient(httpClient, testBaseUrl)
         val cache = InMemoryCache<String, EpssScore>()
         val circuitBreaker = MockCircuitBreaker()
         val service = CachedEpssService(epssClient, cache, circuitBreaker)

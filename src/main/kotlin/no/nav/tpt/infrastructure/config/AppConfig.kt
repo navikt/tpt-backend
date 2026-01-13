@@ -7,6 +7,7 @@ data class AppConfig(
     val dbJdbcUrl: String,
     val nvdApiUrl: String,
     val nvdApiKey: String?,
+    val epssApiUrl: String,
     val valkeyHost: String,
     val valkeyPort: Int,
     val valkeyUsername: String,
@@ -53,6 +54,8 @@ data class AppConfig(
 
             val nvdApiUrl = System.getenv("NVD_API_URL") ?: error("NVD_API_URL not configured")
 
+            val epssApiUrl = System.getenv("EPSS_API_URL") ?: error("EPSS_API_URL not configured")
+
             val cacheTtlMinutes = System.getenv("CACHE_TTL_MINUTES")?.toLongOrNull()
                 ?: 5L
 
@@ -63,6 +66,7 @@ data class AppConfig(
                 dbJdbcUrl = dbJdbcUrl,
                 nvdApiKey = nvdApiKey,
                 nvdApiUrl = nvdApiUrl,
+                epssApiUrl = epssApiUrl,
                 valkeyHost = valkeyHost,
                 valkeyPort = valkeyPort,
                 valkeyUsername = valkeyUsername,

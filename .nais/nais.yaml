@@ -63,6 +63,8 @@ spec:
       value: "https://console.nav.cloud.nais.io/graphql"
     - name: NVD_API_URL
       value: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+    - name: EPSS_API_URL
+      value: "https://api.first.org/data/v1"
     - name: CACHE_TTL_MINUTES
       value: "15"
   envFrom:
