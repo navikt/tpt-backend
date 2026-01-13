@@ -19,7 +19,7 @@ data class RiskScoringConfig(
     val epssMediumMultiplier: Double = 1.2,
     val epssLowMultiplier: Double = 1.1,
 
-    val suppressedMultiplier: Double = 0.3,
+    val suppressedMultiplier: Double = 0.2,
 
     val productionEnvironmentMultiplier: Double = 1.1,
 

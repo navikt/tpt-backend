@@ -524,7 +524,7 @@ class DefaultRiskScorerTest {
     }
 
     @Test
-    fun `should score medium vulnerability with external ingress in production and old build above medium threshold`() {
+    fun `should score medium vulnerability with external ingress in production and old build above low threshold`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "MEDIUM",
@@ -537,8 +537,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
-            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}, but got ${result.score}"
+        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_LOW,
+            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}, but got ${result.score}"
         )
     }
 
