@@ -39,6 +39,12 @@ tasks.test {
     }
 }
 
+tasks.register<JavaExec>("runLocalDev") {
+    description = "Run the application in local development mode"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("no.nav.tpt.LocalDevApplicationKt")
+}
+
 fabrikt {
     generate("openapi") {
         apiFile = file("src/main/resources/openapi.yaml")

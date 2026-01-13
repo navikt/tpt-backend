@@ -13,7 +13,9 @@ API to help developers prioritize which security issues to fix first. Fetches vu
 - `NAIS_API_URL` - NAIS GraphQL API endpoint (required)
 - `NAIS_API_TOKEN` - NAIS API token (required)
 - `NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL` - PostgreSQL JDBC URL (auto-injected by NAIS)
+- `NVD_API_URL` - NVD API URL, no default but currently https://services.nvd.nist.gov/rest/json/cves/2.0
 - `NVD_API_KEY` - NVD API key for higher rate limits (optional)
+- `EPSS_API_URL` - EPSS API URL, no default but currently https://api.first.org/data/v1
 - `VALKEY_HOST` - Valkey host (default: localhost)
 - `VALKEY_PORT` - Valkey port (default: 6379)
 - `VALKEY_USERNAME` - Valkey username (optional)
@@ -25,10 +27,7 @@ Request NVD Api key at [NIST](https://nvd.nist.gov/developers/request-an-api-key
 ## Running Locally
 
 ```bash
-export NAIS_TOKEN_INTROSPECTION_ENDPOINT="https://your-endpoint"
-export NAIS_API_URL="https://console.nav.cloud.nais.io/query"
-export NAIS_API_TOKEN="your-token"
-./gradlew run
+./gradlew runLocalDev
 ```
 
 Application starts on `http://localhost:8080`
