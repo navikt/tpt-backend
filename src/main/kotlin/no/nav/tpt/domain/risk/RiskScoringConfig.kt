@@ -14,7 +14,7 @@ data class RiskScoringConfig(
 
     val kevListedMultiplier: Double = 2.0,
 
-    val epssVeryHighMultiplier: Double = 1.5,
+    val epssVeryHighMultiplier: Double = 1.6,
     val epssHighMultiplier: Double = 1.3,
     val epssMediumMultiplier: Double = 1.2,
     val epssLowMultiplier: Double = 1.1,
@@ -27,6 +27,6 @@ data class RiskScoringConfig(
     val oldBuildThresholdDays: Long = 90,
 
     val exploitReferenceMultiplier: Double = 1.3,
-    val patchAvailableMultiplier: Double = 0.9
+    val patchAvailableMultiplier: Double = 1.1
 )
 
