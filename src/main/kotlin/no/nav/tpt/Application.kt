@@ -14,6 +14,7 @@ import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureNvdSync
 import no.nav.tpt.plugins.dependencies
+import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
 import org.slf4j.event.Level
@@ -52,6 +53,7 @@ fun Application.module() {
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")
         healthRoutes()
+        configRoutes()
         vulnRoutes()
     }
 }
