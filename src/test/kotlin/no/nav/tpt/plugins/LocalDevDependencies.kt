@@ -21,7 +21,7 @@ import no.nav.tpt.infrastructure.nvd.MockNvdRepository
 import no.nav.tpt.infrastructure.nvd.MockNvdSyncService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.nvd.NvdSyncService
-import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.infrastructure.vulns.MockVulnService
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.testcontainers.containers.GenericContainer
@@ -97,8 +97,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val leaderElection = LeaderElection(httpClient)
 
-    val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer)
+    val vulnService = MockVulnService()
 
     val config = AppConfig(
         naisTokenIntrospectionEndpoint = "http://localhost:8080/mock-introspection",

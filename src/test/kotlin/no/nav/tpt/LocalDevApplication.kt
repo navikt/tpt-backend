@@ -62,6 +62,7 @@ fun Application.localDevModule() {
     log.info("Server: http://0.0.0.0:8080")
     log.info("User: lokal.utvikler@nav.no (NAVident: Z999999)")
     log.info("Authentication: Any Bearer token accepted")
+    log.info("Mock Data: src/test/resources/mock-vulnerabilities.json")
     log.info("=".repeat(80))
 }
 
