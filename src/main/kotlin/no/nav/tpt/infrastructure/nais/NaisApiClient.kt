@@ -172,6 +172,7 @@ class NaisApiClient(
                     WorkloadVulnerabilitiesResponse.WorkloadNode(
                         id = firstWorkload.id,
                         name = firstWorkload.name,
+                        ingresses = firstWorkload.ingresses,
                         deployments = firstWorkload.deployments,
                         image = firstWorkload.image?.let { img ->
                             WorkloadVulnerabilitiesResponse.Image(
@@ -255,6 +256,7 @@ class NaisApiClient(
                         WorkloadVulnerabilitiesResponse.WorkloadNode(
                             id = workload.id,
                             name = workload.name,
+                            ingresses = workload.ingresses,
                             deployments = workload.deployments,
                             image = WorkloadVulnerabilitiesResponse.Image(
                                 name = workload.image.name,
