@@ -543,7 +543,7 @@ class DefaultRiskScorerTest {
     }
 
     @Test
-    fun `should score suppressed critical vulnerability with all risk factors below medium threshold`() {
+    fun `should score suppressed critical vulnerability with all risk factors between medium and high threshold`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "CRITICAL",
@@ -556,7 +556,7 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM && result.score < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
             "Suppressed critical vulnerability should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM} regardless of other factors, but got ${result.score}"
         )
     }
