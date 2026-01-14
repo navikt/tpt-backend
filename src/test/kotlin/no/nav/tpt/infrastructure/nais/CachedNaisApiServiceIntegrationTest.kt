@@ -68,84 +68,18 @@ class CachedNaisApiServiceIntegrationTest {
     }
 
     @Test
-    fun `getApplicationsForUser should cache successful response`() = runTest {
-        var requestCount = 0
-
-        val mockEngine = MockEngine {
-            requestCount++
-            respond(
-                content = generateApplicationsResponse(),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-        val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
-        val cachedService = CachedNaisApiService(apiClient, naisApiCache)
-
-        // First call - should hit the API
-        val result1 = cachedService.getApplicationsForUser("test@example.com")
-        assertEquals(1, requestCount, "First call should hit the API")
-        assertEquals(2, result1.teams.size)
-
-        // Second call - should use cache
-        val result2 = cachedService.getApplicationsForUser("test@example.com")
-        assertEquals(1, requestCount, "Second call should use cache, not hit API")
-        assertEquals(2, result2.teams.size)
-
-        // Verify cache contains the data
-        val cacheKey = "user:test@example.com"
-        val cachedValue = naisApiCache.get(cacheKey)
-        assertNotNull(cachedValue, "Cache should contain the response")
-
-        httpClient.close()
-    }
-
-    @Test
-    fun `getApplicationsForUser should not cache response with errors`() = runTest {
-        var requestCount = 0
-
-        val mockEngine = MockEngine {
-            requestCount++
-            respond(
-                content = generateApplicationsErrorResponse(),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-        val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
-        val cachedService = CachedNaisApiService(apiClient, naisApiCache)
-
-        // First call - should hit the API
-        cachedService.getApplicationsForUser("test@example.com")
-        assertEquals(1, requestCount)
-
-        // Second call - should hit API again because error response was not cached
-        cachedService.getApplicationsForUser("test@example.com")
-        assertEquals(2, requestCount, "Error responses should not be cached")
-
-        httpClient.close()
-    }
-
-    @Test
     fun `getVulnerabilitiesForUser should cache successful response`() = runTest {
         var requestCount = 0
 
         val mockEngine = MockEngine {
             requestCount++
+            val response = if (requestCount % 2 == 1) {
+                generateVulnerabilitiesResponse()
+            } else {
+                generateEmptyJobsResponse()
+            }
             respond(
-                content = generateVulnerabilitiesResponse(),
+                content = response,
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
@@ -159,16 +93,16 @@ class CachedNaisApiServiceIntegrationTest {
         val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
         val cachedService = CachedNaisApiService(apiClient, naisApiCache)
 
-        // First call - should hit the API
+        // First call - should hit the API (2 requests: apps + jobs)
         val result1 = cachedService.getVulnerabilitiesForUser("test@example.com")
-        assertEquals(1, requestCount, "First call should hit the API")
+        assertEquals(2, requestCount, "First call should hit the API twice (apps + jobs)")
         assertEquals(1, result1.teams.size)
         assertEquals(1, result1.teams[0].workloads.size)
         assertEquals(2, result1.teams[0].workloads[0].vulnerabilities.size)
 
         // Second call - should use cache
         val result2 = cachedService.getVulnerabilitiesForUser("test@example.com")
-        assertEquals(1, requestCount, "Second call should use cache, not hit API")
+        assertEquals(2, requestCount, "Second call should use cache, not hit API")
         assertEquals(1, result2.teams.size)
 
         // Verify cache contains the data
@@ -200,152 +134,16 @@ class CachedNaisApiServiceIntegrationTest {
         val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
         val cachedService = CachedNaisApiService(apiClient, naisApiCache)
 
-        // First call - should hit the API
+        // First call - should hit the API (2 requests: apps + jobs)
         cachedService.getVulnerabilitiesForUser("test@example.com")
-        assertEquals(1, requestCount)
+        assertEquals(2, requestCount, "First call should hit the API twice")
 
         // Second call - should hit API again because error response was not cached
         cachedService.getVulnerabilitiesForUser("test@example.com")
-        assertEquals(2, requestCount, "Error responses should not be cached")
+        assertEquals(4, requestCount, "Error responses should not be cached, should hit API twice again")
 
         httpClient.close()
     }
-
-    @Test
-    fun `different users should have separate cache entries`() = runTest {
-        var requestCount = 0
-        val responsesByEmail = mutableMapOf<String, String>()
-
-        val mockEngine = MockEngine { _ ->
-            requestCount++
-            val email = if (requestCount == 1) "user1@example.com" else "user2@example.com"
-            val response = generateApplicationsResponse()
-            responsesByEmail[email] = response
-            respond(
-                content = response,
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-        val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
-        val cachedService = CachedNaisApiService(apiClient, naisApiCache)
-
-        // Call for user1
-        cachedService.getApplicationsForUser("user1@example.com")
-        assertEquals(1, requestCount)
-
-        // Call for user2
-        cachedService.getApplicationsForUser("user2@example.com")
-        assertEquals(2, requestCount, "Different users should have separate cache entries")
-
-        // Call for user1 again - should use cache
-        cachedService.getApplicationsForUser("user1@example.com")
-        assertEquals(2, requestCount, "User1 should still use cache")
-
-        // Call for user2 again - should use cache
-        cachedService.getApplicationsForUser("user2@example.com")
-        assertEquals(2, requestCount, "User2 should still use cache")
-
-        httpClient.close()
-    }
-
-    @Test
-    fun `cache integration with Valkey should persist across service instances`() = runTest {
-        var requestCount = 0
-
-        val mockEngine = MockEngine {
-            requestCount++
-            respond(
-                content = generateApplicationsResponse(),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(json)
-            }
-        }
-        val apiClient = NaisApiClient(httpClient, "http://test-api", "test-token")
-
-        // First service instance caches the data
-        val service1 = CachedNaisApiService(apiClient, naisApiCache)
-        val result1 = service1.getApplicationsForUser("test@example.com")
-        assertEquals(1, requestCount)
-        assertEquals(2, result1.teams.size)
-
-        // Second service instance should use the cached data
-        val service2 = CachedNaisApiService(apiClient, naisApiCache)
-        val result2 = service2.getApplicationsForUser("test@example.com")
-        assertEquals(1, requestCount, "Second instance should use cache from first instance")
-        assertEquals(2, result2.teams.size)
-
-        httpClient.close()
-    }
-
-    // Helper functions to generate mock responses
-    private fun generateApplicationsResponse(): String = """
-        {
-          "data": {
-            "user": {
-              "teams": {
-                "pageInfo": { "hasNextPage": false, "endCursor": null },
-                "nodes": [
-                  {
-                    "team": {
-                      "slug": "team-1",
-                      "applications": {
-                        "pageInfo": { "hasNextPage": false, "endCursor": null },
-                        "nodes": [
-                          {
-                            "name": "app-1",
-                            "ingresses": [
-                              { "type": "https://app1.example.com" }
-                            ],
-                            "deployments": {
-                              "nodes": [
-                                { "environmentName": "production" }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  {
-                    "team": {
-                      "slug": "team-2",
-                      "applications": {
-                        "pageInfo": { "hasNextPage": false, "endCursor": null },
-                        "nodes": []
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-    """.trimIndent()
-
-    private fun generateApplicationsErrorResponse(): String = """
-        {
-          "data": null,
-          "errors": [
-            {
-              "message": "User not found",
-              "path": ["user"]
-            }
-          ]
-        }
-    """.trimIndent()
 
     private fun generateVulnerabilitiesResponse(): String = """
         {
@@ -357,13 +155,20 @@ class CachedNaisApiServiceIntegrationTest {
                   {
                     "team": {
                       "slug": "team-1",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": { "hasNextPage": false, "endCursor": null },
                         "nodes": [
                           {
                             "id": "workload-1",
                             "name": "app-1",
-                            "deployments": { "nodes": [] },
+                            "deployments": {
+                              "nodes": [
+                                {
+                                  "repository": "navikt/app-1",
+                                  "environmentName": "production"
+                                }
+                              ]
+                            },
                             "image": {
                               "name": "image-1",
                               "tag": "1.0.0",
@@ -373,7 +178,7 @@ class CachedNaisApiServiceIntegrationTest {
                                   {
                                     "identifier": "CVE-2023-0001",
                                     "severity": "HIGH",
-                                    "package": "pkg1",
+                                    "package": "pkg:golang/example.com/pkg1@v1.0.0",
                                     "description": "Test vulnerability",
                                     "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-0001",
                                     "suppression": null
@@ -381,7 +186,7 @@ class CachedNaisApiServiceIntegrationTest {
                                   {
                                     "identifier": "CVE-2023-0002",
                                     "severity": "MEDIUM",
-                                    "package": "pkg2",
+                                    "package": "pkg:golang/example.com/pkg2@v1.0.0",
                                     "description": "Another test vulnerability",
                                     "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-0002",
                                     "suppression": null
@@ -410,6 +215,29 @@ class CachedNaisApiServiceIntegrationTest {
               "path": ["user", "teams"]
             }
           ]
+        }
+    """.trimIndent()
+
+    private fun generateEmptyJobsResponse(): String = """
+        {
+          "data": {
+            "user": {
+              "teams": {
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                "nodes": [
+                  {
+                    "team": {
+                      "slug": "team-1",
+                      "jobs": {
+                        "pageInfo": { "hasNextPage": false, "endCursor": null },
+                        "nodes": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
         }
     """.trimIndent()
 }

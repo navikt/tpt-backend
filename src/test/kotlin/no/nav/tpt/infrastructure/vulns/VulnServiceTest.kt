@@ -15,17 +15,6 @@ class VulnServiceTest {
     fun `should combine data from all sources successfully`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(
-                teams = listOf(
-                    TeamApplicationsData(
-                        teamSlug = "team-alpha",
-                        applications = listOf(
-                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL, IngressType.EXTERNAL), environment = "prod"),
-                            ApplicationData(name = "app2", ingressTypes = listOf(IngressType.INTERNAL), environment = "dev")
-                        )
-                    )
-                )
-            ),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(
                 teams = listOf(
                     TeamVulnerabilitiesData(
@@ -36,6 +25,8 @@ class VulnServiceTest {
                                 name = "app1",
                                 imageTag = null,
                                 repository = null,
+                                environment = "prod",
+                                ingressTypes = listOf("INTERNAL", "EXTERNAL"),
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
@@ -103,22 +94,20 @@ class VulnServiceTest {
     fun `should filter out workloads with no vulnerabilities`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(
-                teams = listOf(
-                    TeamApplicationsData(
-                        teamSlug = "team-beta",
-                        applications = listOf(
-                            ApplicationData(name = "app1", ingressTypes = listOf(IngressType.INTERNAL), environment = null)
-                        )
-                    )
-                )
-            ),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(
                 teams = listOf(
                     TeamVulnerabilitiesData(
                         teamSlug = "team-beta",
                         workloads = listOf(
-                            WorkloadData(id = "workload-2", name = "app1", imageTag = null, repository = null, vulnerabilities = emptyList())
+                            WorkloadData(
+                                id = "workload-2",
+                                name = "app1",
+                                imageTag = null,
+                                repository = null,
+                                environment = "production",
+                                ingressTypes = listOf("INTERNAL"),
+                                vulnerabilities = emptyList()
+                            )
                         )
                     )
                 )
@@ -146,7 +135,6 @@ class VulnServiceTest {
     fun `should filter out teams with no workloads`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(teams = emptyList()),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(
                 teams = listOf(
                     TeamVulnerabilitiesData(teamSlug = "team-gamma", workloads = emptyList())
@@ -175,11 +163,6 @@ class VulnServiceTest {
     fun `should handle workloads without matching applications`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(
-                teams = listOf(
-                    TeamApplicationsData(teamSlug = "team-delta", applications = emptyList())
-                )
-            ),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(
                 teams = listOf(
                     TeamVulnerabilitiesData(
@@ -190,6 +173,8 @@ class VulnServiceTest {
                                 name = "unknown-app",
                                 imageTag = null,
                                 repository = null,
+                                environment = "production",
+                                ingressTypes = emptyList(),
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-99999",
@@ -230,22 +215,6 @@ class VulnServiceTest {
     fun `should handle multiple teams with multiple workloads`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(
-                teams = listOf(
-                    TeamApplicationsData(
-                        teamSlug = "team-one",
-                        applications = listOf(
-                            ApplicationData(name = "app-a", ingressTypes = listOf(IngressType.EXTERNAL), environment = "prod")
-                        )
-                    ),
-                    TeamApplicationsData(
-                        teamSlug = "team-two",
-                        applications = listOf(
-                            ApplicationData(name = "app-b", ingressTypes = listOf(IngressType.INTERNAL), environment = "dev")
-                        )
-                    )
-                )
-            ),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(
                 teams = listOf(
                     TeamVulnerabilitiesData(
@@ -256,6 +225,8 @@ class VulnServiceTest {
                                 name = "app-a",
                                 imageTag = null,
                                 repository = null,
+                                environment = "prod",
+                                ingressTypes = listOf("EXTERNAL"),
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-11111",
@@ -277,6 +248,8 @@ class VulnServiceTest {
                                 name = "app-b",
                                 imageTag = null,
                                 repository = null,
+                                environment = "prod",
+                                ingressTypes = listOf("INTERNAL"),
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-22222",
@@ -339,7 +312,6 @@ class VulnServiceTest {
     fun `should return empty response when no vulnerabilities exist`() = runTest {
         val mockNaisApiService = MockNaisApiService(
             shouldSucceed = true,
-            mockUserApplicationsData = UserApplicationsData(teams = emptyList()),
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
         )
 

@@ -21,7 +21,6 @@ class VulnServiceImpl(
 ) : VulnService {
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
-        val applicationsData = naisApiService.getApplicationsForUser(email, bypassCache)
         val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
         val kevCatalog = kevService.getKevCatalog()
 
@@ -39,16 +38,8 @@ class VulnServiceImpl(
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
             val teamSlug = teamVulns.teamSlug
 
-            val teamApplications = applicationsData.teams
-                .firstOrNull { it.teamSlug == teamSlug }
-                ?.applications ?: emptyList()
-
-            val appMap = teamApplications.associateBy { it.name }
-
             val workloads = teamVulns.workloads.mapNotNull { workload ->
-                val app = appMap[workload.name]
-                val ingressTypes = app?.ingressTypes?.map { it.name } ?: emptyList()
-                val environment = app?.environment
+                val ingressTypes = workload.ingressTypes
                 val buildDate = workload.imageTag?.let { tag ->
                     ImageTagParser.extractBuildDate(tag)
                 }
@@ -64,7 +55,7 @@ class VulnServiceImpl(
                         hasKevEntry = hasKevEntry,
                         epssScore = epssScore?.epss,
                         suppressed = vuln.suppressed,
-                        environment = environment,
+                        environment = workload.environment,
                         buildDate = buildDate,
                         hasExploitReference = cveData?.hasExploitReference ?: false,
                         hasPatchReference = cveData?.hasPatchReference ?: false,
@@ -87,7 +78,7 @@ class VulnServiceImpl(
                     VulnWorkloadDto(
                         id = workload.id,
                         name = workload.name,
-                        environment = environment,
+                        environment = workload.environment,
                         repository = workload.repository,
                         vulnerabilities = vulnerabilities
                     )

@@ -11,34 +11,12 @@ class CachedNaisApiService(
     private val logger = LoggerFactory.getLogger(CachedNaisApiService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun getApplicationsForUser(email: String, bypassCache: Boolean): UserApplicationsData {
-        val cacheKey = "user:$email"
-
-        if (!bypassCache) {
-            cache.get(cacheKey)?.let { jsonString ->
-                val response = json.decodeFromString(ApplicationsForUserResponse.serializer(), jsonString)
-                return response.toData()
-            }
-        }
-
-        val response = apiClient.getApplicationsForUser(email)
-
-        if (!response.errors.isNullOrEmpty()) {
-            logger.warn("GraphQL errors for user $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
-        } else {
-            val jsonString = json.encodeToString(ApplicationsForUserResponse.serializer(), response)
-            cache.put(cacheKey, jsonString)
-        }
-
-        return response.toData()
-    }
-
     override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
         val cacheKey = "vulnerabilities:user:$email"
 
         if (!bypassCache) {
             cache.get(cacheKey)?.let { jsonString ->
-                val response = json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonString)
+                val response = json.decodeFromString(WorkloadVulnerabilitiesResponse.serializer(), jsonString)
                 return response.toData()
             }
         }
@@ -48,7 +26,7 @@ class CachedNaisApiService(
         if (!response.errors.isNullOrEmpty()) {
             logger.warn("GraphQL errors for user vulnerabilities $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
         } else {
-            val jsonString = json.encodeToString(VulnerabilitiesForUserResponse.serializer(), response)
+            val jsonString = json.encodeToString(WorkloadVulnerabilitiesResponse.serializer(), response)
             cache.put(cacheKey, jsonString)
         }
 
