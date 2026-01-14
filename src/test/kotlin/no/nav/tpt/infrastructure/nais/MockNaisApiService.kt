@@ -2,38 +2,8 @@ package no.nav.tpt.infrastructure.nais
 
 class MockNaisApiService(
     private val shouldSucceed: Boolean = true,
-    private val mockUserApplicationsData: UserApplicationsData? = null,
     private val mockUserVulnerabilitiesData: UserVulnerabilitiesData? = null
 ) : NaisApiService {
-
-    override suspend fun getApplicationsForUser(email: String, bypassCache: Boolean): UserApplicationsData {
-        if (!shouldSucceed) {
-            throw RuntimeException("Mock error: Failed to fetch applications for user")
-        }
-
-        if (mockUserApplicationsData != null) {
-            return mockUserApplicationsData
-        }
-
-        val username = email.substringBefore("@").replace(".", "-")
-        val teamSlug = "team-$username"
-        val appName = "app-$username"
-
-        return UserApplicationsData(
-            teams = listOf(
-                TeamApplicationsData(
-                    teamSlug = teamSlug,
-                    applications = listOf(
-                        ApplicationData(
-                            name = appName,
-                            ingressTypes = listOf(IngressType.INTERNAL),
-                            environment = null
-                        )
-                    )
-                )
-            )
-        )
-    }
 
     override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
         if (!shouldSucceed) {
@@ -75,7 +45,9 @@ class MockNaisApiService(
                                     vulnerabilityDetailsLink = "https://example.com/CVE-2024-11111",
                                     suppressed = false
                                 )
-                            )
+                            ),
+                            environment = "production",
+                            ingressTypes = emptyList()
                         )
                     )
                 )

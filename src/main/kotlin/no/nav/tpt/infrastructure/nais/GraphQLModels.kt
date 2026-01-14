@@ -98,7 +98,7 @@ data class ApplicationsForUserResponse(
 }
 
 @Serializable
-data class VulnerabilitiesForUserRequest(
+data class WorkloadVulnerabilitiesRequest(
     val query: String,
     val variables: Variables
 ) {
@@ -115,7 +115,7 @@ data class VulnerabilitiesForUserRequest(
 }
 
 @Serializable
-data class VulnerabilitiesForUserResponse(
+data class WorkloadVulnerabilitiesResponse(
     val data: Data? = null,
     val errors: List<GraphQLError>? = null
 ) {
@@ -143,11 +143,12 @@ data class VulnerabilitiesForUserResponse(
     @Serializable
     data class Team(
         val slug: String,
-        val workloads: Workloads
+        val applications: WorkloadConnection? = null,
+        val jobs: WorkloadConnection? = null
     )
 
     @Serializable
-    data class Workloads(
+    data class WorkloadConnection(
         val pageInfo: PageInfo,
         val nodes: List<WorkloadNode>
     )
@@ -162,8 +163,14 @@ data class VulnerabilitiesForUserResponse(
     data class WorkloadNode(
         val id: String,
         val name: String,
+        val ingresses: List<Ingress> = emptyList(),
         val deployments: Deployments,
         val image: Image?
+    )
+
+    @Serializable
+    data class Ingress(
+        val type: String
     )
 
     @Serializable
@@ -173,7 +180,8 @@ data class VulnerabilitiesForUserResponse(
 
     @Serializable
     data class Deployment(
-        val repository: String?
+        val repository: String?,
+        val environmentName: String?
     )
 
     @Serializable

@@ -1,0 +1,51 @@
+query JobVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  user(email: $email) {
+    teams(first: $teamFirst, after: $teamAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        team {
+          slug
+          jobs(first: $workloadFirst, after: $workloadAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              name
+              deployments(first: 1) {
+                nodes {
+                  repository
+                  environmentName
+                }
+              }
+              image {
+                name
+                tag
+                vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    identifier
+                    description
+                    vulnerabilityDetailsLink
+                    severity
+                    package
+                    suppression {
+                      state
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

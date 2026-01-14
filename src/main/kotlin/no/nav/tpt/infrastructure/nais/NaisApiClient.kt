@@ -14,153 +14,51 @@ class NaisApiClient(
     private val logger = LoggerFactory.getLogger(NaisApiClient::class.java)
 
     private val applicationsForUserQuery = this::class.java.classLoader
-        .getResource("graphql/applications-for-user.graphql")
+        .getResource("graphql/app-vulnerabilities-for-user.graphql")
         ?.readText()
-        ?: error("Could not load applications-for-user.graphql")
+        ?: error("Could not load app-vulnerabilities-for-user.graphql")
 
-    private val vulnerabilitiesForUserQuery = this::class.java.classLoader
-        .getResource("graphql/vulnerabilities-for-user.graphql")
+    private val jobVulnerabilitiesForUserQuery = this::class.java.classLoader
+        .getResource("graphql/job-vulnerabilities-for-user.graphql")
         ?.readText()
-        ?: error("Could not load vulnerabilities-for-user.graphql")
+        ?: error("Could not load job-vulnerabilities-for-user.graphql")
 
-    suspend fun getApplicationsForUser(email: String): ApplicationsForUserResponse {
-        val allTeamNodes = mutableListOf<ApplicationsForUserResponse.TeamNode>()
-        var teamCursor: String? = null
-        var hasMoreTeams = true
+    suspend fun getVulnerabilitiesForUser(email: String): WorkloadVulnerabilitiesResponse {
+        val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
+        val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")
 
-        // Level 2: Paginate teams (10 at a time)
-        while (hasMoreTeams) {
-            val request = ApplicationsForUserRequest(
-                query = applicationsForUserQuery,
-                variables = ApplicationsForUserRequest.Variables(
-                    email = email,
-                    appFirst = 100,
-                    appAfter = null,
-                    teamsFirst = 10,
-                    teamsAfter = teamCursor
-                )
-            )
-
-            val response = try {
-                httpClient.post(apiUrl) {
-                    contentType(ContentType.Application.Json)
-                    bearerAuth(token)
-                    setBody(request)
-                }
-            } catch (e: Exception) {
-                logger.error("HTTP error fetching applications for user $email", e)
-                throw e
-            }
-
-            val pageResponse: ApplicationsForUserResponse = response.body()
-
-            if (!pageResponse.errors.isNullOrEmpty()) {
-                logger.error("GraphQL errors for user $email: ${pageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
-                return pageResponse
-            }
-
-            if (pageResponse.data?.user == null) {
-                return ApplicationsForUserResponse(
-                    errors = listOf(
-                        ApplicationsForUserResponse.GraphQLError(
-                            message = "User not found or no data returned",
-                            path = listOf("user")
-                        )
-                    )
-                )
-            }
-
-            val teams = pageResponse.data.user.teams
-
-            // Process each team
-            for (teamNode in teams.nodes) {
-                val allApps = mutableListOf<ApplicationsForUserResponse.Application>()
-                var appCursor = teamNode.team.applications.pageInfo.endCursor
-                var hasMoreApps = teamNode.team.applications.pageInfo.hasNextPage
-
-                // Add initial applications from first team request
-                allApps.addAll(teamNode.team.applications.nodes)
-
-                // Level 1: Paginate applications (100 at a time) for each team
-                while (hasMoreApps) {
-                    val appRequest = ApplicationsForUserRequest(
-                        query = applicationsForUserQuery,
-                        variables = ApplicationsForUserRequest.Variables(
-                            email = email,
-                            appFirst = 100,
-                            appAfter = appCursor,
-                            teamsFirst = 10,
-                            teamsAfter = teamCursor
-                        )
-                    )
-
-                    val appResponse = try {
-                        httpClient.post(apiUrl) {
-                            contentType(ContentType.Application.Json)
-                            bearerAuth(token)
-                            setBody(appRequest)
-                        }
-                    } catch (e: Exception) {
-                        logger.error("HTTP error fetching applications for team ${teamNode.team.slug}", e)
-                        throw e
-                    }
-
-                    val appPageResponse: ApplicationsForUserResponse = appResponse.body()
-
-                    if (!appPageResponse.errors.isNullOrEmpty()) {
-                        logger.error("GraphQL errors fetching applications for team ${teamNode.team.slug}: ${appPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
-                        break
-                    }
-
-                    val appTeamNode = appPageResponse.data?.user?.teams?.nodes?.firstOrNull { it.team.slug == teamNode.team.slug }
-                    if (appTeamNode != null) {
-                        allApps.addAll(appTeamNode.team.applications.nodes)
-                        hasMoreApps = appTeamNode.team.applications.pageInfo.hasNextPage
-                        appCursor = appTeamNode.team.applications.pageInfo.endCursor
-                    } else {
-                        break
-                    }
-                }
-
-                allTeamNodes.add(
-                    ApplicationsForUserResponse.TeamNode(
-                        team = ApplicationsForUserResponse.Team(
-                            slug = teamNode.team.slug,
-                            applications = ApplicationsForUserResponse.Applications(
-                                pageInfo = ApplicationsForUserResponse.PageInfo(false, null),
-                                nodes = allApps
-                            )
-                        )
-                    )
-                )
-            }
-
-            hasMoreTeams = teams.pageInfo.hasNextPage
-            teamCursor = teams.pageInfo.endCursor
+        if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
+            val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
+            return WorkloadVulnerabilitiesResponse(errors = allErrors)
         }
 
-        return ApplicationsForUserResponse(
-            data = ApplicationsForUserResponse.Data(
-                user = ApplicationsForUserResponse.User(
-                    teams = ApplicationsForUserResponse.Teams(
-                        pageInfo = ApplicationsForUserResponse.PageInfo(false, null),
-                        nodes = allTeamNodes
+        val mergedTeams = mergeWorkloadResponses(appResponse, jobResponse)
+
+        return WorkloadVulnerabilitiesResponse(
+            data = WorkloadVulnerabilitiesResponse.Data(
+                user = WorkloadVulnerabilitiesResponse.User(
+                    teams = WorkloadVulnerabilitiesResponse.Teams(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        nodes = mergedTeams
                     )
                 )
             )
         )
     }
 
-    suspend fun getVulnerabilitiesForUser(email: String): VulnerabilitiesForUserResponse {
-        val allTeams = mutableListOf<VulnerabilitiesForUserResponse.TeamNode>()
+    private suspend fun fetchWorkloadVulnerabilities(
+        email: String,
+        query: String,
+        workloadType: String
+    ): WorkloadVulnerabilitiesResponse {
+        val allTeams = mutableListOf<WorkloadVulnerabilitiesResponse.TeamNode>()
         var teamCursor: String? = null
         var hasMoreTeams = true
 
-        // Level 3: Paginate teams (1 at a time)
         while (hasMoreTeams) {
-            val request = VulnerabilitiesForUserRequest(
-                query = vulnerabilitiesForUserQuery,
-                variables = VulnerabilitiesForUserRequest.Variables(
+            val request = WorkloadVulnerabilitiesRequest(
+                query = query,
+                variables = WorkloadVulnerabilitiesRequest.Variables(
                     email = email,
                     teamFirst = 1,
                     teamAfter = teamCursor,
@@ -177,21 +75,21 @@ class NaisApiClient(
                     setBody(request)
                 }
             } catch (e: Exception) {
-                logger.error("HTTP error fetching vulnerabilities for user $email", e)
+                logger.error("HTTP error fetching $workloadType vulnerabilities for user $email", e)
                 throw e
             }
 
-            val pageResponse: VulnerabilitiesForUserResponse = response.body()
+            val pageResponse: WorkloadVulnerabilitiesResponse = response.body()
 
             if (!pageResponse.errors.isNullOrEmpty()) {
-                logger.error("GraphQL errors for user vulnerabilities $email: ${pageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                logger.error("GraphQL errors for user $workloadType vulnerabilities $email: ${pageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
                 return pageResponse
             }
 
             if (pageResponse.data?.user == null) {
-                return VulnerabilitiesForUserResponse(
+                return WorkloadVulnerabilitiesResponse(
                     errors = listOf(
-                        VulnerabilitiesForUserResponse.GraphQLError(
+                        WorkloadVulnerabilitiesResponse.GraphQLError(
                             message = "User not found or no data returned",
                             path = listOf("user")
                         )
@@ -203,18 +101,22 @@ class NaisApiClient(
 
             for (teamNode in teams.nodes) {
                 val teamSlug = teamNode.team.slug
-                val allWorkloads = mutableListOf<VulnerabilitiesForUserResponse.WorkloadNode>()
-                var workloadCursor = teamNode.team.workloads.pageInfo.endCursor
-                var hasMoreWorkloads = teamNode.team.workloads.pageInfo.hasNextPage
+                val workloadConnection = when (workloadType) {
+                    "applications" -> teamNode.team.applications
+                    "jobs" -> teamNode.team.jobs
+                    else -> null
+                } ?: continue
 
-                // Add initial workloads from first team request
-                allWorkloads.addAll(teamNode.team.workloads.nodes)
+                val allWorkloads = mutableListOf<WorkloadVulnerabilitiesResponse.WorkloadNode>()
+                var workloadCursor = workloadConnection.pageInfo.endCursor
+                var hasMoreWorkloads = workloadConnection.pageInfo.hasNextPage
 
-                // Level 2: Paginate workloads (50 at a time)
+                allWorkloads.addAll(workloadConnection.nodes)
+
                 while (hasMoreWorkloads) {
-                    val workloadRequest = VulnerabilitiesForUserRequest(
-                        query = vulnerabilitiesForUserQuery,
-                        variables = VulnerabilitiesForUserRequest.Variables(
+                    val workloadRequest = WorkloadVulnerabilitiesRequest(
+                        query = query,
+                        variables = WorkloadVulnerabilitiesRequest.Variables(
                             email = email,
                             teamFirst = 1,
                             teamAfter = teamCursor,
@@ -231,47 +133,52 @@ class NaisApiClient(
                             setBody(workloadRequest)
                         }
                     } catch (e: Exception) {
-                        logger.error("HTTP error fetching workloads for team $teamSlug", e)
+                        logger.error("HTTP error fetching $workloadType for team $teamSlug", e)
                         throw e
                     }
 
-                    val workloadPageResponse: VulnerabilitiesForUserResponse = workloadResponse.body()
+                    val workloadPageResponse: WorkloadVulnerabilitiesResponse = workloadResponse.body()
 
                     if (!workloadPageResponse.errors.isNullOrEmpty()) {
-                        logger.error("GraphQL errors fetching workloads for team $teamSlug: ${workloadPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                        logger.error("GraphQL errors fetching $workloadType for team $teamSlug: ${workloadPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
                         break
                     }
 
                     val workloadTeamNode = workloadPageResponse.data?.user?.teams?.nodes?.firstOrNull()
                     if (workloadTeamNode != null) {
-                        allWorkloads.addAll(workloadTeamNode.team.workloads.nodes)
-                        hasMoreWorkloads = workloadTeamNode.team.workloads.pageInfo.hasNextPage
-                        workloadCursor = workloadTeamNode.team.workloads.pageInfo.endCursor
+                        val newConnection = when (workloadType) {
+                            "applications" -> workloadTeamNode.team.applications
+                            "jobs" -> workloadTeamNode.team.jobs
+                            else -> null
+                        }
+                        if (newConnection != null) {
+                            allWorkloads.addAll(newConnection.nodes)
+                            hasMoreWorkloads = newConnection.pageInfo.hasNextPage
+                            workloadCursor = newConnection.pageInfo.endCursor
+                        } else {
+                            break
+                        }
                     } else {
                         break
                     }
                 }
 
-                // Level 1: Paginate vulnerabilities (50 at a time) for each workload
-                // Deduplicate workloads by ID and merge their vulnerabilities
                 val uniqueWorkloads = allWorkloads.groupBy { it.id }.map { (_, workloads) ->
                     val firstWorkload = workloads.first()
-                    // Merge all vulnerabilities from all occurrences of this workload
                     val allVulns = workloads.flatMap { it.image?.vulnerabilities?.nodes ?: emptyList() }
-                    // Use the last occurrence's pageInfo to determine if there are more vulns to fetch
                     val lastWorkload = workloads.last()
                     val shouldPaginateMore = lastWorkload.image?.vulnerabilities?.pageInfo?.hasNextPage ?: false
 
-                    VulnerabilitiesForUserResponse.WorkloadNode(
+                    WorkloadVulnerabilitiesResponse.WorkloadNode(
                         id = firstWorkload.id,
                         name = firstWorkload.name,
                         deployments = firstWorkload.deployments,
                         image = firstWorkload.image?.let { img ->
-                            VulnerabilitiesForUserResponse.Image(
+                            WorkloadVulnerabilitiesResponse.Image(
                                 name = img.name,
                                 tag = img.tag,
-                                vulnerabilities = VulnerabilitiesForUserResponse.Vulnerabilities(
-                                    pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
+                                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
                                         hasNextPage = shouldPaginateMore,
                                         endCursor = lastWorkload.image?.vulnerabilities?.pageInfo?.endCursor
                                     ),
@@ -286,7 +193,7 @@ class NaisApiClient(
                     if (workload.image == null) {
                         workload
                     } else {
-                        val allVulns = mutableListOf<VulnerabilitiesForUserResponse.Vulnerability>()
+                        val allVulns = mutableListOf<WorkloadVulnerabilitiesResponse.Vulnerability>()
                         var vulnCursor: String?
                         var hasMoreVulns: Boolean
 
@@ -295,9 +202,9 @@ class NaisApiClient(
                         hasMoreVulns = workload.image.vulnerabilities.pageInfo.hasNextPage
 
                         while (hasMoreVulns) {
-                            val vulnRequest = VulnerabilitiesForUserRequest(
-                                query = vulnerabilitiesForUserQuery,
-                                variables = VulnerabilitiesForUserRequest.Variables(
+                            val vulnRequest = WorkloadVulnerabilitiesRequest(
+                                query = query,
+                                variables = WorkloadVulnerabilitiesRequest.Variables(
                                     email = email,
                                     teamFirst = 1,
                                     teamAfter = teamCursor,
@@ -319,7 +226,7 @@ class NaisApiClient(
                                 break
                             }
 
-                            val vulnPageResponse: VulnerabilitiesForUserResponse = vulnResponse.body()
+                            val vulnPageResponse: WorkloadVulnerabilitiesResponse = vulnResponse.body()
 
                             if (!vulnPageResponse.errors.isNullOrEmpty()) {
                                 logger.error("GraphQL errors fetching vulnerabilities for workload ${workload.id}: ${vulnPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
@@ -327,7 +234,13 @@ class NaisApiClient(
                             }
 
                             val paginatedWorkload = vulnPageResponse.data?.user?.teams?.nodes
-                                ?.firstOrNull()?.team?.workloads?.nodes
+                                ?.firstOrNull()?.team?.let { team ->
+                                    when (workloadType) {
+                                        "applications" -> team.applications?.nodes
+                                        "jobs" -> team.jobs?.nodes
+                                        else -> null
+                                    }
+                                }
                                 ?.firstOrNull { it.id == workload.id }
 
                             if (paginatedWorkload?.image != null) {
@@ -339,15 +252,15 @@ class NaisApiClient(
                             }
                         }
 
-                        VulnerabilitiesForUserResponse.WorkloadNode(
+                        WorkloadVulnerabilitiesResponse.WorkloadNode(
                             id = workload.id,
                             name = workload.name,
                             deployments = workload.deployments,
-                            image = VulnerabilitiesForUserResponse.Image(
+                            image = WorkloadVulnerabilitiesResponse.Image(
                                 name = workload.image.name,
                                 tag = workload.image.tag,
-                                vulnerabilities = VulnerabilitiesForUserResponse.Vulnerabilities(
-                                    pageInfo = VulnerabilitiesForUserResponse.PageInfo(false, null),
+                                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
+                                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
                                     nodes = allVulns
                                 )
                             )
@@ -355,32 +268,69 @@ class NaisApiClient(
                     }
                 }
 
-                allTeams.add(
-                    VulnerabilitiesForUserResponse.TeamNode(
-                        team = VulnerabilitiesForUserResponse.Team(
+                val teamWithWorkloads = when (workloadType) {
+                    "applications" -> WorkloadVulnerabilitiesResponse.TeamNode(
+                        team = WorkloadVulnerabilitiesResponse.Team(
                             slug = teamSlug,
-                            workloads = VulnerabilitiesForUserResponse.Workloads(
-                                pageInfo = VulnerabilitiesForUserResponse.PageInfo(false, null),
+                            applications = WorkloadVulnerabilitiesResponse.WorkloadConnection(
+                                pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                                nodes = workloadsWithAllVulns
+                            ),
+                            jobs = null
+                        )
+                    )
+                    "jobs" -> WorkloadVulnerabilitiesResponse.TeamNode(
+                        team = WorkloadVulnerabilitiesResponse.Team(
+                            slug = teamSlug,
+                            applications = null,
+                            jobs = WorkloadVulnerabilitiesResponse.WorkloadConnection(
+                                pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
                                 nodes = workloadsWithAllVulns
                             )
                         )
                     )
-                )
+                    else -> continue
+                }
+
+                allTeams.add(teamWithWorkloads)
             }
 
             hasMoreTeams = teams.pageInfo.hasNextPage
             teamCursor = teams.pageInfo.endCursor
         }
 
-        return VulnerabilitiesForUserResponse(
-            data = VulnerabilitiesForUserResponse.Data(
-                user = VulnerabilitiesForUserResponse.User(
-                    teams = VulnerabilitiesForUserResponse.Teams(
-                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(false, null),
+        return WorkloadVulnerabilitiesResponse(
+            data = WorkloadVulnerabilitiesResponse.Data(
+                user = WorkloadVulnerabilitiesResponse.User(
+                    teams = WorkloadVulnerabilitiesResponse.Teams(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
                         nodes = allTeams
                     )
                 )
             )
         )
+    }
+
+    private fun mergeWorkloadResponses(
+        appResponse: WorkloadVulnerabilitiesResponse,
+        jobResponse: WorkloadVulnerabilitiesResponse
+    ): List<WorkloadVulnerabilitiesResponse.TeamNode> {
+        val appTeams = appResponse.data?.user?.teams?.nodes ?: emptyList()
+        val jobTeams = jobResponse.data?.user?.teams?.nodes ?: emptyList()
+
+        val allTeamSlugs = (appTeams.map { it.team.slug } + jobTeams.map { it.team.slug }).distinct()
+
+        return allTeamSlugs.map { slug ->
+            val appTeam = appTeams.firstOrNull { it.team.slug == slug }
+            val jobTeam = jobTeams.firstOrNull { it.team.slug == slug }
+
+            WorkloadVulnerabilitiesResponse.TeamNode(
+                team = WorkloadVulnerabilitiesResponse.Team(
+                    slug = slug,
+                    applications = appTeam?.team?.applications,
+                    jobs = jobTeam?.team?.jobs
+                )
+            )
+        }
     }
 }

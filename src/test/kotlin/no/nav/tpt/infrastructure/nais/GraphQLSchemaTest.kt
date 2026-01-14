@@ -30,7 +30,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -42,7 +42,8 @@ class GraphQLSchemaTest {
                             "deployments": {
                               "nodes": [
                                 {
-                                  "repository": "navikt/test-app"
+                                  "repository": "navikt/test-app",
+                                  "environmentName": "production"
                                 }
                               ]
                             },
@@ -60,7 +61,7 @@ class GraphQLSchemaTest {
                                     "description": "Test vulnerability description",
                                     "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-1234",
                                     "severity": "HIGH",
-                                    "package": "test-package",
+                                    "package": "pkg:golang/example.com/test-package@v1.0.0",
                                     "suppression": {
                                       "state": "NOT_SUPPRESSED"
                                     }
@@ -111,11 +112,12 @@ class GraphQLSchemaTest {
         assertNotNull(team)
         assertEquals("test-team", team.team.slug)
 
-        val workload = team.team.workloads.nodes.firstOrNull()
+        val workload = team.team.applications?.nodes?.firstOrNull()
         assertNotNull(workload)
         assertEquals("workload-1", workload.id)
         assertEquals("test-app", workload.name)
         assertEquals("navikt/test-app", workload.deployments.nodes.firstOrNull()?.repository)
+        assertEquals("production", workload.deployments.nodes.firstOrNull()?.environmentName)
 
         val vulnerability = workload.image?.vulnerabilities?.nodes?.firstOrNull()
         assertNotNull(vulnerability)
@@ -123,7 +125,7 @@ class GraphQLSchemaTest {
         assertEquals("Test vulnerability description", vulnerability.description)
         assertEquals("https://nvd.nist.gov/vuln/detail/CVE-2023-1234", vulnerability.vulnerabilityDetailsLink)
         assertEquals("HIGH", vulnerability.severity)
-        assertEquals("test-package", vulnerability.packageName)
+        assertEquals("pkg:golang/example.com/test-package@v1.0.0", vulnerability.packageName)
         assertEquals("NOT_SUPPRESSED", vulnerability.suppression?.state)
 
         httpClient.close()
@@ -144,7 +146,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -156,7 +158,8 @@ class GraphQLSchemaTest {
                             "deployments": {
                               "nodes": [
                                 {
-                                  "repository": "navikt/test-app"
+                                  "repository": "navikt/test-app",
+                                  "environmentName": "production"
                                 }
                               ]
                             },
@@ -174,7 +177,7 @@ class GraphQLSchemaTest {
                                     "description": "Test vulnerability description",
                                     "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-1234",
                                     "severity": "HIGH",
-                                    "package": "test-package",
+                                    "package": "pkg:golang/example.com/test-package@v1.0.0",
                                     "suppression": {
                                       "state": "NOT_SUPPRESSED"
                                     }
@@ -194,7 +197,7 @@ class GraphQLSchemaTest {
         }
         """.trimIndent()
 
-        val response = json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonResponse)
+        val response = json.decodeFromString(WorkloadVulnerabilitiesResponse.serializer(), jsonResponse)
 
         assertNotNull(response.data)
         assertNotNull(response.data?.user)
@@ -202,11 +205,12 @@ class GraphQLSchemaTest {
         assertNotNull(team)
         assertEquals("test-team", team.team.slug)
 
-        val workload = team.team.workloads.nodes.firstOrNull()
+        val workload = team.team.applications?.nodes?.firstOrNull()
         assertNotNull(workload)
         assertEquals("workload-1", workload.id)
         assertEquals("test-app", workload.name)
         assertEquals("navikt/test-app", workload.deployments.nodes.firstOrNull()?.repository)
+        assertEquals("production", workload.deployments.nodes.firstOrNull()?.environmentName)
 
         val vulnerability = workload.image?.vulnerabilities?.nodes?.firstOrNull()
         assertNotNull(vulnerability)
@@ -214,7 +218,7 @@ class GraphQLSchemaTest {
         assertEquals("Test vulnerability description", vulnerability.description)
         assertEquals("https://nvd.nist.gov/vuln/detail/CVE-2023-1234", vulnerability.vulnerabilityDetailsLink)
         assertEquals("HIGH", vulnerability.severity)
-        assertEquals("test-package", vulnerability.packageName)
+        assertEquals("pkg:golang/example.com/test-package@v1.0.0", vulnerability.packageName)
         assertEquals("NOT_SUPPRESSED", vulnerability.suppression?.state)
     }
 
@@ -233,7 +237,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -311,7 +315,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -344,7 +348,7 @@ class GraphQLSchemaTest {
         """.trimIndent()
 
         try {
-            json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonResponseMissingDeployments)
+            json.decodeFromString(WorkloadVulnerabilitiesResponse.serializer(), jsonResponseMissingDeployments)
             throw AssertionError("Expected deserialization to fail due to missing deployments field")
         } catch (e: Exception) {
             assert(e.message?.contains("deployments") == true) {
@@ -368,7 +372,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -378,7 +382,12 @@ class GraphQLSchemaTest {
                             "id": "workload-1",
                             "name": "test-app",
                             "deployments": {
-                              "nodes": []
+                              "nodes": [
+                                {
+                                  "repository": null,
+                                  "environmentName": null
+                                }
+                              ]
                             },
                             "image": {
                               "name": "test-image",
@@ -457,7 +466,7 @@ class GraphQLSchemaTest {
                   {
                     "team": {
                       "slug": "test-team",
-                      "workloads": {
+                      "applications": {
                         "pageInfo": {
                           "hasNextPage": false,
                           "endCursor": null
@@ -467,7 +476,12 @@ class GraphQLSchemaTest {
                             "id": "workload-1",
                             "name": "test-app",
                             "deployments": {
-                              "nodes": []
+                              "nodes": [
+                                {
+                                  "repository": null,
+                                  "environmentName": null
+                                }
+                              ]
                             },
                             "image": {
                               "name": "test-image",
@@ -501,7 +515,7 @@ class GraphQLSchemaTest {
         """.trimIndent()
 
         try {
-            json.decodeFromString(VulnerabilitiesForUserResponse.serializer(), jsonResponseMissingPackage)
+            json.decodeFromString(WorkloadVulnerabilitiesResponse.serializer(), jsonResponseMissingPackage)
             throw AssertionError("Expected deserialization to fail due to missing package field")
         } catch (e: Exception) {
             assert(e.message?.contains("package") == true) {

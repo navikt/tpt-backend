@@ -7,38 +7,45 @@ class NaisApiMappersTest {
 
     @Test
     fun `should not deduplicate vulnerabilities with same identifier but different severity for user vulnerabilities`() {
-        val response = VulnerabilitiesForUserResponse(
-            data = VulnerabilitiesForUserResponse.Data(
-                user = VulnerabilitiesForUserResponse.User(
-                    teams = VulnerabilitiesForUserResponse.Teams(
-                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+        val response = WorkloadVulnerabilitiesResponse(
+            data = WorkloadVulnerabilitiesResponse.Data(
+                user = WorkloadVulnerabilitiesResponse.User(
+                    teams = WorkloadVulnerabilitiesResponse.Teams(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
                             hasNextPage = false,
                             endCursor = null
                         ),
                         nodes = listOf(
-                            VulnerabilitiesForUserResponse.TeamNode(
-                                team = VulnerabilitiesForUserResponse.Team(
+                            WorkloadVulnerabilitiesResponse.TeamNode(
+                                team = WorkloadVulnerabilitiesResponse.Team(
                                     slug = "test-team",
-                                    workloads = VulnerabilitiesForUserResponse.Workloads(
-                                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                                    applications = WorkloadVulnerabilitiesResponse.WorkloadConnection(
+                                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
                                             hasNextPage = false,
                                             endCursor = null
                                         ),
                                         nodes = listOf(
-                                            VulnerabilitiesForUserResponse.WorkloadNode(
+                                            WorkloadVulnerabilitiesResponse.WorkloadNode(
                                                 id = "workload-1",
                                                 name = "test-workload",
-                                                deployments = VulnerabilitiesForUserResponse.Deployments(nodes = emptyList()),
-                                                image = VulnerabilitiesForUserResponse.Image(
+                                                deployments = WorkloadVulnerabilitiesResponse.Deployments(
+                                                    nodes = listOf(
+                                                        WorkloadVulnerabilitiesResponse.Deployment(
+                                                            repository = null,
+                                                            environmentName = "production"
+                                                        )
+                                                    )
+                                                ),
+                                                image = WorkloadVulnerabilitiesResponse.Image(
                                                     name = "test-image",
                                                     tag = "1.0.0",
-                                                    vulnerabilities = VulnerabilitiesForUserResponse.Vulnerabilities(
-                                                        pageInfo = VulnerabilitiesForUserResponse.PageInfo(
+                                                    vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
+                                                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
                                                             hasNextPage = false,
                                                             endCursor = null
                                                         ),
                                                         nodes = listOf(
-                                                            VulnerabilitiesForUserResponse.Vulnerability(
+                                                            WorkloadVulnerabilitiesResponse.Vulnerability(
                                                                 identifier = "CVE-2023-1234",
                                                                 severity = "HIGH",
                                                                 packageName = null,
@@ -46,7 +53,7 @@ class NaisApiMappersTest {
                                                                 vulnerabilityDetailsLink = null,
                                                                 suppression = null
                                                             ),
-                                                            VulnerabilitiesForUserResponse.Vulnerability(
+                                                            WorkloadVulnerabilitiesResponse.Vulnerability(
                                                                 identifier = "CVE-2023-1234",
                                                                 severity = "CRITICAL",
                                                                 packageName = null,
@@ -54,7 +61,7 @@ class NaisApiMappersTest {
                                                                 vulnerabilityDetailsLink = null,
                                                                 suppression = null
                                                             ),
-                                                            VulnerabilitiesForUserResponse.Vulnerability(
+                                                            WorkloadVulnerabilitiesResponse.Vulnerability(
                                                                 identifier = "CVE-2023-9999",
                                                                 severity = "LOW",
                                                                 packageName = null,
@@ -67,7 +74,8 @@ class NaisApiMappersTest {
                                                 )
                                             )
                                         )
-                                    )
+                                    ),
+                                    jobs = null
                                 )
                             )
                         )
@@ -87,6 +95,7 @@ class NaisApiMappersTest {
         assertEquals("CVE-2023-1234", result.teams[0].workloads[0].vulnerabilities[1].identifier)
         assertEquals("CRITICAL", result.teams[0].workloads[0].vulnerabilities[1].severity)
         assertEquals("CVE-2023-9999", result.teams[0].workloads[0].vulnerabilities[2].identifier)
+        assertEquals("production", result.teams[0].workloads[0].environment)
     }
 }
 

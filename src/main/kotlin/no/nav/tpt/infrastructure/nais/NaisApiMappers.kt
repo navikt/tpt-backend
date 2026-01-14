@@ -1,26 +1,12 @@
 package no.nav.tpt.infrastructure.nais
 
-internal fun ApplicationsForUserResponse.toData(): UserApplicationsData {
+internal fun WorkloadVulnerabilitiesResponse.toData(): UserVulnerabilitiesData {
     val teams = data?.user?.teams?.nodes?.map { teamNode ->
-        val applications = teamNode.team.applications.nodes.map { app ->
-            ApplicationData(
-                name = app.name,
-                ingressTypes = app.ingresses.map { IngressType.fromString(it.type) }.distinct(),
-                environment = app.deployments.nodes.firstOrNull()?.environmentName
-            )
-        }
-        TeamApplicationsData(
-            teamSlug = teamNode.team.slug,
-            applications = applications
-        )
-    } ?: emptyList()
+        val appWorkloads = teamNode.team.applications?.nodes ?: emptyList()
+        val jobWorkloads = teamNode.team.jobs?.nodes ?: emptyList()
+        val allWorkloads = appWorkloads + jobWorkloads
 
-    return UserApplicationsData(teams = teams)
-}
-
-internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
-    val teams = data?.user?.teams?.nodes?.map { teamNode ->
-        val workloads = teamNode.team.workloads.nodes.map { workloadNode ->
+        val workloads = allWorkloads.map { workloadNode ->
             val vulnerabilities = workloadNode.image?.vulnerabilities?.nodes?.map { vuln ->
                 VulnerabilityData(
                     identifier = vuln.identifier,
@@ -37,6 +23,8 @@ internal fun VulnerabilitiesForUserResponse.toData(): UserVulnerabilitiesData {
                 name = workloadNode.name,
                 imageTag = workloadNode.image?.tag,
                 repository = workloadNode.deployments.nodes.firstOrNull()?.repository,
+                environment = workloadNode.deployments.nodes.firstOrNull()?.environmentName,
+                ingressTypes = workloadNode.ingresses.map { it.type },
                 vulnerabilities = vulnerabilities
             )
         }

@@ -1,4 +1,4 @@
-query VulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+query ApplicationVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
   user(email: $email) {
     teams(first: $teamFirst, after: $teamAfter) {
       pageInfo {
@@ -8,7 +8,7 @@ query VulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: C
       nodes {
         team {
           slug
-          workloads(first: $workloadFirst, after: $workloadAfter) {
+          applications(first: $workloadFirst, after: $workloadAfter) {
             pageInfo {
               hasNextPage
               endCursor
@@ -16,9 +16,13 @@ query VulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: C
             nodes {
               id
               name
+              ingresses {
+                type
+              }
               deployments(first: 1) {
                 nodes {
                   repository
+                  environmentName
                 }
               }
               image {
