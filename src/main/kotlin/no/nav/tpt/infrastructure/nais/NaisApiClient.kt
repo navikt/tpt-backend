@@ -107,11 +107,13 @@ class NaisApiClient(
                     else -> null
                 } ?: continue
 
-                val allWorkloads = mutableListOf<WorkloadVulnerabilitiesResponse.WorkloadNode>()
+                val allWorkloadsWithVulns = mutableListOf<WorkloadVulnerabilitiesResponse.WorkloadNode>()
                 var workloadCursor = workloadConnection.pageInfo.endCursor
                 var hasMoreWorkloads = workloadConnection.pageInfo.hasNextPage
 
-                allWorkloads.addAll(workloadConnection.nodes)
+                for (workload in workloadConnection.nodes) {
+                    allWorkloadsWithVulns.add(paginateVulnerabilitiesForWorkload(workload, email, teamCursor, query, workloadType))
+                }
 
                 while (hasMoreWorkloads) {
                     val workloadRequest = WorkloadVulnerabilitiesRequest(
@@ -152,7 +154,9 @@ class NaisApiClient(
                             else -> null
                         }
                         if (newConnection != null) {
-                            allWorkloads.addAll(newConnection.nodes)
+                            for (workload in newConnection.nodes) {
+                                allWorkloadsWithVulns.add(paginateVulnerabilitiesForWorkload(workload, email, teamCursor, query, workloadType))
+                            }
                             hasMoreWorkloads = newConnection.pageInfo.hasNextPage
                             workloadCursor = newConnection.pageInfo.endCursor
                         } else {
@@ -163,112 +167,7 @@ class NaisApiClient(
                     }
                 }
 
-                val uniqueWorkloads = allWorkloads.groupBy { it.id }.map { (_, workloads) ->
-                    val firstWorkload = workloads.first()
-                    val allVulns = workloads.flatMap { it.image?.vulnerabilities?.nodes ?: emptyList() }
-                    val lastWorkload = workloads.last()
-                    val shouldPaginateMore = lastWorkload.image?.vulnerabilities?.pageInfo?.hasNextPage ?: false
-
-                    WorkloadVulnerabilitiesResponse.WorkloadNode(
-                        id = firstWorkload.id,
-                        name = firstWorkload.name,
-                        ingresses = firstWorkload.ingresses,
-                        deployments = firstWorkload.deployments,
-                        image = firstWorkload.image?.let { img ->
-                            WorkloadVulnerabilitiesResponse.Image(
-                                name = img.name,
-                                tag = img.tag,
-                                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
-                                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
-                                        hasNextPage = shouldPaginateMore,
-                                        endCursor = lastWorkload.image?.vulnerabilities?.pageInfo?.endCursor
-                                    ),
-                                    nodes = allVulns
-                                )
-                            )
-                        }
-                    )
-                }
-
-                val workloadsWithAllVulns = uniqueWorkloads.map { workload ->
-                    if (workload.image == null) {
-                        workload
-                    } else {
-                        val allVulns = mutableListOf<WorkloadVulnerabilitiesResponse.Vulnerability>()
-                        var vulnCursor: String?
-                        var hasMoreVulns: Boolean
-
-                        allVulns.addAll(workload.image.vulnerabilities.nodes)
-                        vulnCursor = workload.image.vulnerabilities.pageInfo.endCursor
-                        hasMoreVulns = workload.image.vulnerabilities.pageInfo.hasNextPage
-
-                        while (hasMoreVulns) {
-                            val vulnRequest = WorkloadVulnerabilitiesRequest(
-                                query = query,
-                                variables = WorkloadVulnerabilitiesRequest.Variables(
-                                    email = email,
-                                    teamFirst = 1,
-                                    teamAfter = teamCursor,
-                                    workloadFirst = 50,
-                                    workloadAfter = null,
-                                    vulnFirst = 50,
-                                    vulnAfter = vulnCursor
-                                )
-                            )
-
-                            val vulnResponse = try {
-                                httpClient.post(apiUrl) {
-                                    contentType(ContentType.Application.Json)
-                                    bearerAuth(token)
-                                    setBody(vulnRequest)
-                                }
-                            } catch (e: Exception) {
-                                logger.error("HTTP error fetching vulnerabilities for workload ${workload.id}", e)
-                                break
-                            }
-
-                            val vulnPageResponse: WorkloadVulnerabilitiesResponse = vulnResponse.body()
-
-                            if (!vulnPageResponse.errors.isNullOrEmpty()) {
-                                logger.error("GraphQL errors fetching vulnerabilities for workload ${workload.id}: ${vulnPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
-                                break
-                            }
-
-                            val paginatedWorkload = vulnPageResponse.data?.user?.teams?.nodes
-                                ?.firstOrNull()?.team?.let { team ->
-                                    when (workloadType) {
-                                        "applications" -> team.applications?.nodes
-                                        "jobs" -> team.jobs?.nodes
-                                        else -> null
-                                    }
-                                }
-                                ?.firstOrNull { it.id == workload.id }
-
-                            if (paginatedWorkload?.image != null) {
-                                allVulns.addAll(paginatedWorkload.image.vulnerabilities.nodes)
-                                hasMoreVulns = paginatedWorkload.image.vulnerabilities.pageInfo.hasNextPage
-                                vulnCursor = paginatedWorkload.image.vulnerabilities.pageInfo.endCursor
-                            } else {
-                                break
-                            }
-                        }
-
-                        WorkloadVulnerabilitiesResponse.WorkloadNode(
-                            id = workload.id,
-                            name = workload.name,
-                            ingresses = workload.ingresses,
-                            deployments = workload.deployments,
-                            image = WorkloadVulnerabilitiesResponse.Image(
-                                name = workload.image.name,
-                                tag = workload.image.tag,
-                                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
-                                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
-                                    nodes = allVulns
-                                )
-                            )
-                        )
-                    }
-                }
+                val workloadsWithAllVulns = allWorkloadsWithVulns
 
                 val teamWithWorkloads = when (workloadType) {
                     "applications" -> WorkloadVulnerabilitiesResponse.TeamNode(
@@ -308,6 +207,92 @@ class NaisApiClient(
                         pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
                         nodes = allTeams
                     )
+                )
+            )
+        )
+    }
+
+    private suspend fun paginateVulnerabilitiesForWorkload(
+        workload: WorkloadVulnerabilitiesResponse.WorkloadNode,
+        email: String,
+        teamCursor: String?,
+        query: String,
+        workloadType: String
+    ): WorkloadVulnerabilitiesResponse.WorkloadNode {
+        if (workload.image == null) {
+            return workload
+        }
+
+        val allVulns = mutableListOf<WorkloadVulnerabilitiesResponse.Vulnerability>()
+        var vulnCursor: String?
+        var hasMoreVulns: Boolean
+
+        allVulns.addAll(workload.image.vulnerabilities.nodes)
+        vulnCursor = workload.image.vulnerabilities.pageInfo.endCursor
+        hasMoreVulns = workload.image.vulnerabilities.pageInfo.hasNextPage
+
+        while (hasMoreVulns) {
+            val vulnRequest = WorkloadVulnerabilitiesRequest(
+                query = query,
+                variables = WorkloadVulnerabilitiesRequest.Variables(
+                    email = email,
+                    teamFirst = 1,
+                    teamAfter = teamCursor,
+                    workloadFirst = 50,
+                    workloadAfter = null,
+                    vulnFirst = 50,
+                    vulnAfter = vulnCursor
+                )
+            )
+
+            val vulnResponse = try {
+                httpClient.post(apiUrl) {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    setBody(vulnRequest)
+                }
+            } catch (e: Exception) {
+                logger.error("HTTP error fetching vulnerabilities for workload ${workload.id}", e)
+                break
+            }
+
+            val vulnPageResponse: WorkloadVulnerabilitiesResponse = vulnResponse.body()
+
+            if (!vulnPageResponse.errors.isNullOrEmpty()) {
+                logger.error("GraphQL errors fetching vulnerabilities for workload ${workload.id}: ${vulnPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                break
+            }
+
+            val paginatedWorkload = vulnPageResponse.data?.user?.teams?.nodes
+                ?.firstOrNull()?.team?.let { team ->
+                    when (workloadType) {
+                        "applications" -> team.applications?.nodes
+                        "jobs" -> team.jobs?.nodes
+                        else -> null
+                    }
+                }
+                ?.firstOrNull { it.id == workload.id }
+
+            if (paginatedWorkload?.image != null) {
+                allVulns.addAll(paginatedWorkload.image.vulnerabilities.nodes)
+                hasMoreVulns = paginatedWorkload.image.vulnerabilities.pageInfo.hasNextPage
+                vulnCursor = paginatedWorkload.image.vulnerabilities.pageInfo.endCursor
+            } else {
+                break
+            }
+        }
+
+        return WorkloadVulnerabilitiesResponse.WorkloadNode(
+            id = workload.id,
+            name = workload.name,
+            ingresses = workload.ingresses,
+            deployments = workload.deployments,
+            image = WorkloadVulnerabilitiesResponse.Image(
+                name = workload.image.name,
+                tag = workload.image.tag,
+                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
+                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                    nodes = allVulns
                 )
             )
         )

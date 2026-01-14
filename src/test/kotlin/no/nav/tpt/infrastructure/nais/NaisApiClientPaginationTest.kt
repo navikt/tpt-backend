@@ -458,77 +458,456 @@ class NaisApiClientPaginationTest {
         httpClient.close()
     }
 
-    // Application pagination tests
+    @Test
+    fun `should paginate vulnerabilities for workloads from first page`() = runTest {
+        val (httpClient, getRequestCount) = createMockClient(mapOf(
+            // Apps requests
+            1 to generateGraphQLResponse(
+                teams = listOf(
+                    TeamData(
+                        slug = "team-1",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-1",
+                                name = "app-1",
+                                imageName = "image-1",
+                                imageTag = "1.0.0",
+                                vulnerabilities = listOf(
+                                    VulnerabilityData("CVE-2023-0001", "HIGH", "pkg1"),
+                                    VulnerabilityData("CVE-2023-0002", "MEDIUM", "pkg2")
+                                ),
+                                vulnPageInfo = PageInfo(hasNextPage = true, endCursor = "vuln-cursor-1")
+                            )
+                        ),
+                        workloadPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                    )
+                ),
+                teamPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+            ),
+            2 to generateGraphQLResponse(
+                teams = listOf(
+                    TeamData(
+                        slug = "team-1",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-1",
+                                name = "app-1",
+                                imageName = "image-1",
+                                imageTag = "1.0.0",
+                                vulnerabilities = listOf(
+                                    VulnerabilityData("CVE-2023-0003", "LOW", "pkg3"),
+                                    VulnerabilityData("CVE-2023-0004", "CRITICAL", "pkg4")
+                                ),
+                                vulnPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                            )
+                        ),
+                        workloadPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                    )
+                ),
+                teamPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+            ),
+            // Jobs request
+            3 to generateEmptyJobsResponse("team-1")
+        ))
 
-    data class ApplicationData(
-        val name: String,
-        val ingresses: List<String> = emptyList(),
-        val environmentName: String = "production"
-    )
+        val client = NaisApiClient(httpClient, "http://test-api", "test-token")
+        val response = client.getVulnerabilitiesForUser("test@example.com")
 
-    data class TeamApplicationData(
-        val slug: String,
-        val applications: List<ApplicationData> = emptyList(),
-        val appPageInfo: PageInfo = PageInfo(false, null)
-    )
+        assertEquals(3, getRequestCount(), "Should make 3 requests (2 for vuln pagination, 1 for jobs)")
+        val workload = response.data?.user?.teams?.nodes?.get(0)?.team?.applications?.nodes?.get(0)
+        assertEquals("workload-1", workload?.id)
+        assertEquals(4, workload?.image?.vulnerabilities?.nodes?.size, "Should have all 4 vulnerabilities")
+        assertEquals("CVE-2023-0001", workload?.image?.vulnerabilities?.nodes?.get(0)?.identifier)
+        assertEquals("CVE-2023-0002", workload?.image?.vulnerabilities?.nodes?.get(1)?.identifier)
+        assertEquals("CVE-2023-0003", workload?.image?.vulnerabilities?.nodes?.get(2)?.identifier)
+        assertEquals("CVE-2023-0004", workload?.image?.vulnerabilities?.nodes?.get(3)?.identifier)
 
-    private fun generateApplicationsResponse(
-        teams: List<TeamApplicationData>,
-        teamPageInfo: PageInfo
-    ): String {
-        val teamsJson = teams.joinToString(",\n") { team ->
-            val appsJson = team.applications.joinToString(",\n") { app ->
-                val ingressesJson = app.ingresses.joinToString(",\n") { ingress ->
-                    """{ "type": "$ingress" }"""
-                }
-                """
-                  {
-                    "name": "${app.name}",
-                    "ingresses": [$ingressesJson],
-                    "deployments": {
-                      "nodes": [
-                        { "environmentName": "${app.environmentName}" }
-                      ]
-                    }
-                  }
-                """.trimIndent()
-            }
+        httpClient.close()
+    }
 
-            """
-              {
-                "team": {
-                  "slug": "${team.slug}",
-                  "applications": {
-                    "pageInfo": {
-                      "hasNextPage": ${team.appPageInfo.hasNextPage},
-                      "endCursor": ${team.appPageInfo.endCursor?.let { "\"$it\"" } ?: "null"}
-                    },
-                    "nodes": [
-                      $appsJson
-                    ]
-                  }
-                }
-              }
-            """.trimIndent()
-        }
+    @Test
+    fun `should paginate vulnerabilities for workloads from paginated workload pages`() = runTest {
+        val (httpClient, getRequestCount) = createMockClient(mapOf(
+            // First page of workloads
+            1 to generateGraphQLResponse(
+                teams = listOf(
+                    TeamData(
+                        slug = "team-1",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-1",
+                                name = "app-1",
+                                imageName = "image-1",
+                                imageTag = "1.0.0",
+                                vulnerabilities = listOf(
+                                    VulnerabilityData("CVE-2023-0001", "HIGH", "pkg1")
+                                ),
+                                vulnPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                            )
+                        ),
+                        workloadPageInfo = PageInfo(hasNextPage = true, endCursor = "workload-cursor-1")
+                    )
+                ),
+                teamPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+            ),
+            // Second page of workloads - THIS workload has vulnerability pagination
+            2 to generateGraphQLResponse(
+                teams = listOf(
+                    TeamData(
+                        slug = "team-1",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-2",
+                                name = "app-2",
+                                imageName = "image-2",
+                                imageTag = "2.0.0",
+                                vulnerabilities = listOf(
+                                    VulnerabilityData("CVE-2023-0002", "MEDIUM", "pkg2"),
+                                    VulnerabilityData("CVE-2023-0003", "HIGH", "pkg3")
+                                ),
+                                vulnPageInfo = PageInfo(hasNextPage = true, endCursor = "vuln-cursor-1")
+                            )
+                        ),
+                        workloadPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                    )
+                ),
+                teamPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+            ),
+            // Vulnerability pagination for workload-2
+            3 to generateGraphQLResponse(
+                teams = listOf(
+                    TeamData(
+                        slug = "team-1",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-2",
+                                name = "app-2",
+                                imageName = "image-2",
+                                imageTag = "2.0.0",
+                                vulnerabilities = listOf(
+                                    VulnerabilityData("CVE-2023-0004", "CRITICAL", "pkg4"),
+                                    VulnerabilityData("CVE-2023-0005", "LOW", "pkg5")
+                                ),
+                                vulnPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                            )
+                        ),
+                        workloadPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+                    )
+                ),
+                teamPageInfo = PageInfo(hasNextPage = false, endCursor = null)
+            ),
+            // Jobs request
+            4 to generateEmptyJobsResponse("team-1")
+        ))
 
-        return """
+        val client = NaisApiClient(httpClient, "http://test-api", "test-token")
+        val response = client.getVulnerabilitiesForUser("test@example.com")
+
+        assertEquals(4, getRequestCount(), "Should make 4 requests (1 workload page 1, 1 workload page 2, 1 vuln pagination for workload-2, 1 jobs)")
+
+        val workloads = response.data?.user?.teams?.nodes?.get(0)?.team?.applications?.nodes
+        assertEquals(2, workloads?.size, "Should have 2 workloads")
+
+        val workload1 = workloads?.get(0)
+        assertEquals("workload-1", workload1?.id)
+        assertEquals(1, workload1?.image?.vulnerabilities?.nodes?.size, "Workload 1 should have 1 vulnerability")
+
+        val workload2 = workloads?.get(1)
+        assertEquals("workload-2", workload2?.id)
+        assertEquals(4, workload2?.image?.vulnerabilities?.nodes?.size, "Workload 2 should have all 4 vulnerabilities from pagination")
+        assertEquals("CVE-2023-0002", workload2?.image?.vulnerabilities?.nodes?.get(0)?.identifier)
+        assertEquals("CVE-2023-0003", workload2?.image?.vulnerabilities?.nodes?.get(1)?.identifier)
+        assertEquals("CVE-2023-0004", workload2?.image?.vulnerabilities?.nodes?.get(2)?.identifier)
+        assertEquals("CVE-2023-0005", workload2?.image?.vulnerabilities?.nodes?.get(3)?.identifier)
+
+        httpClient.close()
+    }
+
+    @Test
+    fun `should preserve ingresses through vulnerability pagination`() = runTest {
+        val responseWithIngresses = """
         {
           "data": {
             "user": {
               "teams": {
-                "pageInfo": {
-                  "hasNextPage": ${teamPageInfo.hasNextPage},
-                  "endCursor": ${teamPageInfo.endCursor?.let { "\"$it\"" } ?: "null"}
-                },
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
                 "nodes": [
-                  $teamsJson
+                  {
+                    "team": {
+                      "slug": "team-1",
+                      "applications": {
+                        "pageInfo": { "hasNextPage": false, "endCursor": null },
+                        "nodes": [
+                          {
+                            "id": "workload-1",
+                            "name": "app-1",
+                            "ingresses": [
+                              { "type": "AUTHENTICATED" },
+                              { "type": "EXTERNAL" }
+                            ],
+                            "deployments": {
+                              "nodes": [
+                                {
+                                  "repository": "navikt/app-1",
+                                  "environmentName": "production"
+                                }
+                              ]
+                            },
+                            "image": {
+                              "name": "image-1",
+                              "tag": "1.0.0",
+                              "vulnerabilities": {
+                                "pageInfo": {
+                                  "hasNextPage": true,
+                                  "endCursor": "vuln-cursor-1"
+                                },
+                                "nodes": [
+                                  {
+                                    "identifier": "CVE-2023-0001",
+                                    "severity": "HIGH",
+                                    "package": "pkg1",
+                                    "description": null,
+                                    "vulnerabilityDetailsLink": null,
+                                    "suppression": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
                 ]
               }
             }
           }
         }
         """.trimIndent()
+
+        val responseSecondVulnPage = """
+        {
+          "data": {
+            "user": {
+              "teams": {
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                "nodes": [
+                  {
+                    "team": {
+                      "slug": "team-1",
+                      "applications": {
+                        "pageInfo": { "hasNextPage": false, "endCursor": null },
+                        "nodes": [
+                          {
+                            "id": "workload-1",
+                            "name": "app-1",
+                            "ingresses": [
+                              { "type": "AUTHENTICATED" },
+                              { "type": "EXTERNAL" }
+                            ],
+                            "deployments": {
+                              "nodes": [
+                                {
+                                  "repository": "navikt/app-1",
+                                  "environmentName": "production"
+                                }
+                              ]
+                            },
+                            "image": {
+                              "name": "image-1",
+                              "tag": "1.0.0",
+                              "vulnerabilities": {
+                                "pageInfo": {
+                                  "hasNextPage": false,
+                                  "endCursor": null
+                                },
+                                "nodes": [
+                                  {
+                                    "identifier": "CVE-2023-0002",
+                                    "severity": "MEDIUM",
+                                    "package": "pkg2",
+                                    "description": null,
+                                    "vulnerabilityDetailsLink": null,
+                                    "suppression": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+        """.trimIndent()
+
+        val (httpClient, getRequestCount) = createMockClient(mapOf(
+            1 to responseWithIngresses,
+            2 to responseSecondVulnPage,
+            3 to generateEmptyJobsResponse("team-1")
+        ))
+
+        val client = NaisApiClient(httpClient, "http://test-api", "test-token")
+        val response = client.getVulnerabilitiesForUser("test@example.com")
+
+        assertEquals(3, getRequestCount(), "Should make 3 requests")
+
+        val workload = response.data?.user?.teams?.nodes?.get(0)?.team?.applications?.nodes?.get(0)
+        assertEquals("workload-1", workload?.id)
+        assertEquals(2, workload?.ingresses?.size, "Should preserve ingresses")
+        assertEquals("AUTHENTICATED", workload?.ingresses?.get(0)?.type)
+        assertEquals("EXTERNAL", workload?.ingresses?.get(1)?.type)
+        assertEquals(2, workload?.image?.vulnerabilities?.nodes?.size, "Should have both vulnerabilities")
+        assertEquals("CVE-2023-0001", workload?.image?.vulnerabilities?.nodes?.get(0)?.identifier)
+        assertEquals("CVE-2023-0002", workload?.image?.vulnerabilities?.nodes?.get(1)?.identifier)
+
+        httpClient.close()
     }
+
+    @Test
+    fun `should preserve ingresses through workload pagination`() = runTest {
+        val firstWorkloadPage = """
+        {
+          "data": {
+            "user": {
+              "teams": {
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                "nodes": [
+                  {
+                    "team": {
+                      "slug": "team-1",
+                      "applications": {
+                        "pageInfo": { "hasNextPage": true, "endCursor": "workload-cursor-1" },
+                        "nodes": [
+                          {
+                            "id": "workload-1",
+                            "name": "app-1",
+                            "ingresses": [
+                              { "type": "INTERNAL" }
+                            ],
+                            "deployments": {
+                              "nodes": [
+                                {
+                                  "repository": "navikt/app-1",
+                                  "environmentName": "production"
+                                }
+                              ]
+                            },
+                            "image": {
+                              "name": "image-1",
+                              "tag": "1.0.0",
+                              "vulnerabilities": {
+                                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                                "nodes": [
+                                  {
+                                    "identifier": "CVE-2023-0001",
+                                    "severity": "HIGH",
+                                    "package": "pkg1",
+                                    "description": null,
+                                    "vulnerabilityDetailsLink": null,
+                                    "suppression": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+        """.trimIndent()
+
+        val secondWorkloadPage = """
+        {
+          "data": {
+            "user": {
+              "teams": {
+                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                "nodes": [
+                  {
+                    "team": {
+                      "slug": "team-1",
+                      "applications": {
+                        "pageInfo": { "hasNextPage": false, "endCursor": null },
+                        "nodes": [
+                          {
+                            "id": "workload-2",
+                            "name": "app-2",
+                            "ingresses": [
+                              { "type": "AUTHENTICATED" }
+                            ],
+                            "deployments": {
+                              "nodes": [
+                                {
+                                  "repository": "navikt/app-2",
+                                  "environmentName": "production"
+                                }
+                              ]
+                            },
+                            "image": {
+                              "name": "image-2",
+                              "tag": "2.0.0",
+                              "vulnerabilities": {
+                                "pageInfo": { "hasNextPage": false, "endCursor": null },
+                                "nodes": [
+                                  {
+                                    "identifier": "CVE-2023-0002",
+                                    "severity": "MEDIUM",
+                                    "package": "pkg2",
+                                    "description": null,
+                                    "vulnerabilityDetailsLink": null,
+                                    "suppression": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+        """.trimIndent()
+
+        val (httpClient, getRequestCount) = createMockClient(mapOf(
+            1 to firstWorkloadPage,
+            2 to secondWorkloadPage,
+            3 to generateEmptyJobsResponse("team-1")
+        ))
+
+        val client = NaisApiClient(httpClient, "http://test-api", "test-token")
+        val response = client.getVulnerabilitiesForUser("test@example.com")
+
+        assertEquals(3, getRequestCount(), "Should make 3 requests")
+
+        val workloads = response.data?.user?.teams?.nodes?.get(0)?.team?.applications?.nodes
+        assertEquals(2, workloads?.size, "Should have 2 workloads")
+
+        val workload1 = workloads?.get(0)
+        assertEquals("workload-1", workload1?.id)
+        assertEquals(1, workload1?.ingresses?.size, "Should preserve ingresses for workload 1")
+        assertEquals("INTERNAL", workload1?.ingresses?.get(0)?.type)
+
+        val workload2 = workloads?.get(1)
+        assertEquals("workload-2", workload2?.id)
+        assertEquals(1, workload2?.ingresses?.size, "Should preserve ingresses for workload 2")
+        assertEquals("AUTHENTICATED", workload2?.ingresses?.get(0)?.type)
+
+        httpClient.close()
+    }
+
 }
 
