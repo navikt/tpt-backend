@@ -1,7 +1,9 @@
 package no.nav.tpt.domain.risk
 
 import no.nav.tpt.domain.risk.factors.*
+import kotlin.math.roundToInt
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class RiskExplanationGeneratorTest {
@@ -51,6 +53,39 @@ class RiskExplanationGeneratorTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `should calculate correct contributions for each risk factor`() {
+        val context = VulnerabilityRiskContext(
+            severity = "HIGH",
+            ingressTypes = listOf("EXTERNAL"),
+            hasKevEntry = true,
+            epssScore = "0.5",
+            suppressed = true,
+            environment = "prod",
+            buildDate = java.time.LocalDate.now().minusDays(100),
+            hasExploitReference = true,
+            hasPatchReference = true,
+            cveDaysOld = 365
+        )
+
+        val baseScore = 70.0
+        val factors = factorCalculators.map { it.calculate(context) }
+        var finalScore = baseScore
+        factors.forEach {
+            finalScore *= it.value
+        }
+
+        val breakdown = generator.generateBreakdown("HIGH", baseScore, factors, finalScore)
+
+        var calculatedContributions = 0.0
+        breakdown.factors.forEach {
+            calculatedContributions += it.contribution
+        }
+
+        assertEquals(breakdown.totalScore.roundToInt(), finalScore.roundToInt())
+        assertEquals(breakdown.totalScore.roundToInt(), calculatedContributions.roundToInt())
     }
 }
 

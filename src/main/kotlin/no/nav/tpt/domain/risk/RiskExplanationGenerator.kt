@@ -9,6 +9,7 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
         finalScore: Double
     ): RiskScoreBreakdown {
         val allExplanations = mutableListOf<RiskFactorExplanation>()
+        val sortedFactors = factors.sortedByDescending { it.value }
 
         allExplanations.add(
             RiskFactorExplanation(
@@ -22,10 +23,10 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
 
         // Add other factors
         allExplanations.addAll(
-            factors
+            sortedFactors
                 .filter { factor -> factor.value != 1.0 }
                 .map { factor ->
-                    val contribution = calculateContribution(baseScore, factor, factors)
+                    val contribution = calculateContribution(baseScore, factor, sortedFactors)
 
                     RiskFactorExplanation(
                         name = factor.name,
@@ -45,13 +46,14 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
     }
 
     private fun calculateContribution(baseScore: Double, factor: RiskFactor, allFactors: List<RiskFactor>): Double {
-        val otherMultipliers = allFactors
-            .filter { it.name != factor.name }
-            .map { it.value }
-            .fold(1.0) { acc, v -> acc * v }
-        val scoreWithFactor = baseScore * otherMultipliers * factor.value
-        val scoreWithoutFactor = baseScore * otherMultipliers
-        return scoreWithFactor - scoreWithoutFactor
+        var calcValue = baseScore
+        allFactors.forEach {
+            if(factor.name == it.name) {
+                return calcValue * it.value - calcValue
+            }
+            calcValue *= it.value
+        }
+        throw IllegalStateException("Could not find risc factor ${factor.name} in allFactors ${allFactors.joinToString { it.name }}")
     }
 
     private fun generateExplanation(factor: RiskFactor): String = when (factor.name) {
