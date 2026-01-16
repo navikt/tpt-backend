@@ -18,6 +18,7 @@ class MockNaisApiService(
                         WorkloadData(
                             id = "workload-1",
                             name = "app-lokal-utvikler",
+                            workloadType = "app",
                             imageTag = "2026.01.13-10.30-abc123",
                             repository = "ghcr.io/navikt/app-lokal-utvikler",
                             vulnerabilities = listOf(
@@ -68,6 +69,7 @@ class MockNaisApiService(
                         WorkloadData(
                             id = "workload-1",
                             name = "app-${teamSlug}",
+                            workloadType = "app",
                             imageTag = "2026.01.13-10.30-abc123",
                             repository = "ghcr.io/navikt/app-${teamSlug}",
                             vulnerabilities = listOf(

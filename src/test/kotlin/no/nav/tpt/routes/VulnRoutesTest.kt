@@ -120,6 +120,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                workloadType = "app",
                                 imageTag = "2024.01.15-10.30-abc123",
                                 repository = "ghcr.io/navikt/app1",
                                 environment = "production",
@@ -237,6 +238,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app-a",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "production",
@@ -260,6 +262,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-2",
                                 name = "app-b",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "production",
@@ -326,6 +329,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = null,
@@ -407,6 +411,7 @@ class VulnRoutesTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = null,
@@ -450,4 +455,105 @@ class VulnRoutesTest {
         val vulnResponse = Json.decodeFromString<VulnResponse>(response.bodyAsText())
         assertEquals(1, vulnResponse.teams.size)
     }
+
+    @Test
+    fun `should include workloadType field in response`() = testApplication {
+        val tokenIntrospectionService = MockTokenIntrospectionService(
+            shouldSucceed = true,
+            navIdent = "test-ident",
+            preferredUsername = "test@example.com"
+        )
+
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-test",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-app",
+                                name = "test-application",
+                                workloadType = "app",
+                                imageTag = "1.0.0",
+                                repository = "ghcr.io/navikt/test-app",
+                                environment = "production",
+                                ingressTypes = listOf("EXTERNAL"),
+                                vulnerabilities = listOf(
+                                    VulnerabilityData(
+                                        identifier = "CVE-2024-00001",
+                                        severity = "HIGH",
+                                        packageName = "test-pkg",
+                                        description = "Test vulnerability",
+                                        vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-00001",
+                                        suppressed = false
+                                    )
+                                )
+                            ),
+                            WorkloadData(
+                                id = "workload-job",
+                                name = "test-job",
+                                workloadType = "job",
+                                imageTag = "1.0.0",
+                                repository = "ghcr.io/navikt/test-job",
+                                environment = "production",
+                                ingressTypes = emptyList(),
+                                vulnerabilities = listOf(
+                                    VulnerabilityData(
+                                        identifier = "CVE-2024-00002",
+                                        severity = "MEDIUM",
+                                        packageName = "another-pkg",
+                                        description = "Another test vulnerability",
+                                        vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-00002",
+                                        suppressed = false
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val kevService = MockKevService(
+            KevCatalog(
+                title = "Test KEV Catalog",
+                catalogVersion = "1.0",
+                dateReleased = "2023-01-01",
+                count = 0,
+                vulnerabilities = emptyList()
+            )
+        )
+
+        application {
+            testModule(tokenIntrospectionService, naisApiService, kevService)
+        }
+
+        val response = client.get("/vulnerabilities/user") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
+
+        val vulnResponse = Json.decodeFromString<VulnResponse>(response.bodyAsText())
+        assertEquals(1, vulnResponse.teams.size)
+
+        val team = vulnResponse.teams[0]
+        assertEquals("team-test", team.team)
+        assertEquals(2, team.workloads.size)
+
+        val appWorkload = team.workloads.find { it.name == "test-application" }
+        assertNotNull(appWorkload, "Application workload should be present")
+        assertEquals("workload-app", appWorkload.id)
+        assertEquals("app", appWorkload.workloadType)
+        assertEquals("ghcr.io/navikt/test-app", appWorkload.repository)
+
+        val jobWorkload = team.workloads.find { it.name == "test-job" }
+        assertNotNull(jobWorkload, "Job workload should be present")
+        assertEquals("workload-job", jobWorkload.id)
+        assertEquals("job", jobWorkload.workloadType)
+        assertEquals("ghcr.io/navikt/test-job", jobWorkload.repository)
+    }
 }
+

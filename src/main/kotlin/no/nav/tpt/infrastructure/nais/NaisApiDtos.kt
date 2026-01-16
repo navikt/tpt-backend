@@ -12,6 +12,7 @@ data class VulnerabilityData(
 data class WorkloadData(
     val id: String,
     val name: String,
+    val workloadType: String,
     val imageTag: String?,
     val repository: String?,
     val environment: String?,

@@ -95,6 +95,7 @@ class VulnServiceImpl(
                     VulnWorkloadDto(
                         id = workload.id,
                         name = workload.name,
+                        workloadType = workload.workloadType,
                         environment = workload.environment,
                         repository = workload.repository,
                         vulnerabilities = vulnerabilities

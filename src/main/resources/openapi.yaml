@@ -132,6 +132,7 @@ components:
       required:
         - id
         - name
+        - workloadType
         - vulnerabilities
       properties:
         id:
@@ -140,6 +141,11 @@ components:
         name:
           type: string
           description: Workload name
+        workloadType:
+          type: string
+          description: Type of workload - either "app" for NAIS applications or "job" for NAIS jobs
+          enum: [app, job]
+          example: "app"
         environment:
           type: string
           nullable: true
@@ -159,7 +165,6 @@ components:
       required:
         - identifier
         - riskScore
-        - riskScoreMultipliers
       properties:
         identifier:
           type: string
@@ -190,19 +195,6 @@ components:
           format: double
           description: Calculated risk score using multiplier-based system. Base severity score multiplied by exposure (ingress type), KEV presence, EPSS probability, suppression status, environment, and build age. Higher scores indicate higher priority vulnerabilities.
           example: 300.0
-        riskScoreMultipliers:
-          type: object
-          additionalProperties:
-            type: number
-            format: double
-          description: Map of multipliers used in risk score calculation. Keys include exposure, kev, epss, suppressed, production, old_build_days, old_build. Only includes multipliers that were applied (excludes 1.0 values and missing data). Note - the base severity score is available in riskScoreBreakdown.factors.
-          example:
-            exposure: 2.0
-            kev: 1.5
-            epss: 1.2
-            production: 1.1
-            old_build_days: 120.0
-            old_build: 1.1
         riskScoreBreakdown:
           allOf:
             - $ref: '#/components/schemas/RiskScoreBreakdown'
@@ -235,7 +227,6 @@ components:
       required:
         - name
         - contribution
-        - percentage
         - explanation
         - impact
         - multiplier
@@ -249,11 +240,6 @@ components:
           format: double
           description: Numeric contribution of this factor to the total score
           example: 70.0
-        percentage:
-          type: number
-          format: double
-          description: Percentage contribution to the total score. All factors including base severity will sum to approximately 100% (may slightly exceed due to multiplicative factor interactions).
-          example: 37.9
         explanation:
           type: string
           description: Human-readable explanation of the factor

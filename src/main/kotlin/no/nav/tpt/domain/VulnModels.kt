@@ -17,6 +17,7 @@ data class VulnTeamDto(
 data class VulnWorkloadDto(
     val id: String,
     val name: String,
+    val workloadType: String,
     val environment: String?,
     val repository: String?,
     val vulnerabilities: List<VulnVulnerabilityDto>

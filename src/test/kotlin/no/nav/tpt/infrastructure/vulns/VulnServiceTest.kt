@@ -24,6 +24,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-1",
                                 name = "app1",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "prod",
@@ -103,6 +104,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-2",
                                 name = "app1",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "production",
@@ -172,6 +174,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-3",
                                 name = "unknown-app",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "production",
@@ -224,6 +227,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-4",
                                 name = "app-a",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "prod",
@@ -247,6 +251,7 @@ class VulnServiceTest {
                             WorkloadData(
                                 id = "workload-5",
                                 name = "app-b",
+                                workloadType = "app",
                                 imageTag = null,
                                 repository = null,
                                 environment = "prod",
