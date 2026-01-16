@@ -17,6 +17,7 @@ import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.epss.*
 import no.nav.tpt.infrastructure.nais.*
 import no.nav.tpt.infrastructure.nvd.*
+import no.nav.tpt.infrastructure.teamkatalogen.*
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import kotlin.time.Duration.Companion.minutes
@@ -33,7 +34,8 @@ class Dependencies(
     val nvdSyncService: NvdSyncService,
     val leaderElection: LeaderElection,
     val httpClient: HttpClient,
-    val vulnService: VulnService
+    val vulnService: VulnService,
+    val teamkatalogenService: TeamkatalogenService
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -109,6 +111,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
     val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer)
 
+    val teamkatalogenClient = TeamkatalogenClient(httpClient, config.teamkatalogenUrl)
+    val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -120,7 +125,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         nvdSyncService = nvdSyncService,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnService = vulnService
+        vulnService = vulnService,
+        teamkatalogenService = teamkatalogenService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

@@ -21,6 +21,8 @@ import no.nav.tpt.infrastructure.nvd.MockNvdRepository
 import no.nav.tpt.infrastructure.nvd.MockNvdSyncService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.nvd.NvdSyncService
+import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.vulns.MockVulnService
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
@@ -71,6 +73,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val naisApiService: NaisApiService = MockNaisApiService()
     val kevService: KevService = MockKevService()
     val epssService: EpssService = MockEpssService()
+    val teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
 
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = postgres.jdbcUrl
@@ -107,6 +110,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         valkeyHost = valkey.host,
         valkeyPort = valkey.getMappedPort(6379),
         valkeyUsername = "default",
@@ -125,7 +129,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdSyncService = nvdSyncService,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnService = vulnService
+        vulnService = vulnService,
+        teamkatalogenService = teamkatalogenService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

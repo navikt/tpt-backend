@@ -8,6 +8,7 @@ data class AppConfig(
     val nvdApiUrl: String,
     val nvdApiKey: String?,
     val epssApiUrl: String,
+    val teamkatalogenUrl: String,
     val valkeyHost: String,
     val valkeyPort: Int,
     val valkeyUsername: String,
@@ -56,6 +57,8 @@ data class AppConfig(
 
             val epssApiUrl = System.getenv("EPSS_API_URL") ?: error("EPSS_API_URL not configured")
 
+            val teamkatalogenUrl = System.getenv("TEAMKATALOGEN_URL") ?: error("TEAMKATALOGEN_URL not configured")
+
             val cacheTtlMinutes = System.getenv("CACHE_TTL_MINUTES")?.toLongOrNull()
                 ?: 5L
 
@@ -67,6 +70,7 @@ data class AppConfig(
                 nvdApiKey = nvdApiKey,
                 nvdApiUrl = nvdApiUrl,
                 epssApiUrl = epssApiUrl,
+                teamkatalogenUrl = teamkatalogenUrl,
                 valkeyHost = valkeyHost,
                 valkeyPort = valkeyPort,
                 valkeyUsername = valkeyUsername,

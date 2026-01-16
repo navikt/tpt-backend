@@ -44,3 +44,4 @@ bin/
 risk_score_analysis/**
 scripts/**
 codeql-db/
+src/test/resources/mock-vulnerabilities.json

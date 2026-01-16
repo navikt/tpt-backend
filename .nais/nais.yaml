@@ -15,13 +15,14 @@ spec:
           - id: "d633d27b-a470-4b9d-984e-85499f126e18"
         extra:
           - "NAVident"
-  ingresses:
-    - https://tpt-backend.intern.nav.no
   accessPolicy:
     inbound:
       rules:
         - application: tpt-frontend
     outbound:
+      rules:
+        - application: team-catalog-backend
+          namespace: org
       external:
         - host: console.nav.cloud.nais.io
         - host: www.cisa.gov
@@ -65,6 +66,8 @@ spec:
       value: "https://services.nvd.nist.gov/rest/json/cves/2.0"
     - name: EPSS_API_URL
       value: "https://api.first.org/data/v1"
+    - name: TEAMKATALOGEN_URL
+      value: "http://team-catalog-backend.org"
     - name: CACHE_TTL_MINUTES
       value: "15"
   envFrom:

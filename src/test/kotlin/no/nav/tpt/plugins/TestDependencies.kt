@@ -17,6 +17,8 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
@@ -27,6 +29,7 @@ fun Application.installTestDependencies(
     naisApiService: NaisApiService = MockNaisApiService(),
     kevService: KevService = createMockCachedKevService(),
     epssService: EpssService = MockEpssService(),
+    teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     httpClient: HttpClient? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
@@ -52,6 +55,7 @@ fun Application.installTestDependencies(
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         valkeyHost = "localhost",
         valkeyPort = 6379,
         valkeyUsername = "test",
@@ -90,7 +94,8 @@ fun Application.installTestDependencies(
         nvdSyncService = mockNvdSyncService,
         leaderElection = mockLeaderElection,
         httpClient = client,
-        vulnService = vulnService
+        vulnService = vulnService,
+        teamkatalogenService = teamkatalogenService
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -100,9 +105,10 @@ fun Application.testModule(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
     kevService: KevService = createMockCachedKevService(),
-    epssService: EpssService = MockEpssService()
+    epssService: EpssService = MockEpssService(),
+    teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
 ) {
-    installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService)
+    installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService, teamkatalogenService)
 
     install(ServerContentNegotiation) {
         json(Json {
