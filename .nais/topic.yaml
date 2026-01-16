@@ -1,0 +1,16 @@
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  labels:
+    team: appsec
+  name: tpt
+  namespace: appsec
+spec:
+  acl:
+    - access: read
+      application: tpt-backend
+      team: appsec
+  config:
+    cleanupPolicy: delete
+    retentionHours: 48
+  pool: nav-prod
