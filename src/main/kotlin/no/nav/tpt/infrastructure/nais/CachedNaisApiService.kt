@@ -32,4 +32,26 @@ class CachedNaisApiService(
 
         return response.toData()
     }
+
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+        val cacheKey = "vulnerabilities:team:$teamSlug"
+
+        if (!bypassCache) {
+            cache.get(cacheKey)?.let { jsonString ->
+                val response = json.decodeFromString(WorkloadVulnerabilitiesResponse.serializer(), jsonString)
+                return response.toData()
+            }
+        }
+
+        val response = apiClient.getVulnerabilitiesForTeam(teamSlug)
+
+        if (!response.errors.isNullOrEmpty()) {
+            logger.warn("GraphQL errors for team vulnerabilities $teamSlug: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
+        } else {
+            val jsonString = json.encodeToString(WorkloadVulnerabilitiesResponse.serializer(), response)
+            cache.put(cacheKey, jsonString)
+        }
+
+        return response.toData()
+    }
 }

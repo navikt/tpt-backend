@@ -27,7 +27,11 @@ class TeamkatalogenClientTest {
                             {
                               "naisTeams": [
                                 "appsec-a",
-                                "appsec-b",
+                                "appsec-b"
+                              ]
+                            },
+                            {
+                              "naisTeams": [
                                 "appsec-c"
                               ]
                             }
@@ -55,11 +59,10 @@ class TeamkatalogenClientTest {
         val client = TeamkatalogenClient(httpClient, "http://test-teamkatalogen")
         val result = client.getMembershipByEmail("test@nav.no")
 
-        assertEquals(1, result.teams.size)
-        assertEquals(3, result.teams[0].naisTeams.size)
-        assertEquals("appsec-a", result.teams[0].naisTeams[0])
-        assertEquals("appsec-b", result.teams[0].naisTeams[1])
-        assertEquals("appsec-c", result.teams[0].naisTeams[2])
+        assertEquals(3, result.naisTeams.size)
+        assertEquals("appsec-a", result.naisTeams[0])
+        assertEquals("appsec-b", result.naisTeams[1])
+        assertEquals("appsec-c", result.naisTeams[2])
     }
 }
 

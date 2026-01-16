@@ -17,6 +17,7 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.nvd.MockNvdRepository
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
@@ -69,7 +70,7 @@ fun Application.installTestDependencies(
     val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
     val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
 
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, mockNvdRepository, riskScorer)
+    val vulnService = VulnServiceImpl(naisApiService = naisApiService, kevService = kevService, teamkatalogenService = MockTeamkatalogenService(), epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
 
     // Stub database for tests - creates a minimal database instance that won't actually be used
     // Real database tests use testcontainers in specific integration tests

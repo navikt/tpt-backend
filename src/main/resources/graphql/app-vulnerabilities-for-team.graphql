@@ -1,0 +1,44 @@
+query ApplicationVulnerabilitiesForTeam($team: Slug!) {
+  team(slug: $team) {
+    slug
+    applications(first: $workloadFirst, after: $workloadAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        id
+        name
+        ingresses {
+          type
+        }
+        deployments(first: 1) {
+          nodes {
+            repository
+            environmentName
+          }
+        }
+        image {
+          name
+          tag
+          vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              identifier
+              description
+              vulnerabilityDetailsLink
+              severity
+              package
+              suppression {
+                state
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

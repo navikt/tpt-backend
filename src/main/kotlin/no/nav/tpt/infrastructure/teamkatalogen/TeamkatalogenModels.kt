@@ -4,11 +4,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class MembershipResponse(
+    val naisTeams: List<String>
+)
+
+@Serializable
+internal data class TeamkatalogenApiResponse(
     val teams: List<TeamMembership>
 )
 
 @Serializable
-data class TeamMembership(
+internal data class TeamMembership(
     val naisTeams: List<String>
 )
 

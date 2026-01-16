@@ -11,17 +11,34 @@ import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.purl.PurlParser
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 
 class VulnServiceImpl(
     private val naisApiService: NaisApiService,
     private val kevService: KevService,
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
-    private val riskScorer: RiskScorer
+    private val riskScorer: RiskScorer,
+    private val teamkatalogenService: TeamkatalogenService
 ) : VulnService {
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
-        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
+        var vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
+
+        // if a user does not have any teams with vulnerabilities in nais, this indicates that they might belong to a nais team
+        // so we check teamkatalogen for team membership and fetch vulnerabilities for those teams
+        if(vulnerabilitiesData.teams.isEmpty()) {
+            val membershipResponse = teamkatalogenService.getMembershipByEmail(email)
+            val teamVulnsList = mutableListOf<no.nav.tpt.infrastructure.nais.TeamVulnerabilitiesData>()
+            for(naisTeam in membershipResponse.naisTeams) {
+                val teamVulns = naisApiService.getVulnerabilitiesForTeam(naisTeam, bypassCache)
+                teamVulnsList.addAll(teamVulns.teams)
+            }
+            vulnerabilitiesData = no.nav.tpt.infrastructure.nais.UserVulnerabilitiesData(
+                teams = teamVulnsList
+            )
+        }
+
         val kevCatalog = kevService.getKevCatalog()
 
         val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
