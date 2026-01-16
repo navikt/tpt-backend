@@ -70,5 +70,7 @@ spec:
       value: "https://teamkatalog-api.intern.nav.no"
     - name: CACHE_TTL_MINUTES
       value: "15"
+    - name: KAFKA_TOPICS
+      value: "appsec.tpt"
   envFrom:
     - secret: tpt-backend
