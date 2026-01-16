@@ -12,6 +12,7 @@ import io.ktor.server.request.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
+import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureNvdSync
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
@@ -49,6 +50,7 @@ fun Application.module() {
 
     configureAuthentication(dependencies.tokenIntrospectionService)
     configureNvdSync()
+    configureKafka()
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")

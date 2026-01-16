@@ -21,6 +21,9 @@ API to help developers prioritize which security issues to fix first. Fetches vu
 - `VALKEY_USERNAME` - Valkey username (optional)
 - `VALKEY_PASSWORD` - Valkey password (optional)
 - `CACHE_TTL_MINUTES` - Cache TTL in minutes (default: 60)
+- `KAFKA_BROKERS` - Kafka broker addresses (optional, auto-injected by NAIS)
+- `KAFKA_TOPICS` - Comma-separated list of topics to consume (optional)
+- `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by NAIS)
 
 Request NVD Api key at [NIST](https://nvd.nist.gov/developers/request-an-api-key) and subscribe to [NVD Technical Updates](https://www.nist.gov/itl/nvd).
 
@@ -46,8 +49,11 @@ Tests use mocked dependencies and testcontainers for Valkey and PostgreSQL.
 - **NVD** - National Vulnerability Database (PostgreSQL-backed, syncs every 2 hours)
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (Valkey-cached)
 - **EPSS** - Exploit Prediction Scoring System (Valkey-cached)
+- **Kafka** - Receives JSON data from other applications (optional)
 
 Initial NVD sync takes ~1-2 hours on first deployment.
+
+For detailed Kafka integration documentation, see [KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md).
 
 ## API Endpoints
 

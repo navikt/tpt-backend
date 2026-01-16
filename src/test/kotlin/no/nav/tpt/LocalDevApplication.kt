@@ -12,6 +12,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.LocalDevDependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
+import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
