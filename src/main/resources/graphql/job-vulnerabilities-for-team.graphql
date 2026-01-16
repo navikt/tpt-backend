@@ -1,4 +1,4 @@
-query ApplicationVulnerabilitiesForTeam($team: Slug!) {
+query JobVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int!, $workloadAfter: String, $vulnFirst: Int!, $vulnAfter: String) {
   team(slug: $team) {
     slug
     jobs(first: $workloadFirst, after: $workloadAfter) {
@@ -9,9 +9,6 @@ query ApplicationVulnerabilitiesForTeam($team: Slug!) {
       nodes {
         id
         name
-        ingresses {
-          type
-        }
         deployments(first: 1) {
           nodes {
             repository
