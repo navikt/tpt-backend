@@ -23,6 +23,16 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load job-vulnerabilities-for-user.graphql")
 
+    private val applicationsForTeamQuery = this::class.java.classLoader
+        .getResource("graphql/app-vulnerabilities-for-team.graphql")
+        ?.readText()
+        ?: error("Could not load app-vulnerabilities-for-team.graphql")
+
+    private val jobVulnerabilitiesForTeamQuery = this::class.java.classLoader
+        .getResource("graphql/job-vulnerabilities-for-team.graphql")
+        ?.readText()
+        ?: error("Could not load job-vulnerabilities-for-team.graphql")
+
     suspend fun getVulnerabilitiesForUser(email: String): WorkloadVulnerabilitiesResponse {
         val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
         val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")
@@ -41,6 +51,271 @@ class NaisApiClient(
                         pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
                         nodes = mergedTeams
                     )
+                )
+            )
+        )
+    }
+
+    suspend fun getVulnerabilitiesForTeam(teamSlug: String): WorkloadVulnerabilitiesResponse {
+        val appResponse = fetchTeamWorkloadVulnerabilities(teamSlug, applicationsForTeamQuery, "applications")
+        val jobResponse = fetchTeamWorkloadVulnerabilities(teamSlug, jobVulnerabilitiesForTeamQuery, "jobs")
+
+        if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
+            val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
+            return WorkloadVulnerabilitiesResponse(errors = allErrors.map {
+                WorkloadVulnerabilitiesResponse.GraphQLError(it.message, it.path)
+            })
+        }
+
+        val appTeam = appResponse.data?.team
+        val jobTeam = jobResponse.data?.team
+
+        if (appTeam == null && jobTeam == null) {
+            return WorkloadVulnerabilitiesResponse(
+                errors = listOf(
+                    WorkloadVulnerabilitiesResponse.GraphQLError(
+                        message = "Team not found or no data returned",
+                        path = listOf("team")
+                    )
+                )
+            )
+        }
+
+        val team = WorkloadVulnerabilitiesResponse.TeamNode(
+            team = WorkloadVulnerabilitiesResponse.Team(
+                slug = teamSlug,
+                applications = appTeam?.applications?.let { apps ->
+                    WorkloadVulnerabilitiesResponse.WorkloadConnection(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(apps.pageInfo.hasNextPage, apps.pageInfo.endCursor),
+                        nodes = apps.nodes.map { convertTeamWorkloadToUserWorkload(it) }
+                    )
+                },
+                jobs = jobTeam?.jobs?.let { jobs ->
+                    WorkloadVulnerabilitiesResponse.WorkloadConnection(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(jobs.pageInfo.hasNextPage, jobs.pageInfo.endCursor),
+                        nodes = jobs.nodes.map { convertTeamWorkloadToUserWorkload(it) }
+                    )
+                }
+            )
+        )
+
+        return WorkloadVulnerabilitiesResponse(
+            data = WorkloadVulnerabilitiesResponse.Data(
+                user = WorkloadVulnerabilitiesResponse.User(
+                    teams = WorkloadVulnerabilitiesResponse.Teams(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        nodes = listOf(team)
+                    )
+                )
+            )
+        )
+    }
+
+    private fun convertTeamWorkloadToUserWorkload(
+        teamWorkload: TeamWorkloadVulnerabilitiesResponse.WorkloadNode
+    ): WorkloadVulnerabilitiesResponse.WorkloadNode {
+        return WorkloadVulnerabilitiesResponse.WorkloadNode(
+            id = teamWorkload.id,
+            name = teamWorkload.name,
+            ingresses = teamWorkload.ingresses.map {
+                WorkloadVulnerabilitiesResponse.Ingress(it.type)
+            },
+            deployments = WorkloadVulnerabilitiesResponse.Deployments(
+                nodes = teamWorkload.deployments.nodes.map {
+                    WorkloadVulnerabilitiesResponse.Deployment(it.repository, it.environmentName)
+                }
+            ),
+            image = teamWorkload.image?.let { img ->
+                WorkloadVulnerabilitiesResponse.Image(
+                    name = img.name,
+                    tag = img.tag,
+                    vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
+                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
+                            img.vulnerabilities.pageInfo.hasNextPage,
+                            img.vulnerabilities.pageInfo.endCursor
+                        ),
+                        nodes = img.vulnerabilities.nodes.map { vuln ->
+                            WorkloadVulnerabilitiesResponse.Vulnerability(
+                                identifier = vuln.identifier,
+                                severity = vuln.severity,
+                                packageName = vuln.packageName,
+                                description = vuln.description,
+                                vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
+                                suppression = vuln.suppression?.let {
+                                    WorkloadVulnerabilitiesResponse.Suppression(it.state)
+                                }
+                            )
+                        }
+                    )
+                )
+            }
+        )
+    }
+
+    private suspend fun fetchTeamWorkloadVulnerabilities(
+        teamSlug: String,
+        query: String,
+        workloadType: String
+    ): TeamWorkloadVulnerabilitiesResponse {
+        val allWorkloadsWithVulns = mutableListOf<TeamWorkloadVulnerabilitiesResponse.WorkloadNode>()
+        var workloadCursor: String? = null
+        var hasMoreWorkloads = true
+
+        while (hasMoreWorkloads) {
+            val request = TeamWorkloadVulnerabilitiesRequest(
+                query = query,
+                variables = TeamWorkloadVulnerabilitiesRequest.Variables(
+                    team = teamSlug,
+                    workloadFirst = 50,
+                    workloadAfter = workloadCursor,
+                    vulnFirst = 50
+                )
+            )
+
+            val response = try {
+                httpClient.post(apiUrl) {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    setBody(request)
+                }
+            } catch (e: Exception) {
+                logger.error("HTTP error fetching $workloadType for team $teamSlug", e)
+                throw e
+            }
+
+            val pageResponse: TeamWorkloadVulnerabilitiesResponse = response.body()
+
+            if (!pageResponse.errors.isNullOrEmpty()) {
+                logger.error("GraphQL errors for team $workloadType $teamSlug: ${pageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                return pageResponse
+            }
+
+            if (pageResponse.data?.team == null) {
+                return TeamWorkloadVulnerabilitiesResponse(
+                    errors = listOf(
+                        TeamWorkloadVulnerabilitiesResponse.GraphQLError(
+                            message = "Team not found or no data returned",
+                            path = listOf("team")
+                        )
+                    )
+                )
+            }
+
+            val workloadConnection = when (workloadType) {
+                "applications" -> pageResponse.data.team.applications
+                "jobs" -> pageResponse.data.team.jobs
+                else -> null
+            }
+
+            if (workloadConnection == null) {
+                break
+            }
+
+            for (workload in workloadConnection.nodes) {
+                allWorkloadsWithVulns.add(paginateVulnerabilitiesForTeamWorkload(workload, teamSlug, query, workloadType))
+            }
+
+            hasMoreWorkloads = workloadConnection.pageInfo.hasNextPage
+            workloadCursor = workloadConnection.pageInfo.endCursor
+        }
+
+        val slug = allWorkloadsWithVulns.firstOrNull()?.let { teamSlug } ?: teamSlug
+
+        return TeamWorkloadVulnerabilitiesResponse(
+            data = TeamWorkloadVulnerabilitiesResponse.Data(
+                team = TeamWorkloadVulnerabilitiesResponse.Team(
+                    slug = slug,
+                    applications = if (workloadType == "applications")
+                        TeamWorkloadVulnerabilitiesResponse.WorkloadConnection(
+                            pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                            nodes = allWorkloadsWithVulns
+                        ) else null,
+                    jobs = if (workloadType == "jobs")
+                        TeamWorkloadVulnerabilitiesResponse.WorkloadConnection(
+                            pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                            nodes = allWorkloadsWithVulns
+                        ) else null
+                )
+            )
+        )
+    }
+
+    private suspend fun paginateVulnerabilitiesForTeamWorkload(
+        workload: TeamWorkloadVulnerabilitiesResponse.WorkloadNode,
+        teamSlug: String,
+        query: String,
+        workloadType: String
+    ): TeamWorkloadVulnerabilitiesResponse.WorkloadNode {
+        if (workload.image == null) {
+            return workload
+        }
+
+        val allVulns = mutableListOf<TeamWorkloadVulnerabilitiesResponse.Vulnerability>()
+        var vulnCursor: String?
+        var hasMoreVulns: Boolean
+
+        allVulns.addAll(workload.image.vulnerabilities.nodes)
+        vulnCursor = workload.image.vulnerabilities.pageInfo.endCursor
+        hasMoreVulns = workload.image.vulnerabilities.pageInfo.hasNextPage
+
+        while (hasMoreVulns) {
+            val vulnRequest = TeamWorkloadVulnerabilitiesRequest(
+                query = query,
+                variables = TeamWorkloadVulnerabilitiesRequest.Variables(
+                    team = teamSlug,
+                    workloadFirst = 50,
+                    workloadAfter = null,
+                    vulnFirst = 50,
+                    vulnAfter = vulnCursor
+                )
+            )
+
+            val vulnResponse = try {
+                httpClient.post(apiUrl) {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    setBody(vulnRequest)
+                }
+            } catch (e: Exception) {
+                logger.error("HTTP error fetching vulnerabilities for workload ${workload.id}", e)
+                break
+            }
+
+            val vulnPageResponse: TeamWorkloadVulnerabilitiesResponse = vulnResponse.body()
+
+            if (!vulnPageResponse.errors.isNullOrEmpty()) {
+                logger.error("GraphQL errors fetching vulnerabilities for workload ${workload.id}: ${vulnPageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                break
+            }
+
+            val paginatedWorkload = vulnPageResponse.data?.team?.let { team ->
+                when (workloadType) {
+                    "applications" -> team.applications?.nodes
+                    "jobs" -> team.jobs?.nodes
+                    else -> null
+                }
+            }?.firstOrNull { it.id == workload.id }
+
+            if (paginatedWorkload?.image != null) {
+                allVulns.addAll(paginatedWorkload.image.vulnerabilities.nodes)
+                hasMoreVulns = paginatedWorkload.image.vulnerabilities.pageInfo.hasNextPage
+                vulnCursor = paginatedWorkload.image.vulnerabilities.pageInfo.endCursor
+            } else {
+                break
+            }
+        }
+
+        return TeamWorkloadVulnerabilitiesResponse.WorkloadNode(
+            id = workload.id,
+            name = workload.name,
+            ingresses = workload.ingresses,
+            deployments = workload.deployments,
+            image = TeamWorkloadVulnerabilitiesResponse.Image(
+                name = workload.image.name,
+                tag = workload.image.tag,
+                vulnerabilities = TeamWorkloadVulnerabilitiesResponse.Vulnerabilities(
+                    pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                    nodes = allVulns
                 )
             )
         )

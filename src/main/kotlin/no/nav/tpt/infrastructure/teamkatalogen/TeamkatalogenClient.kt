@@ -18,7 +18,12 @@ class TeamkatalogenClient(
             parameter("email", email)
         }
 
-        return response.body()
+        val apiResponse: TeamkatalogenApiResponse = response.body()
+
+        // Flatten the nested naisTeams arrays into a single list
+        val allNaisTeams = apiResponse.teams.flatMap { it.naisTeams }
+
+        return MembershipResponse(naisTeams = allNaisTeams)
     }
 }
 
