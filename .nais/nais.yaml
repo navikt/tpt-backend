@@ -39,6 +39,8 @@ spec:
           - name: tpt
   image: {{image}}
   port: 8080
+  kafka:
+    pool: nav-prod
   leaderElection: true
   liveness:
     initialDelay: 10

@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.bundles.database)
     implementation(libs.valkey.java)
     implementation(libs.jakarta.validation.api)
+    implementation(libs.kafka.clients)
 
     testImplementation(libs.bundles.testing)
     testImplementation(platform(libs.junit.bom))
