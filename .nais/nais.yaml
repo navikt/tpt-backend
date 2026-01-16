@@ -20,10 +20,8 @@ spec:
       rules:
         - application: tpt-frontend
     outbound:
-      rules:
-        - application: team-catalog-backend
-          namespace: org
       external:
+        - host: teamkatalog-api.intern.nav.no
         - host: console.nav.cloud.nais.io
         - host: www.cisa.gov
         - host: api.first.org
