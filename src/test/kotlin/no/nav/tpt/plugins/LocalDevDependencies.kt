@@ -30,11 +30,12 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 private var postgresContainer: PostgreSQLContainer<*>? = null
 private var valkeyContainer: GenericContainer<*>? = null
-private var kafkaContainer: GenericContainer<*>? = null
+private var kafkaContainer: KafkaContainer? = null
 
 fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     if (postgresContainer == null) {
@@ -56,9 +57,9 @@ fun getOrCreateValkeyContainer(): GenericContainer<*> {
     return valkeyContainer!!
 }
 
-fun getOrCreateKafkaContainer(): GenericContainer<*> {
+fun getOrCreateKafkaContainer(): KafkaContainer {
     if (kafkaContainer == null) {
-        kafkaContainer = GenericContainer(DockerImageName.parse("apache/kafka:3.9.0"))
+        kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
             .withExposedPorts(9092, 9093)
             .withEnv("KAFKA_NODE_ID", "1")
             .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
