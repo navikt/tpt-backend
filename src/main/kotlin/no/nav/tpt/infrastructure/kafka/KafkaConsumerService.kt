@@ -10,7 +10,6 @@ import java.util.*
 
 open class KafkaConsumerService(
     protected val kafkaConfig: KafkaConfig,
-    protected val topics: List<String>,
     private val groupId: String = "tpt-backend"
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumerService::class.java)
@@ -19,13 +18,13 @@ open class KafkaConsumerService(
     protected var isHealthyFlag = true
 
     open fun start(scope: CoroutineScope) {
-        logger.info("Starting Kafka consumer for topics: $topics")
+        logger.info("Starting Kafka consumer for topics: ${kafkaConfig.topic}")
 
         consumerJob = scope.launch(Dispatchers.IO) {
             try {
                 consumer = createConsumer()
-                consumer?.subscribe(topics)
-                logger.info("Kafka consumer subscribed to topics: $topics")
+                consumer?.subscribe(listOf(kafkaConfig.topic))
+                logger.info("Kafka consumer subscribed to topics: ${kafkaConfig.topic}")
 
                 while (isActive) {
                     try {

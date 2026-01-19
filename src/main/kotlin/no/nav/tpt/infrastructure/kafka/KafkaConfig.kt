@@ -7,7 +7,8 @@ data class KafkaConfig(
     val caPath: String,
     val credstorePassword: String,
     val keystorePath: String,
-    val truststorePath: String
+    val truststorePath: String,
+    val topic: String
 ) {
     companion object {
         fun fromEnvironment(): KafkaConfig? {
@@ -18,6 +19,7 @@ data class KafkaConfig(
             val credstorePassword = System.getenv("KAFKA_CREDSTORE_PASSWORD") ?: return null
             val keystorePath = System.getenv("KAFKA_KEYSTORE_PATH") ?: return null
             val truststorePath = System.getenv("KAFKA_TRUSTSTORE_PATH") ?: return null
+            val topic = System.getenv("KAFKA_TOPIC") ?: return null
 
             return KafkaConfig(
                 brokers = brokers,
@@ -26,7 +28,8 @@ data class KafkaConfig(
                 caPath = caPath,
                 credstorePassword = credstorePassword,
                 keystorePath = keystorePath,
-                truststorePath = truststorePath
+                truststorePath = truststorePath,
+                topic = topic
             )
         }
     }

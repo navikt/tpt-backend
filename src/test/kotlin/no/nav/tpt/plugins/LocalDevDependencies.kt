@@ -15,6 +15,8 @@ import no.nav.tpt.infrastructure.cisa.MockKevService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
+import no.nav.tpt.infrastructure.github.GitHubRepository
+import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
@@ -28,10 +30,12 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 private var postgresContainer: PostgreSQLContainer<*>? = null
 private var valkeyContainer: GenericContainer<*>? = null
+private var kafkaContainer: KafkaContainer? = null
 
 fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     if (postgresContainer == null) {
@@ -53,9 +57,31 @@ fun getOrCreateValkeyContainer(): GenericContainer<*> {
     return valkeyContainer!!
 }
 
+fun getOrCreateKafkaContainer(): KafkaContainer {
+    if (kafkaContainer == null) {
+        kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .withExposedPorts(9092, 9093)
+            .withEnv("KAFKA_NODE_ID", "1")
+            .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
+            .withEnv("KAFKA_LISTENERS", "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093")
+            .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://localhost:9092")
+            .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
+            .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT")
+            .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@localhost:9093")
+            .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
+            .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
+            .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
+            .withEnv("KAFKA_LOG_DIRS", "/tmp/kraft-combined-logs")
+            .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
+        kafkaContainer!!.start()
+    }
+    return kafkaContainer!!
+}
+
 val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDependencies") {
     val postgres = getOrCreatePostgresContainer()
     val valkey = getOrCreateValkeyContainer()
+    val kafka = getOrCreateKafkaContainer()
 
     val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -100,6 +126,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val leaderElection = LeaderElection(httpClient)
 
+    val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(database)
+
     val vulnService = MockVulnService()
 
     val config = AppConfig(
@@ -130,9 +158,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         leaderElection = leaderElection,
         httpClient = httpClient,
         vulnService = vulnService,
-        teamkatalogenService = teamkatalogenService
+        teamkatalogenService = teamkatalogenService,
+        gitHubRepository = gitHubRepository
     )
 
     application.attributes.put(DependenciesKey, dependencies)
+
+    // Set Kafka environment variables for local development
+    System.setProperty("KAFKA_BROKERS", "localhost:${kafka.getMappedPort(9092)}")
 }
 

@@ -11,9 +11,9 @@ class MockKafkaConsumerService : KafkaConsumerService(
         caPath = "/mock/ca",
         credstorePassword = "mock",
         keystorePath = "/mock/keystore",
-        truststorePath = "/mock/truststore"
-    ),
-    topics = emptyList()
+        truststorePath = "/mock/truststore",
+        topic = "mock-topic"
+    )
 ) {
     private val logger = LoggerFactory.getLogger(MockKafkaConsumerService::class.java)
     private var healthy = true
