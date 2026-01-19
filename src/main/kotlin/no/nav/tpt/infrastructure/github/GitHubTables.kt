@@ -34,8 +34,6 @@ object GitHubVulnerabilityIdentifiers : Table("github_vulnerability_identifiers"
     override val primaryKey = PrimaryKey(id)
 }
 
-// ...existing code...
-
 data class GitHubRepositoryData(
     val repositoryName: String,
     val naisTeams: List<String>,
