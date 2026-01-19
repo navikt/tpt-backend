@@ -1,19 +1,19 @@
 [versions]
 kotlin = "2.3.0"
 ktor = "3.3.3"
-logback = "1.5.23"
+logback = "1.5.24"
 logstash-encoder = "9.0"
 kotlin-test = "2.3.0"
 valkey = "5.5.0"
 testcontainers = "1.21.4"
 kotlinx-coroutines = "1.10.2"
-junit = "6.0.1"
+junit = "6.0.2"
 fabrikt = "1.25.0"
 jakarta-validation = "3.1.1"
 postgresql = "42.7.8"
 exposed = "0.61.0"
 hikaricp = "7.0.2"
-flyway = "11.20.0"
+flyway = "11.20.1"
 kafka = "4.1.1"
 
 [libraries]
