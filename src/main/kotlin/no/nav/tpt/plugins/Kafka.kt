@@ -19,14 +19,7 @@ fun Application.configureKafka() {
         return
     }
 
-    val topics = System.getenv("KAFKA_TOPICS")?.split(",")?.map { it.trim() }
-
-    if (topics.isNullOrEmpty()) {
-        logger.warn("KAFKA_TOPICS not configured, skipping Kafka consumer initialization")
-        return
-    }
-
-    logger.info("Initializing Kafka consumer for topics: $topics")
+    logger.info("Initializing Kafka consumer for topic: ${kafkaConfig.topic}")
 
     val kafkaScope = CoroutineScope(SupervisorJob())
     val consumerService = GitHubRepositoryKafkaConsumer(
