@@ -15,6 +15,8 @@ import no.nav.tpt.infrastructure.cisa.createMockCachedKevService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
+import no.nav.tpt.infrastructure.github.GitHubRepository
+import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
@@ -84,6 +86,8 @@ fun Application.installTestDependencies(
     // Mock leader election - always returns true in tests
     val mockLeaderElection = LeaderElection(client)
 
+    val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(stubDatabase)
+
     val dependencies = Dependencies(
         appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -96,7 +100,8 @@ fun Application.installTestDependencies(
         leaderElection = mockLeaderElection,
         httpClient = client,
         vulnService = vulnService,
-        teamkatalogenService = teamkatalogenService
+        teamkatalogenService = teamkatalogenService,
+        gitHubRepository = gitHubRepository
     )
 
     attributes.put(DependenciesKey, dependencies)

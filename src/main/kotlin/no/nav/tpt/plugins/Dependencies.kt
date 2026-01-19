@@ -16,6 +16,8 @@ import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.epss.*
 import no.nav.tpt.infrastructure.nais.*
+import no.nav.tpt.infrastructure.github.GitHubRepository
+import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nvd.*
 import no.nav.tpt.infrastructure.teamkatalogen.*
 import no.nav.tpt.infrastructure.vulns.VulnService
@@ -35,7 +37,8 @@ class Dependencies(
     val leaderElection: LeaderElection,
     val httpClient: HttpClient,
     val vulnService: VulnService,
-    val teamkatalogenService: TeamkatalogenService
+    val teamkatalogenService: TeamkatalogenService,
+    val gitHubRepository: GitHubRepository
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -113,6 +116,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val teamkatalogenClient = TeamkatalogenClient(httpClient, config.teamkatalogenUrl)
     val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
+    val gitHubRepository = GitHubRepositoryImpl(database)
+
     val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, teamkatalogenService)
 
     val dependencies = Dependencies(
@@ -127,7 +132,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         leaderElection = leaderElection,
         httpClient = httpClient,
         vulnService = vulnService,
-        teamkatalogenService = teamkatalogenService
+        teamkatalogenService = teamkatalogenService,
+        gitHubRepository = gitHubRepository
     )
 
     application.attributes.put(DependenciesKey, dependencies)

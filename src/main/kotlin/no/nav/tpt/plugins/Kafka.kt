@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import no.nav.tpt.infrastructure.kafka.GitHubRepositoryKafkaConsumer
 import no.nav.tpt.infrastructure.kafka.KafkaConfig
 import no.nav.tpt.infrastructure.kafka.KafkaConsumerService
 import org.slf4j.LoggerFactory
@@ -28,7 +29,10 @@ fun Application.configureKafka() {
     logger.info("Initializing Kafka consumer for topics: $topics")
 
     val kafkaScope = CoroutineScope(SupervisorJob())
-    val consumerService = KafkaConsumerService(kafkaConfig, topics)
+    val consumerService = GitHubRepositoryKafkaConsumer(
+        kafkaConfig,
+        dependencies.gitHubRepository
+    )
 
     consumerService.start(kafkaScope)
 
