@@ -5,13 +5,13 @@ import no.nav.tpt.domain.VulnTeamDto
 import no.nav.tpt.domain.VulnVulnerabilityDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
+import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.purl.PurlParser
-import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 
 class VulnServiceImpl(
     private val naisApiService: NaisApiService,
@@ -19,25 +19,17 @@ class VulnServiceImpl(
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
     private val riskScorer: RiskScorer,
-    private val teamkatalogenService: TeamkatalogenService
+    private val userContextService: UserContextService
 ) : VulnService {
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
-        var vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
+        val userContext = userContextService.getUserContext(email)
 
-        // if a user does not have any teams with vulnerabilities in nais, this indicates that they might belong to a nais team
-        // so we check teamkatalogen for team membership and fetch vulnerabilities for those teams
-        if(vulnerabilitiesData.teams.isEmpty()) {
-            val membershipResponse = teamkatalogenService.getMembershipByEmail(email)
-            val teamVulnsList = mutableListOf<no.nav.tpt.infrastructure.nais.TeamVulnerabilitiesData>()
-            for(naisTeam in membershipResponse.naisTeams) {
-                val teamVulns = naisApiService.getVulnerabilitiesForTeam(naisTeam, bypassCache)
-                teamVulnsList.addAll(teamVulns.teams)
-            }
-            vulnerabilitiesData = no.nav.tpt.infrastructure.nais.UserVulnerabilitiesData(
-                teams = teamVulnsList
-            )
+        if (userContext.teams.isEmpty()) {
+            return VulnResponse(userRole = userContext.role, teams = emptyList())
         }
+
+        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
 
         val kevCatalog = kevService.getKevCatalog()
 
@@ -115,6 +107,6 @@ class VulnServiceImpl(
             }
         }
 
-        return VulnResponse(teams = teams)
+        return VulnResponse(userRole = userContext.role, teams = teams)
     }
 }

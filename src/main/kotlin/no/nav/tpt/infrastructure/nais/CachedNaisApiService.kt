@@ -54,4 +54,17 @@ class CachedNaisApiService(
 
         return response.toData()
     }
+
+    override suspend fun getTeamMembershipsForUser(email: String): List<String> {
+        val response = apiClient.getTeamMembershipsForUser(email)
+
+        if (!response.errors.isNullOrEmpty()) {
+            logger.warn("GraphQL errors for team memberships $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
+            return emptyList()
+        }
+
+        val teamSlugs = response.data?.user?.teams?.nodes?.map { it.team.slug } ?: emptyList()
+
+        return teamSlugs
+    }
 }

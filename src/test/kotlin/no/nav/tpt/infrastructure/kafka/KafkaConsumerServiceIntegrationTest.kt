@@ -8,6 +8,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.time.Duration
@@ -20,12 +21,16 @@ class KafkaConsumerServiceIntegrationTest {
     private lateinit var bootstrapServers: String
     private val testTopic = "test-topic"
 
+    companion object {
+        private val WAIT_STRATEGY = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
+    }
+
     @BeforeTest
     fun setup() {
         kafkaContainer = KafkaContainer(
             DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(WAIT_STRATEGY)
         kafkaContainer.start()
-        Thread.sleep(5000)
 
         bootstrapServers = kafkaContainer.bootstrapServers
         logger.info("Kafka container started on: $bootstrapServers")

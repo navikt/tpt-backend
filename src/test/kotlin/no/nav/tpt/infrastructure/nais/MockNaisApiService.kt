@@ -2,7 +2,8 @@ package no.nav.tpt.infrastructure.nais
 
 class MockNaisApiService(
     private val shouldSucceed: Boolean = true,
-    private val mockUserVulnerabilitiesData: UserVulnerabilitiesData? = null
+    private val mockUserVulnerabilitiesData: UserVulnerabilitiesData? = null,
+    private val mockTeamMemberships: List<String>? = null
 ) : NaisApiService {
 
     override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
@@ -89,5 +90,13 @@ class MockNaisApiService(
                 )
             )
         )
+    }
+
+    override suspend fun getTeamMembershipsForUser(email: String): List<String> {
+        if (!shouldSucceed) {
+            throw RuntimeException("Mock error: Failed to fetch team memberships for user")
+        }
+
+        return mockTeamMemberships ?: emptyList()
     }
 }

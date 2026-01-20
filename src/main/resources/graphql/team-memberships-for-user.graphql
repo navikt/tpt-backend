@@ -1,0 +1,11 @@
+query TeamMembershipsForUser($email:String!) {
+  user(email: $email) {
+    teams {
+      nodes {
+        team{
+          slug
+        }
+      }
+    }
+  }
+}

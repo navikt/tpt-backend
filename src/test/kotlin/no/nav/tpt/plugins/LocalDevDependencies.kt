@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
+import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevService
@@ -25,6 +26,7 @@ import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.nvd.NvdSyncService
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
+import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.MockVulnService
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
@@ -100,6 +102,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val kevService: KevService = MockKevService()
     val epssService: EpssService = MockEpssService()
     val teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
+    val userContextService: UserContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
 
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = postgres.jdbcUrl
@@ -159,6 +162,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         httpClient = httpClient,
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
+        userContextService = userContextService,
         gitHubRepository = gitHubRepository
     )
 

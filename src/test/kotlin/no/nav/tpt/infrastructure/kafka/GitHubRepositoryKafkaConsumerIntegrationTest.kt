@@ -33,6 +33,10 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     private lateinit var kafkaConsumer: GitHubRepositoryKafkaConsumer
     private lateinit var kafkaProducer: KafkaProducer<String, String>
 
+    companion object {
+        private val WAIT_STRATEGY = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
+    }
+
     private val testTopic = "test-github-repo-topic"
 
     @Before
@@ -57,7 +61,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
             .withEnv("KAFKA_LOG_DIRS", "/tmp/kraft-combined-logs")
             .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
-            .waitingFor(Wait.forListeningPort().withStartupTimeout(JavaDuration.ofSeconds(60)))
+            .waitingFor(WAIT_STRATEGY)
         kafkaContainer.start()
 
         val hikariConfig = HikariConfig().apply {
