@@ -17,5 +17,5 @@ jobs:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1
         env:
-          RESOURCE: .nais/topic.yaml,kafka-manager.yaml
+          RESOURCE: .nais/topic.yaml,.nais/kafka-manager.yaml
           CLUSTER: prod-gcp
