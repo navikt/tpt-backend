@@ -97,6 +97,16 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             .map { toGitHubRepositoryData(it) }
     }
 
+    override suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData> = dbQuery {
+        if (teamSlugs.isEmpty()) {
+            return@dbQuery emptyList()
+        }
+
+        GitHubRepositories.selectAll()
+            .map { toGitHubRepositoryData(it) }
+            .filter { repo -> repo.naisTeams.any { it in teamSlugs } }
+    }
+
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
         return GitHubRepositoryData(
             repositoryName = row[GitHubRepositories.repositoryName],

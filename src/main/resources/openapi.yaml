@@ -97,6 +97,39 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /vulnerabilities/github/user:
+    get:
+      summary: Get GitHub repository vulnerabilities for authenticated user
+      description: Fetches prioritized GitHub repository vulnerabilities for the authenticated user's teams
+      tags:
+        - Vulnerabilities
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved GitHub repository vulnerabilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnResponse'
+        '400':
+          description: Bad request - preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 components:
   securitySchemes:
     bearerAuth:
@@ -129,6 +162,7 @@ components:
       required:
         - team
         - workloads
+        - repositories
       properties:
         team:
           type: string
@@ -137,6 +171,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VulnWorkloadDto'
+          description: Kubernetes workloads (NAIS applications and jobs) with their vulnerabilities
+        repositories:
+          type: array
+          items:
+            $ref: '#/components/schemas/VulnRepositoryDto'
+          description: GitHub repositories with their vulnerabilities
     VulnWorkloadDto:
       type: object
       required:
@@ -170,6 +210,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VulnVulnerabilityDto'
+    VulnRepositoryDto:
+      type: object
+      required:
+        - name
+        - vulnerabilities
+      properties:
+        name:
+          type: string
+          description: GitHub repository name (e.g., navikt/my-repo)
+          example: "navikt/my-application"
+        vulnerabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/VulnVulnerabilityDto'
+          description: Vulnerabilities found in the GitHub repository
     VulnVulnerabilityDto:
       type: object
       required:

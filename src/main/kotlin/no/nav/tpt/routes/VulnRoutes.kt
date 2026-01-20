@@ -29,6 +29,24 @@ fun Route.vulnRoutes() {
                 call.respondInternalServerError("Failed to fetch vulnerabilities", e)
             }
         }
+
+        get("/vulnerabilities/github/user") {
+            val principal = call.principal<TokenPrincipal>()
+            val email = principal?.preferredUsername
+
+            if (email == null) {
+                call.respondBadRequest("preferred_username claim not found in token")
+                return@get
+            }
+
+            try {
+                val vulnService = call.dependencies.vulnService
+                val response = vulnService.fetchGitHubVulnerabilitiesForUser(email)
+                call.respond(HttpStatusCode.OK, response)
+            } catch (e: Exception) {
+                call.respondInternalServerError("Failed to fetch GitHub vulnerabilities", e)
+            }
+        }
     }
 }
 

@@ -8,6 +8,7 @@ import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
+import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
@@ -19,8 +20,24 @@ class VulnServiceImpl(
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
     private val riskScorer: RiskScorer,
-    private val userContextService: UserContextService
+    private val userContextService: UserContextService,
+    private val gitHubRepository: GitHubRepository
 ) : VulnService {
+
+    private data class CveEnrichmentData(
+        val kevCveIds: Set<String>,
+        val epssScores: Map<String, no.nav.tpt.infrastructure.epss.EpssScore>,
+        val nvdData: Map<String, no.nav.tpt.infrastructure.nvd.NvdCveData>
+    )
+
+    private suspend fun fetchCveEnrichmentData(cveIds: List<String>): CveEnrichmentData {
+        val kevCatalog = kevService.getKevCatalog()
+        val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
+        val epssScores = epssService.getEpssScores(cveIds)
+        val nvdData = nvdRepository.getCveDataBatch(cveIds)
+
+        return CveEnrichmentData(kevCveIds, epssScores, nvdData)
+    }
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
         val userContext = userContextService.getUserContext(email)
@@ -31,18 +48,13 @@ class VulnServiceImpl(
 
         val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
 
-        val kevCatalog = kevService.getKevCatalog()
-
-        val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
-
         val allCveIds = vulnerabilitiesData.teams
             .flatMap { it.workloads }
             .flatMap { it.vulnerabilities }
             .map { it.identifier }
             .distinct()
 
-        val epssScores = epssService.getEpssScores(allCveIds)
-        val nvdData = nvdRepository.getCveDataBatch(allCveIds)
+        val enrichmentData = fetchCveEnrichmentData(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
             val teamSlug = teamVulns.teamSlug
@@ -54,9 +66,9 @@ class VulnServiceImpl(
                 }
 
                 val vulnerabilities = workload.vulnerabilities.map { vuln ->
-                    val epssScore = epssScores[vuln.identifier]
-                    val hasKevEntry = kevCveIds.contains(vuln.identifier)
-                    val cveData = nvdData[vuln.identifier]
+                    val epssScore = enrichmentData.epssScores[vuln.identifier]
+                    val hasKevEntry = enrichmentData.kevCveIds.contains(vuln.identifier)
+                    val cveData = enrichmentData.nvdData[vuln.identifier]
 
                     val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
                         severity = vuln.severity,
@@ -100,11 +112,94 @@ class VulnServiceImpl(
             if (workloads.isNotEmpty()) {
                 VulnTeamDto(
                     team = teamSlug,
-                    workloads = workloads
+                    workloads = workloads,
+                    repositories = emptyList()
                 )
             } else {
                 null
             }
+        }
+
+        return VulnResponse(userRole = userContext.role, teams = teams)
+    }
+
+    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): VulnResponse {
+        val userContext = userContextService.getUserContext(email)
+
+        if (userContext.teams.isEmpty()) {
+            return VulnResponse(userRole = userContext.role, teams = emptyList())
+        }
+
+        val gitHubRepositoriesData = gitHubRepository.getRepositoriesByTeams(userContext.teams)
+
+        val allCveIds = gitHubRepositoriesData
+            .flatMap { repo -> gitHubRepository.getVulnerabilities(repo.repositoryName) }
+            .flatMap { it.identifiers }
+            .filter { it.type.equals("CVE", ignoreCase = true) }
+            .map { it.value }
+            .distinct()
+
+        val enrichmentData = fetchCveEnrichmentData(allCveIds)
+
+        val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.VulnRepositoryDto>>()
+
+        gitHubRepositoriesData.forEach { repo ->
+            val repoVulns = gitHubRepository.getVulnerabilities(repo.repositoryName)
+
+            val vulnerabilities = repoVulns.mapNotNull { vuln ->
+                val cveIdentifier = vuln.identifiers
+                    .firstOrNull { it.type.equals("CVE", ignoreCase = true) }
+                    ?.value
+
+                if (cveIdentifier == null) return@mapNotNull null
+
+                val epssScore = enrichmentData.epssScores[cveIdentifier]
+                val hasKevEntry = enrichmentData.kevCveIds.contains(cveIdentifier)
+                val cveData = enrichmentData.nvdData[cveIdentifier]
+
+                val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                    severity = vuln.severity,
+                    ingressTypes = emptyList(),
+                    hasKevEntry = hasKevEntry,
+                    epssScore = epssScore?.epss,
+                    suppressed = false,
+                    environment = null,
+                    buildDate = null,
+                    hasExploitReference = cveData?.hasExploitReference ?: false,
+                    hasPatchReference = cveData?.hasPatchReference ?: false,
+                    cveDaysOld = cveData?.daysOld
+                )
+                val riskResult = riskScorer.calculateRiskScore(riskContext)
+
+                VulnVulnerabilityDto(
+                    identifier = cveIdentifier,
+                    name = null,
+                    packageName = null,
+                    description = cveData?.description,
+                    vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/$cveIdentifier",
+                    riskScore = riskResult.score,
+                    riskScoreBreakdown = riskResult.breakdown
+                )
+            }
+
+            if (vulnerabilities.isNotEmpty()) {
+                val repoDto = no.nav.tpt.domain.VulnRepositoryDto(
+                    name = repo.repositoryName,
+                    vulnerabilities = vulnerabilities
+                )
+
+                repo.naisTeams.forEach { teamSlug ->
+                    teamRepositories.getOrPut(teamSlug) { mutableListOf() }.add(repoDto)
+                }
+            }
+        }
+
+        val teams = teamRepositories.map { (teamSlug, repositories) ->
+            VulnTeamDto(
+                team = teamSlug,
+                workloads = emptyList(),
+                repositories = repositories
+            )
         }
 
         return VulnResponse(userRole = userContext.role, teams = teams)
