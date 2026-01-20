@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GitHubRepositoryMessage(
     val repositoryName: String,
-    val naisTeams: List<String>,
-    val vulnerabilities: List<GitHubVulnerabilityMessage>
+    val naisTeams: List<String>? = null,
+    val vulnerabilities: List<GitHubVulnerabilityMessage>? = null
 )
 
 @Serializable

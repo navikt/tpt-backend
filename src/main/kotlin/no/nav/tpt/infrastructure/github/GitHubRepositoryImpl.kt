@@ -20,24 +20,33 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             .singleOrNull()
 
         if (existingRow != null) {
+            // Update existing repository - only update teams if present in message
             GitHubRepositories.update({ GitHubRepositories.repositoryName eq message.repositoryName }) {
-                it[naisTeams] = message.naisTeams
+                message.naisTeams?.let { teams ->
+                    it[naisTeams] = teams
+                }
                 it[updatedAt] = Instant.now()
             }
             logger.info("Updated GitHub repository for: ${message.repositoryName}")
 
-            GitHubVulnerabilities.deleteWhere { repositoryName eq message.repositoryName }
+            // Only delete and update vulnerabilities if present in message
+            message.vulnerabilities?.let {
+                GitHubVulnerabilities.deleteWhere { repositoryName eq message.repositoryName }
+                logger.info("Deleted existing vulnerabilities for: ${message.repositoryName}")
+            }
         } else {
+            // Insert new repository
             GitHubRepositories.insert {
                 it[repositoryName] = message.repositoryName
-                it[naisTeams] = message.naisTeams
+                it[naisTeams] = message.naisTeams ?: emptyList()
                 it[createdAt] = Instant.now()
                 it[updatedAt] = Instant.now()
             }
             logger.info("Inserted new GitHub repository: ${message.repositoryName}")
         }
 
-        message.vulnerabilities.forEach { vuln ->
+        // Insert vulnerabilities if present in message
+        message.vulnerabilities?.forEach { vuln ->
             val vulnId = GitHubVulnerabilities.insert {
                 it[repositoryName] = message.repositoryName
                 it[severity] = vuln.severity
@@ -55,7 +64,8 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             }
         }
 
-        logger.info("Upserted ${message.vulnerabilities.size} vulnerabilities for: ${message.repositoryName}")
+        val vulnCount = message.vulnerabilities?.size ?: 0
+        logger.info("Upserted $vulnCount vulnerabilities for: ${message.repositoryName}")
     }
 
     override suspend fun getRepository(repositoryName: String): GitHubRepositoryData? = dbQuery {

@@ -61,8 +61,8 @@ class GitHubRepositoryKafkaConsumer(
             val message = json.decodeFromString<GitHubRepositoryMessage>(record.value())
             logger.info(
                 "Parsed GitHub repository message: repositoryName=${message.repositoryName}, " +
-                "teams=${message.naisTeams.joinToString()}, " +
-                "vulnerabilities=${message.vulnerabilities.size}"
+                "teams=${message.naisTeams?.joinToString() ?: "none"}, " +
+                "vulnerabilities=${message.vulnerabilities?.size ?: 0}"
             )
 
             scope.launch(Dispatchers.IO) {
