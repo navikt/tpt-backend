@@ -6,6 +6,8 @@ metadata:
   labels:
     team: appsec
 spec:
+  ingresses:
+    - https://tpt-backend.intern.nav.no
   azure:
     application:
       enabled: true
