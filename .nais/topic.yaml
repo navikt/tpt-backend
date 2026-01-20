@@ -16,6 +16,9 @@ spec:
     - access: write
       application: tpt-data-collector
       team: appsec
+    - access: write
+      application: appsec-vulnerability-stats
+      team: appsec
   config:
     cleanupPolicy: delete
     retentionHours: 48
