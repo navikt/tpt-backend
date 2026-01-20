@@ -61,9 +61,16 @@ fun Application.localDevModule() {
     log.info("Local Development Mode Started")
     log.info("=".repeat(80))
     log.info("Server: http://0.0.0.0:8080")
+    log.info("Swagger UI: http://0.0.0.0:8080/swagger")
     log.info("User: lokal.utvikler@nav.no (NAVident: Z999999)")
     log.info("Authentication: Any Bearer token accepted")
-    log.info("Mock Data: src/test/resources/mock-vulnerabilities.json")
+    log.info("Mock Data:")
+    log.info("  - Workloads: src/test/resources/mock-vulnerabilities.json")
+    log.info("  - GitHub Repos: 3 repositories (tpt-backend, security-tools, example-app)")
+    log.info("  - GitHub Vulns: 6 vulnerabilities across repos")
+    log.info("Endpoints:")
+    log.info("  - GET /vulnerabilities/user - Kubernetes workload vulnerabilities")
+    log.info("  - GET /vulnerabilities/github/user - GitHub repository vulnerabilities")
     log.info("=".repeat(80))
 }
 

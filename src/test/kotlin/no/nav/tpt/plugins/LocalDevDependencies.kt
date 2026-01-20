@@ -17,7 +17,7 @@ import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
-import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
+import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
@@ -120,7 +120,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val leaderElection = LeaderElection(httpClient)
 
-    val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(database)
+    val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
     val vulnService = MockVulnService()
 
