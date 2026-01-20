@@ -10,7 +10,7 @@ import java.time.Duration
 class GitHubRepositoryKafkaConsumer(
     kafkaConfig: KafkaConfig,
     private val repository: GitHubRepository,
-    groupId: String = "tpt-backend-github"
+    groupId: String = "tpt-backend"
 ) : KafkaConsumerService(kafkaConfig, groupId) {
 
     private val logger = LoggerFactory.getLogger(GitHubRepositoryKafkaConsumer::class.java)
