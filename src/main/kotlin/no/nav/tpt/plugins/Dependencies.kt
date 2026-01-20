@@ -123,7 +123,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val gitHubRepository = GitHubRepositoryImpl(database)
 
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, userContextService)
+    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
 
     val dependencies = Dependencies(
         appConfig = config,

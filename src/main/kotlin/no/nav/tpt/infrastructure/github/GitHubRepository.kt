@@ -7,4 +7,5 @@ interface GitHubRepository {
     suspend fun getRepository(repositoryName: String): GitHubRepositoryData?
     suspend fun getVulnerabilities(repositoryName: String): List<GitHubVulnerabilityData>
     suspend fun getAllRepositories(): List<GitHubRepositoryData>
+    suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData>
 }

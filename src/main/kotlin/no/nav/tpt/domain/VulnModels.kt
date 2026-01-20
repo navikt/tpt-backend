@@ -12,7 +12,8 @@ data class VulnResponse(
 @Serializable
 data class VulnTeamDto(
     val team: String,
-    val workloads: List<VulnWorkloadDto>
+    val workloads: List<VulnWorkloadDto>,
+    val repositories: List<VulnRepositoryDto>
 )
 
 @Serializable
@@ -22,6 +23,12 @@ data class VulnWorkloadDto(
     val workloadType: String,
     val environment: String?,
     val repository: String?,
+    val vulnerabilities: List<VulnVulnerabilityDto>
+)
+
+@Serializable
+data class VulnRepositoryDto(
+    val name: String,
     val vulnerabilities: List<VulnVulnerabilityDto>
 )
 

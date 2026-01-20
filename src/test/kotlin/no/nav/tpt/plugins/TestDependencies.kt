@@ -83,7 +83,8 @@ fun Application.installTestDependencies(
         epssService = MockEpssService(),
         nvdRepository = MockNvdRepository(),
         riskScorer = riskScorer,
-        userContextService = actualUserContextService
+        userContextService = actualUserContextService,
+        gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
     )
 
     // Stub database for tests - creates a minimal database instance that won't actually be used
