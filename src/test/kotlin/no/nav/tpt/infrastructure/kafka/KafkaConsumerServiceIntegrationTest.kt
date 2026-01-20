@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.kafka
 
+import no.nav.tpt.plugins.KAFKA_WAIT_STRATEGY
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -21,15 +22,11 @@ class KafkaConsumerServiceIntegrationTest {
     private lateinit var bootstrapServers: String
     private val testTopic = "test-topic"
 
-    companion object {
-        private val WAIT_STRATEGY = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
-    }
-
     @BeforeTest
     fun setup() {
         kafkaContainer = KafkaContainer(
             DockerImageName.parse("apache/kafka:4.1.1"))
-            .waitingFor(WAIT_STRATEGY)
+            .waitingFor(KAFKA_WAIT_STRATEGY)
         kafkaContainer.start()
 
         bootstrapServers = kafkaContainer.bootstrapServers

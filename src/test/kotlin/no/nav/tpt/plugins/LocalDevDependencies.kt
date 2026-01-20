@@ -32,12 +32,15 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 private var postgresContainer: PostgreSQLContainer<*>? = null
 private var valkeyContainer: GenericContainer<*>? = null
 private var kafkaContainer: KafkaContainer? = null
+val KAFKA_WAIT_STRATEGY: WaitStrategy = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
 
 fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     if (postgresContainer == null) {
@@ -60,21 +63,9 @@ fun getOrCreateValkeyContainer(): GenericContainer<*> {
 }
 
 fun getOrCreateKafkaContainer(): KafkaContainer {
+
     if (kafkaContainer == null) {
         kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
-            .withExposedPorts(9092, 9093)
-            .withEnv("KAFKA_NODE_ID", "1")
-            .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
-            .withEnv("KAFKA_LISTENERS", "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093")
-            .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://localhost:9092")
-            .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
-            .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT")
-            .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@localhost:9093")
-            .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
-            .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
-            .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
-            .withEnv("KAFKA_LOG_DIRS", "/tmp/kraft-combined-logs")
-            .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
         kafkaContainer!!.start()
     }
     return kafkaContainer!!
