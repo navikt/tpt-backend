@@ -1,4 +1,4 @@
-name: Deploy kafka topic
+name: Deploy kafka topic & manager
 on:
   push:
     branches:
@@ -17,5 +17,5 @@ jobs:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1
         env:
-          RESOURCE: .nais/topic.yaml
+          RESOURCE: .nais/topic.yaml,kafka-manager.yaml
           CLUSTER: prod-gcp
