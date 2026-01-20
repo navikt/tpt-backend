@@ -20,8 +20,10 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nvd.*
 import no.nav.tpt.infrastructure.teamkatalogen.*
+import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.domain.user.UserContextService
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
@@ -38,6 +40,7 @@ class Dependencies(
     val httpClient: HttpClient,
     val vulnService: VulnService,
     val teamkatalogenService: TeamkatalogenService,
+    val userContextService: UserContextService,
     val gitHubRepository: GitHubRepository
 )
 
@@ -116,9 +119,11 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val teamkatalogenClient = TeamkatalogenClient(httpClient, config.teamkatalogenUrl)
     val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
+    val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+
     val gitHubRepository = GitHubRepositoryImpl(database)
 
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, teamkatalogenService)
+    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, userContextService)
 
     val dependencies = Dependencies(
         appConfig = config,
@@ -133,6 +138,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         httpClient = httpClient,
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
+        userContextService = userContextService,
         gitHubRepository = gitHubRepository
     )
 

@@ -33,6 +33,11 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load job-vulnerabilities-for-team.graphql")
 
+    private val teamMembershipsForUserQuery = this::class.java.classLoader
+        .getResource("graphql/team-memberships-for-user.graphql")
+        ?.readText()
+        ?: error("Could not load team-memberships-for-user.graphql")
+
     suspend fun getVulnerabilitiesForUser(email: String): WorkloadVulnerabilitiesResponse {
         val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
         val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")
@@ -591,6 +596,45 @@ class NaisApiClient(
                     slug = slug,
                     applications = appTeam?.team?.applications,
                     jobs = jobTeam?.team?.jobs
+                )
+            )
+        }
+    }
+
+    suspend fun getTeamMembershipsForUser(email: String): TeamMembershipsForUserResponse {
+        val request = TeamMembershipsForUserRequest(
+            query = teamMembershipsForUserQuery,
+            variables = TeamMembershipsForUserRequest.Variables(email = email)
+        )
+
+        return try {
+            val response = httpClient.post("$apiUrl") {
+                contentType(ContentType.Application.Json)
+                bearerAuth(token)
+                setBody(request)
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.error("Failed to fetch team memberships for user $email: ${response.status}")
+                return TeamMembershipsForUserResponse(
+                    errors = listOf(
+                        TeamMembershipsForUserResponse.GraphQLError(
+                            message = "HTTP ${response.status.value}: ${response.status.description}",
+                            path = listOf("user", "teams")
+                        )
+                    )
+                )
+            }
+
+            response.body<TeamMembershipsForUserResponse>()
+        } catch (e: Exception) {
+            logger.error("Error fetching team memberships for user $email", e)
+            TeamMembershipsForUserResponse(
+                errors = listOf(
+                    TeamMembershipsForUserResponse.GraphQLError(
+                        message = "Failed to fetch team memberships: ${e.message}",
+                        path = listOf("user", "teams")
+                    )
                 )
             )
         }

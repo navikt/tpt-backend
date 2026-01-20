@@ -108,8 +108,18 @@ components:
     VulnResponse:
       type: object
       required:
+        - userRole
         - teams
       properties:
+        userRole:
+          type: string
+          enum: [DEVELOPER, TEAM_MEMBER, NONE]
+          description: |
+            Role of the user requesting the data:
+            - DEVELOPER: User has direct NAIS team memberships
+            - TEAM_MEMBER: User belongs to teams via Teamkatalogen but has no direct NAIS memberships
+            - NONE: User has no team memberships in either system
+          example: "DEVELOPER"
         teams:
           type: array
           items:

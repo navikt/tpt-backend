@@ -22,7 +22,9 @@ import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
+import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
@@ -33,6 +35,7 @@ fun Application.installTestDependencies(
     kevService: KevService = createMockCachedKevService(),
     epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
+    userContextService: UserContextService? = null,
     httpClient: HttpClient? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
@@ -72,7 +75,16 @@ fun Application.installTestDependencies(
     val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
     val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
 
-    val vulnService = VulnServiceImpl(naisApiService = naisApiService, kevService = kevService, teamkatalogenService = MockTeamkatalogenService(), epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+    val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService)
+
+    val vulnService = VulnServiceImpl(
+        naisApiService = naisApiService,
+        kevService = kevService,
+        epssService = MockEpssService(),
+        nvdRepository = MockNvdRepository(),
+        riskScorer = riskScorer,
+        userContextService = actualUserContextService
+    )
 
     // Stub database for tests - creates a minimal database instance that won't actually be used
     // Real database tests use testcontainers in specific integration tests
@@ -101,6 +113,7 @@ fun Application.installTestDependencies(
         httpClient = client,
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
+        userContextService = actualUserContextService,
         gitHubRepository = gitHubRepository
     )
 

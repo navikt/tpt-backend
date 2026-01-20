@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.vulns
 
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.VulnResponse
+import no.nav.tpt.domain.user.UserRole
 import java.io.File
 
 class MockVulnService : VulnService {
@@ -14,14 +15,14 @@ class MockVulnService : VulnService {
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
         if (!mockDataFile.exists()) {
-            return VulnResponse(teams = emptyList())
+            return VulnResponse(userRole = UserRole.DEVELOPER, teams = emptyList())
         }
 
         return try {
             val jsonContent = mockDataFile.readText()
             json.decodeFromString<VulnResponse>(jsonContent)
         } catch (e: Exception) {
-            VulnResponse(teams = emptyList())
+            VulnResponse(userRole = UserRole.DEVELOPER, teams = emptyList())
         }
     }
 }

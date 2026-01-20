@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
+import no.nav.tpt.plugins.KAFKA_WAIT_STRATEGY
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -57,7 +58,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
             .withEnv("KAFKA_LOG_DIRS", "/tmp/kraft-combined-logs")
             .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
-            .waitingFor(Wait.forListeningPort().withStartupTimeout(JavaDuration.ofSeconds(60)))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
         kafkaContainer.start()
 
         val hikariConfig = HikariConfig().apply {

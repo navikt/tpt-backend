@@ -1,9 +1,11 @@
 package no.nav.tpt.domain
 
 import kotlinx.serialization.Serializable
+import no.nav.tpt.domain.user.UserRole
 
 @Serializable
 data class VulnResponse(
+    val userRole: UserRole,
     val teams: List<VulnTeamDto>
 )
 

@@ -324,3 +324,51 @@ data class TeamWorkloadVulnerabilitiesResponse(
         override val path: List<String>? = null
     ) : GraphQLErrorInterface
 }
+
+@Serializable
+data class TeamMembershipsForUserRequest(
+    val query: String,
+    val variables: Variables
+) {
+    @Serializable
+    data class Variables(
+        val email: String
+    )
+}
+
+@Serializable
+data class TeamMembershipsForUserResponse(
+    val data: Data? = null,
+    val errors: List<GraphQLError>? = null
+) {
+    @Serializable
+    data class Data(
+        val user: User?
+    )
+
+    @Serializable
+    data class User(
+        val teams: Teams
+    )
+
+    @Serializable
+    data class Teams(
+        val nodes: List<TeamNode>
+    )
+
+    @Serializable
+    data class TeamNode(
+        val team: Team
+    )
+
+    @Serializable
+    data class Team(
+        val slug: String
+    )
+
+    @Serializable
+    data class GraphQLError(
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
+}

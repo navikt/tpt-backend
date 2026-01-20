@@ -1,13 +1,13 @@
 package no.nav.tpt.infrastructure.vulns
 
 import kotlinx.coroutines.test.runTest
+import no.nav.tpt.domain.user.MockUserContextService
 import no.nav.tpt.infrastructure.cisa.KevCatalog
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.cisa.KevVulnerability
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.nais.*
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
-import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import kotlin.test.*
 
 class VulnServiceTest {
@@ -81,7 +81,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = listOf("team-alpha"))
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(1, result.teams.size)
@@ -128,7 +135,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = listOf("team-beta"))
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertTrue(result.teams.isEmpty())
@@ -156,7 +170,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = listOf("team-gamma"))
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertTrue(result.teams.isEmpty())
@@ -207,7 +228,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = listOf("team-delta"))
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(1, result.teams.size)
@@ -298,7 +326,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = listOf("team-one", "team-two"))
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(2, result.teams.size)
@@ -332,7 +367,14 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnService = VulnServiceImpl(mockNaisApiService, teamkatalogenService = MockTeamkatalogenService(), kevService =  mockKevService, epssService = MockEpssService(), nvdRepository = MockNvdRepository(), riskScorer = riskScorer)
+        val vulnService = VulnServiceImpl(
+            naisApiService = mockNaisApiService,
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = riskScorer,
+            userContextService = MockUserContextService(mockTeams = emptyList())
+        )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(0, result.teams.size)

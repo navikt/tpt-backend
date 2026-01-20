@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.kafka
 
+import no.nav.tpt.plugins.KAFKA_WAIT_STRATEGY
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -8,6 +9,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.time.Duration
@@ -24,8 +26,8 @@ class KafkaConsumerServiceIntegrationTest {
     fun setup() {
         kafkaContainer = KafkaContainer(
             DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
         kafkaContainer.start()
-        Thread.sleep(5000)
 
         bootstrapServers = kafkaContainer.bootstrapServers
         logger.info("Kafka container started on: $bootstrapServers")
