@@ -112,7 +112,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should successfully consume and store valid GitHub repository message`() = runBlocking {
         val validMessage = """
             {
-              "repositoryName": "navikt/test-app",
+              "nameWithOwner": "navikt/test-app",
               "naisTeams": ["team-awesome", "team-security"],
               "vulnerabilities": [
                 {
@@ -137,7 +137,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
 
             val storedRepo = repository.getRepository("navikt/test-app")
             assertNotNull(storedRepo)
-            assertEquals("navikt/test-app", storedRepo.repositoryName)
+            assertEquals("navikt/test-app", storedRepo.nameWithOwner)
             assertEquals(2, storedRepo.naisTeams.size)
             assertEquals("team-awesome", storedRepo.naisTeams[0])
             assertEquals("team-security", storedRepo.naisTeams[1])
@@ -159,7 +159,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should handle multiple vulnerabilities with multiple identifiers`() = runBlocking {
         val messageWithMultipleVulns = """
             {
-              "repositoryName": "navikt/multi-vuln-app",
+              "nameWithOwner": "navikt/multi-vuln-app",
               "naisTeams": ["team-a"],
               "vulnerabilities": [
                 {
@@ -216,7 +216,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should update existing repository and replace vulnerabilities`() = runBlocking {
         val initialMessage = """
             {
-              "repositoryName": "navikt/update-test",
+              "nameWithOwner": "navikt/update-test",
               "naisTeams": ["team-old"],
               "vulnerabilities": [
                 {
@@ -229,7 +229,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
 
         val updatedMessage = """
             {
-              "repositoryName": "navikt/update-test",
+              "nameWithOwner": "navikt/update-test",
               "naisTeams": ["team-new", "team-another"],
               "vulnerabilities": [
                 {
@@ -278,7 +278,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should handle repository with no vulnerabilities`() = runBlocking {
         val messageWithNoVulns = """
             {
-              "repositoryName": "navikt/no-vulns",
+              "nameWithOwner": "navikt/no-vulns",
               "naisTeams": ["team-safe"],
               "vulnerabilities": []
             }
@@ -306,7 +306,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should gracefully handle malformed JSON message`() = runBlocking {
         val malformedMessage = """
             {
-              "repositoryName": "navikt/bad-json",
+              "nameWithOwner": "navikt/bad-json",
               "naisTeams": ["team-test"]
               "vulnerabilities": []
             }
@@ -330,7 +330,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should handle missing required fields`() = runBlocking {
         val missingFieldsMessage = """
             {
-              "repositoryName": "navikt/missing-fields",
+              "nameWithOwner": "navikt/missing-fields",
               "vulnerabilities": []
             }
         """.trimIndent()
@@ -353,7 +353,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should handle invalid data types`() = runBlocking {
         val invalidTypesMessage = """
             {
-              "repositoryName": "navikt/invalid-types",
+              "nameWithOwner": "navikt/invalid-types",
               "naisTeams": "not-an-array",
               "vulnerabilities": []
             }
@@ -383,7 +383,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             repos.forEach { repoName ->
                 val message = """
                 {
-                  "repositoryName": "navikt/$repoName",
+                  "nameWithOwner": "navikt/$repoName",
                   "naisTeams": ["team-$repoName"],
                   "vulnerabilities": [
                     {
@@ -416,7 +416,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should handle empty repository name`() = runBlocking {
         val emptyRepoNameMessage = """
             {
-              "repositoryName": "",
+              "nameWithOwner": "",
               "naisTeams": ["team-test"],
               "vulnerabilities": []
             }
@@ -440,7 +440,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
     fun `should consume and store extended vulnerability fields from Kafka message`() = runBlocking {
         val comprehensiveMessage = """
             {
-              "repositoryName": "navikt/comprehensive-test-repo",
+              "nameWithOwner": "navikt/comprehensive-test-repo",
               "naisTeams": ["security-team"],
               "vulnerabilities": [
                 {
@@ -482,7 +482,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
 
             val storedRepo = repository.getRepository("navikt/comprehensive-test-repo")
             assertNotNull(storedRepo)
-            assertEquals("navikt/comprehensive-test-repo", storedRepo.repositoryName)
+            assertEquals("navikt/comprehensive-test-repo", storedRepo.nameWithOwner)
 
             val vulnerabilities = repository.getVulnerabilities("navikt/comprehensive-test-repo")
             assertEquals(2, vulnerabilities.size)

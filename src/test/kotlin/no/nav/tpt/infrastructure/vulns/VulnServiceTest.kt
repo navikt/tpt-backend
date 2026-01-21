@@ -392,7 +392,7 @@ class VulnServiceTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/test-repo",
+                    nameWithOwner = "navikt/test-repo",
                     naisTeams = listOf("team-alpha"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
@@ -402,7 +402,7 @@ class VulnServiceTest {
                 "navikt/test-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 1,
-                        repositoryName = "navikt/test-repo",
+                        nameWithOwner = "navikt/test-repo",
                         severity = "HIGH",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -443,7 +443,7 @@ class VulnServiceTest {
         assertEquals(1, result.teams.size)
         assertEquals("team-alpha", result.teams[0].team)
         assertEquals(1, result.teams[0].repositories.size)
-        assertEquals("navikt/test-repo", result.teams[0].repositories[0].name)
+        assertEquals("navikt/test-repo", result.teams[0].repositories[0].nameWithOwner)
         assertEquals(1, result.teams[0].repositories[0].vulnerabilities.size)
         assertEquals("CVE-2024-12345", result.teams[0].repositories[0].vulnerabilities[0].identifier)
     }
@@ -453,13 +453,13 @@ class VulnServiceTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/team-alpha-repo",
+                    nameWithOwner = "navikt/team-alpha-repo",
                     naisTeams = listOf("team-alpha"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
                 ),
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/team-beta-repo",
+                    nameWithOwner = "navikt/team-beta-repo",
                     naisTeams = listOf("team-beta"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
@@ -469,7 +469,7 @@ class VulnServiceTest {
                 "navikt/team-alpha-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 1,
-                        repositoryName = "navikt/team-alpha-repo",
+                        nameWithOwner = "navikt/team-alpha-repo",
                         severity = "MEDIUM",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -484,7 +484,7 @@ class VulnServiceTest {
                 "navikt/team-beta-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 2,
-                        repositoryName = "navikt/team-beta-repo",
+                        nameWithOwner = "navikt/team-beta-repo",
                         severity = "HIGH",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -525,7 +525,7 @@ class VulnServiceTest {
         assertEquals(1, result.teams.size)
         assertEquals("team-alpha", result.teams[0].team)
         assertEquals(1, result.teams[0].repositories.size)
-        assertEquals("navikt/team-alpha-repo", result.teams[0].repositories[0].name)
+        assertEquals("navikt/team-alpha-repo", result.teams[0].repositories[0].nameWithOwner)
     }
 
     @Test
@@ -533,7 +533,7 @@ class VulnServiceTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/shared-repo",
+                    nameWithOwner = "navikt/shared-repo",
                     naisTeams = listOf("team-alpha", "team-beta"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
@@ -543,7 +543,7 @@ class VulnServiceTest {
                 "navikt/shared-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 1,
-                        repositoryName = "navikt/shared-repo",
+                        nameWithOwner = "navikt/shared-repo",
                         severity = "CRITICAL",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -589,8 +589,8 @@ class VulnServiceTest {
         assertNotNull(teamBeta)
         assertEquals(1, teamAlpha.repositories.size)
         assertEquals(1, teamBeta.repositories.size)
-        assertEquals("navikt/shared-repo", teamAlpha.repositories[0].name)
-        assertEquals("navikt/shared-repo", teamBeta.repositories[0].name)
+        assertEquals("navikt/shared-repo", teamAlpha.repositories[0].nameWithOwner)
+        assertEquals("navikt/shared-repo", teamBeta.repositories[0].nameWithOwner)
     }
 
     @Test
@@ -598,7 +598,7 @@ class VulnServiceTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/test-repo",
+                    nameWithOwner = "navikt/test-repo",
                     naisTeams = listOf("team-alpha"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
@@ -608,7 +608,7 @@ class VulnServiceTest {
                 "navikt/test-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 1,
-                        repositoryName = "navikt/test-repo",
+                        nameWithOwner = "navikt/test-repo",
                         severity = "HIGH",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -621,7 +621,7 @@ class VulnServiceTest {
                     ),
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 2,
-                        repositoryName = "navikt/test-repo",
+                        nameWithOwner = "navikt/test-repo",
                         severity = "MEDIUM",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(
@@ -700,7 +700,7 @@ class VulnServiceTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
-                    repositoryName = "navikt/test-repo",
+                    nameWithOwner = "navikt/test-repo",
                     naisTeams = listOf("team-alpha"),
                     createdAt = java.time.Instant.now(),
                     updatedAt = java.time.Instant.now()
@@ -710,7 +710,7 @@ class VulnServiceTest {
                 "navikt/test-repo" to listOf(
                     no.nav.tpt.infrastructure.github.GitHubVulnerabilityData(
                         id = 1,
-                        repositoryName = "navikt/test-repo",
+                        nameWithOwner = "navikt/test-repo",
                         severity = "CRITICAL",
                         identifiers = listOf(
                             no.nav.tpt.infrastructure.github.GitHubIdentifierData(

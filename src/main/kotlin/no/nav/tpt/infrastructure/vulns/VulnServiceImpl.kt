@@ -132,7 +132,7 @@ class VulnServiceImpl(
         val gitHubRepositoriesData = gitHubRepository.getRepositoriesByTeams(userContext.teams)
 
         val allCveIds = gitHubRepositoriesData
-            .flatMap { repo -> gitHubRepository.getVulnerabilities(repo.repositoryName) }
+            .flatMap { repo -> gitHubRepository.getVulnerabilities(repo.nameWithOwner) }
             .flatMap { it.identifiers }
             .filter { it.type.equals("CVE", ignoreCase = true) }
             .map { it.value }
@@ -143,7 +143,7 @@ class VulnServiceImpl(
         val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.GitHubVulnRepositoryDto>>()
 
         gitHubRepositoriesData.forEach { repo ->
-            val repoVulns = gitHubRepository.getVulnerabilities(repo.repositoryName)
+            val repoVulns = gitHubRepository.getVulnerabilities(repo.nameWithOwner)
 
             val vulnerabilities = repoVulns.mapNotNull { vuln ->
                 val cveIdentifier = vuln.identifiers
@@ -188,7 +188,7 @@ class VulnServiceImpl(
 
             if (vulnerabilities.isNotEmpty()) {
                 val repoDto = no.nav.tpt.domain.GitHubVulnRepositoryDto(
-                    name = repo.repositoryName,
+                    nameWithOwner = repo.nameWithOwner,
                     vulnerabilities = vulnerabilities
                 )
 

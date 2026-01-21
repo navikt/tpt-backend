@@ -4,8 +4,8 @@ import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
 
 interface GitHubRepository {
     suspend fun upsertRepositoryData(message: GitHubRepositoryMessage)
-    suspend fun getRepository(repositoryName: String): GitHubRepositoryData?
-    suspend fun getVulnerabilities(repositoryName: String): List<GitHubVulnerabilityData>
+    suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData?
+    suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData>
     suspend fun getAllRepositories(): List<GitHubRepositoryData>
     suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData>
 }

@@ -12,12 +12,12 @@ class MockGitHubRepository(
         // No-op for tests
     }
 
-    override suspend fun getRepository(repositoryName: String): GitHubRepositoryData? {
-        return mockRepositories.find { it.repositoryName == repositoryName }
+    override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? {
+        return mockRepositories.find { it.nameWithOwner == nameWithOwner }
     }
 
-    override suspend fun getVulnerabilities(repositoryName: String): List<GitHubVulnerabilityData> {
-        return mockVulnerabilities[repositoryName] ?: emptyList()
+    override suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData> {
+        return mockVulnerabilities[nameWithOwner] ?: emptyList()
     }
 
     override suspend fun getAllRepositories(): List<GitHubRepositoryData> {

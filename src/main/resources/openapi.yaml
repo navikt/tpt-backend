@@ -422,12 +422,12 @@ components:
     GitHubVulnRepositoryDto:
       type: object
       required:
-        - name
+        - nameWithOwner
         - vulnerabilities
       properties:
-        name:
+        nameWithOwner:
           type: string
-          description: GitHub repository name (e.g., navikt/my-repo)
+          description: GitHub repository name with owner (e.g., navikt/my-repo)
           example: "navikt/tpt-backend"
         vulnerabilities:
           type: array

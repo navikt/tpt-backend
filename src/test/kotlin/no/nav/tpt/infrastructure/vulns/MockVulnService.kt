@@ -211,7 +211,7 @@ class MockVulnService : VulnService {
                     team = "appsec",
                     repositories = listOf(
                         GitHubVulnRepositoryDto(
-                            name = "navikt/tpt-backend",
+                            nameWithOwner = "navikt/tpt-backend",
                             vulnerabilities = listOf(
                                 GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-98765",
@@ -275,7 +275,7 @@ class MockVulnService : VulnService {
                             )
                         ),
                         GitHubVulnRepositoryDto(
-                            name = "navikt/security-tools",
+                            nameWithOwner = "navikt/security-tools",
                             vulnerabilities = listOf(
                                 GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-76543",
@@ -325,7 +325,7 @@ class MockVulnService : VulnService {
                     team = "platform",
                     repositories = listOf(
                         GitHubVulnRepositoryDto(
-                            name = "navikt/security-tools",
+                            nameWithOwner = "navikt/security-tools",
                             vulnerabilities = listOf(
                                 GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-76543",

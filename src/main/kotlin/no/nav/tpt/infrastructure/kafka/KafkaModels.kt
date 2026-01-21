@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GitHubRepositoryMessage(
-    val repositoryName: String,
+    val nameWithOwner: String,
     val naisTeams: List<String>? = null,
     val vulnerabilities: List<GitHubVulnerabilityMessage>? = null
 )

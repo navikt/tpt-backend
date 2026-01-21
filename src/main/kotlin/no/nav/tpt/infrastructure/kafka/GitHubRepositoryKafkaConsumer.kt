@@ -60,7 +60,7 @@ class GitHubRepositoryKafkaConsumer(
         try {
             val message = json.decodeFromString<GitHubRepositoryMessage>(record.value())
             logger.info(
-                "Parsed GitHub repository message: repositoryName=${message.repositoryName}, " +
+                "Parsed GitHub repository message: repositoryName=${message.nameWithOwner}, " +
                 "teams=${message.naisTeams?.joinToString() ?: "none"}, " +
                 "vulnerabilities=${message.vulnerabilities?.size ?: 0}"
             )
@@ -68,9 +68,9 @@ class GitHubRepositoryKafkaConsumer(
             scope.launch(Dispatchers.IO) {
                 try {
                     repository.upsertRepositoryData(message)
-                    logger.info("Successfully upserted GitHub repository data for: ${message.repositoryName}")
+                    logger.info("Successfully upserted GitHub repository data for: ${message.nameWithOwner}")
                 } catch (e: Exception) {
-                    logger.error("Error upserting GitHub repository data for ${message.repositoryName}", e)
+                    logger.error("Error upserting GitHub repository data for ${message.nameWithOwner}", e)
                 }
             }
         } catch (e: Exception) {

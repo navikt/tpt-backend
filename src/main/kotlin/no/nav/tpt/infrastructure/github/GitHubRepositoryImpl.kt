@@ -16,39 +16,39 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
 
     override suspend fun upsertRepositoryData(message: GitHubRepositoryMessage) = dbQuery {
         val existingRow = GitHubRepositories.selectAll()
-            .where { GitHubRepositories.repositoryName eq message.repositoryName }
+            .where { GitHubRepositories.nameWithOwner eq message.nameWithOwner }
             .singleOrNull()
 
         if (existingRow != null) {
             // Update existing repository - only update teams if present in message
-            GitHubRepositories.update({ GitHubRepositories.repositoryName eq message.repositoryName }) {
+            GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq message.nameWithOwner }) {
                 message.naisTeams?.let { teams ->
                     it[naisTeams] = teams
                 }
                 it[updatedAt] = Instant.now()
             }
-            logger.info("Updated GitHub repository for: ${message.repositoryName}")
+            logger.info("Updated GitHub repository for: ${message.nameWithOwner}")
 
             // Only delete and update vulnerabilities if present in message
             message.vulnerabilities?.let {
-                GitHubVulnerabilities.deleteWhere { repositoryName eq message.repositoryName }
-                logger.info("Deleted existing vulnerabilities for: ${message.repositoryName}")
+                GitHubVulnerabilities.deleteWhere { nameWithOwner eq message.nameWithOwner }
+                logger.info("Deleted existing vulnerabilities for: ${message.nameWithOwner}")
             }
         } else {
             // Insert new repository
             GitHubRepositories.insert {
-                it[repositoryName] = message.repositoryName
+                it[nameWithOwner] = message.nameWithOwner
                 it[naisTeams] = message.naisTeams ?: emptyList()
                 it[createdAt] = Instant.now()
                 it[updatedAt] = Instant.now()
             }
-            logger.info("Inserted new GitHub repository: ${message.repositoryName}")
+            logger.info("Inserted new GitHub repository: ${message.nameWithOwner}")
         }
 
         // Insert vulnerabilities if present in message
         message.vulnerabilities?.forEach { vuln ->
             val vulnId = GitHubVulnerabilities.insert {
-                it[repositoryName] = message.repositoryName
+                it[nameWithOwner] = message.nameWithOwner
                 it[severity] = vuln.severity
                 it[dependencyScope] = vuln.dependencyScope
                 it[dependabotUpdatePullRequestUrl] = vuln.dependabotUpdatePullRequestUrl
@@ -72,19 +72,19 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
 
         val vulnCount = message.vulnerabilities?.size ?: 0
-        logger.info("Upserted $vulnCount vulnerabilities for: ${message.repositoryName}")
+        logger.info("Upserted $vulnCount vulnerabilities for: ${message.nameWithOwner}")
     }
 
-    override suspend fun getRepository(repositoryName: String): GitHubRepositoryData? = dbQuery {
+    override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
         GitHubRepositories.selectAll()
-            .where { GitHubRepositories.repositoryName eq repositoryName }
+            .where { GitHubRepositories.nameWithOwner eq nameWithOwner }
             .mapNotNull { toGitHubRepositoryData(it) }
             .singleOrNull()
     }
 
-    override suspend fun getVulnerabilities(repositoryName: String): List<GitHubVulnerabilityData> = dbQuery {
+    override suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData> = dbQuery {
         val vulnerabilities = GitHubVulnerabilities.selectAll()
-            .where { GitHubVulnerabilities.repositoryName eq repositoryName }
+            .where { GitHubVulnerabilities.nameWithOwner eq nameWithOwner }
             .toList()
 
         vulnerabilities.map { vulnRow ->
@@ -100,7 +100,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
 
             GitHubVulnerabilityData(
                 id = vulnId,
-                repositoryName = vulnRow[GitHubVulnerabilities.repositoryName],
+                nameWithOwner = vulnRow[GitHubVulnerabilities.nameWithOwner],
                 severity = vulnRow[GitHubVulnerabilities.severity],
                 identifiers = identifiers,
                 dependencyScope = vulnRow[GitHubVulnerabilities.dependencyScope],
@@ -133,7 +133,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
 
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
         return GitHubRepositoryData(
-            repositoryName = row[GitHubRepositories.repositoryName],
+            nameWithOwner = row[GitHubRepositories.nameWithOwner],
             naisTeams = row[GitHubRepositories.naisTeams].toList(),
             createdAt = row[GitHubRepositories.createdAt],
             updatedAt = row[GitHubRepositories.updatedAt]

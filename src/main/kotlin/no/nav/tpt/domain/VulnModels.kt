@@ -56,7 +56,7 @@ data class GitHubVulnTeamDto(
 
 @Serializable
 data class GitHubVulnRepositoryDto(
-    val name: String,
+    val nameWithOwner: String,
     val vulnerabilities: List<GitHubVulnVulnerabilityDto>
 )
 

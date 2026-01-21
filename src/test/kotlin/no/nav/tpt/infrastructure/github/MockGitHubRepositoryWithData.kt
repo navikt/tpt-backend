@@ -7,19 +7,19 @@ class MockGitHubRepositoryWithData : GitHubRepository {
 
     private val mockRepositories = listOf(
         GitHubRepositoryData(
-            repositoryName = "navikt/tpt-backend",
+            nameWithOwner = "navikt/tpt-backend",
             naisTeams = listOf("appsec"),
             createdAt = Instant.parse("2024-01-15T10:00:00Z"),
             updatedAt = Instant.parse("2024-12-20T14:30:00Z")
         ),
         GitHubRepositoryData(
-            repositoryName = "navikt/security-tools",
+            nameWithOwner = "navikt/security-tools",
             naisTeams = listOf("appsec", "platform"),
             createdAt = Instant.parse("2023-06-10T08:00:00Z"),
             updatedAt = Instant.parse("2024-12-18T09:15:00Z")
         ),
         GitHubRepositoryData(
-            repositoryName = "navikt/example-app",
+            nameWithOwner = "navikt/example-app",
             naisTeams = listOf("team-rocket"),
             createdAt = Instant.parse("2024-03-01T12:00:00Z"),
             updatedAt = Instant.parse("2024-12-15T16:45:00Z")
@@ -30,7 +30,7 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         "navikt/tpt-backend" to listOf(
             GitHubVulnerabilityData(
                 id = 1,
-                repositoryName = "navikt/tpt-backend",
+                nameWithOwner = "navikt/tpt-backend",
                 severity = "HIGH",
                 identifiers = listOf(
                     GitHubIdentifierData(value = "CVE-2024-12345", type = "CVE"),
@@ -41,7 +41,7 @@ class MockGitHubRepositoryWithData : GitHubRepository {
             ),
             GitHubVulnerabilityData(
                 id = 2,
-                repositoryName = "navikt/tpt-backend",
+                nameWithOwner = "navikt/tpt-backend",
                 severity = "MEDIUM",
                 identifiers = listOf(
                     GitHubIdentifierData(value = "CVE-2024-23456", type = "CVE")
@@ -53,7 +53,7 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         "navikt/security-tools" to listOf(
             GitHubVulnerabilityData(
                 id = 3,
-                repositoryName = "navikt/security-tools",
+                nameWithOwner = "navikt/security-tools",
                 severity = "CRITICAL",
                 identifiers = listOf(
                     GitHubIdentifierData(value = "CVE-2024-34567", type = "CVE")
@@ -63,7 +63,7 @@ class MockGitHubRepositoryWithData : GitHubRepository {
             ),
             GitHubVulnerabilityData(
                 id = 4,
-                repositoryName = "navikt/security-tools",
+                nameWithOwner = "navikt/security-tools",
                 severity = "LOW",
                 identifiers = listOf(
                     GitHubIdentifierData(value = "CVE-2024-45678", type = "CVE")
@@ -75,7 +75,7 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         "navikt/example-app" to listOf(
             GitHubVulnerabilityData(
                 id = 5,
-                repositoryName = "navikt/example-app",
+                nameWithOwner = "navikt/example-app",
                 severity = "HIGH",
                 identifiers = listOf(
                     GitHubIdentifierData(value = "CVE-2024-56789", type = "CVE")
@@ -90,12 +90,12 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         // No-op for mock
     }
 
-    override suspend fun getRepository(repositoryName: String): GitHubRepositoryData? {
-        return mockRepositories.find { it.repositoryName == repositoryName }
+    override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? {
+        return mockRepositories.find { it.nameWithOwner == nameWithOwner }
     }
 
-    override suspend fun getVulnerabilities(repositoryName: String): List<GitHubVulnerabilityData> {
-        return mockVulnerabilities[repositoryName] ?: emptyList()
+    override suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData> {
+        return mockVulnerabilities[nameWithOwner] ?: emptyList()
     }
 
     override suspend fun getAllRepositories(): List<GitHubRepositoryData> {

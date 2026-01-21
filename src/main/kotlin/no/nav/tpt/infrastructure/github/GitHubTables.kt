@@ -6,17 +6,17 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.Instant
 
 object GitHubRepositories : Table("github_repositories") {
-    val repositoryName = varchar("repository_name", 500)
+    val nameWithOwner = varchar("name_with_owner", 500)
     val naisTeams = array<String>("nais_teams")
     val createdAt = timestamp("created_at").default(Instant.now())
     val updatedAt = timestamp("updated_at").default(Instant.now())
 
-    override val primaryKey = PrimaryKey(repositoryName)
+    override val primaryKey = PrimaryKey(nameWithOwner)
 }
 
 object GitHubVulnerabilities : Table("github_vulnerabilities") {
     val id = integer("id").autoIncrement()
-    val repositoryName = varchar("repository_name", 500).references(GitHubRepositories.repositoryName, onDelete = ReferenceOption.CASCADE)
+    val nameWithOwner = varchar("name_with_owner", 500).references(GitHubRepositories.nameWithOwner, onDelete = ReferenceOption.CASCADE)
     val severity = varchar("severity", 20)
     val dependencyScope = varchar("dependency_scope", 50).nullable()
     val dependabotUpdatePullRequestUrl = text("dependabot_update_pull_request_url").nullable()
@@ -42,7 +42,7 @@ object GitHubVulnerabilityIdentifiers : Table("github_vulnerability_identifiers"
 }
 
 data class GitHubRepositoryData(
-    val repositoryName: String,
+    val nameWithOwner: String,
     val naisTeams: List<String>,
     val createdAt: Instant,
     val updatedAt: Instant
@@ -50,7 +50,7 @@ data class GitHubRepositoryData(
 
 data class GitHubVulnerabilityData(
     val id: Int,
-    val repositoryName: String,
+    val nameWithOwner: String,
     val severity: String,
     val identifiers: List<GitHubIdentifierData>,
     val dependencyScope: String? = null,

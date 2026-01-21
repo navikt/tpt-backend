@@ -28,7 +28,7 @@ class GitHubRepositoryTest {
     @Test
     fun `should insert new repository with teams and vulnerabilities`() = runBlocking {
         val message = GitHubRepositoryMessage(
-            repositoryName = "navikt/test-repo-${System.currentTimeMillis()}",
+            nameWithOwner = "navikt/test-repo-${System.currentTimeMillis()}",
             naisTeams = listOf("team-a", "team-b", "team-c"),
             vulnerabilities = listOf(
                 GitHubVulnerabilityMessage(
@@ -43,13 +43,13 @@ class GitHubRepositoryTest {
 
         repository.upsertRepositoryData(message)
 
-        val result = repository.getRepository(message.repositoryName)
+        val result = repository.getRepository(message.nameWithOwner)
         assertNotNull(result)
-        assertEquals(message.repositoryName, result.repositoryName)
+        assertEquals(message.nameWithOwner, result.nameWithOwner)
         assertEquals(3, result.naisTeams.size)
         assertTrue(result.naisTeams.containsAll(listOf("team-a", "team-b", "team-c")))
 
-        val vulnerabilities = repository.getVulnerabilities(message.repositoryName)
+        val vulnerabilities = repository.getVulnerabilities(message.nameWithOwner)
         assertEquals(1, vulnerabilities.size)
         assertEquals("CRITICAL", vulnerabilities[0].severity)
         assertEquals(2, vulnerabilities[0].identifiers.size)
@@ -57,10 +57,10 @@ class GitHubRepositoryTest {
 
     @Test
     fun `should update existing repository and replace vulnerabilities`() = runBlocking {
-        val repositoryName = "navikt/test-repo-update-${System.currentTimeMillis()}"
+        val nameWithOwner = "navikt/test-repo-update-${System.currentTimeMillis()}"
 
         val initialMessage = GitHubRepositoryMessage(
-            repositoryName = repositoryName,
+            nameWithOwner = nameWithOwner,
             naisTeams = listOf("team-a", "team-b"),
             vulnerabilities = listOf(
                 GitHubVulnerabilityMessage(
@@ -71,15 +71,15 @@ class GitHubRepositoryTest {
         )
 
         repository.upsertRepositoryData(initialMessage)
-        val initial = repository.getRepository(repositoryName)
+        val initial = repository.getRepository(nameWithOwner)
         assertNotNull(initial)
         assertEquals(2, initial.naisTeams.size)
 
-        val initialVulns = repository.getVulnerabilities(repositoryName)
+        val initialVulns = repository.getVulnerabilities(nameWithOwner)
         assertEquals(1, initialVulns.size)
 
         val updatedMessage = GitHubRepositoryMessage(
-            repositoryName = repositoryName,
+            nameWithOwner = nameWithOwner,
             naisTeams = listOf("team-a", "team-b", "team-c", "team-d"),
             vulnerabilities = listOf(
                 GitHubVulnerabilityMessage(
@@ -97,12 +97,12 @@ class GitHubRepositoryTest {
         )
 
         repository.upsertRepositoryData(updatedMessage)
-        val updated = repository.getRepository(repositoryName)
+        val updated = repository.getRepository(nameWithOwner)
         assertNotNull(updated)
         assertEquals(4, updated.naisTeams.size)
         assertTrue(updated.updatedAt.isAfter(initial.updatedAt) || updated.updatedAt == initial.updatedAt)
 
-        val updatedVulns = repository.getVulnerabilities(repositoryName)
+        val updatedVulns = repository.getVulnerabilities(nameWithOwner)
         assertEquals(2, updatedVulns.size)
         assertEquals("CRITICAL", updatedVulns[0].severity)
         assertEquals("MEDIUM", updatedVulns[1].severity)
@@ -117,21 +117,21 @@ class GitHubRepositoryTest {
     @Test
     fun `should return empty list for repository with no vulnerabilities`() = runBlocking {
         val message = GitHubRepositoryMessage(
-            repositoryName = "navikt/no-vulns-${System.currentTimeMillis()}",
+            nameWithOwner = "navikt/no-vulns-${System.currentTimeMillis()}",
             naisTeams = listOf("team-a"),
             vulnerabilities = emptyList()
         )
 
         repository.upsertRepositoryData(message)
-        val vulnerabilities = repository.getVulnerabilities(message.repositoryName)
+        val vulnerabilities = repository.getVulnerabilities(message.nameWithOwner)
         assertEquals(0, vulnerabilities.size)
     }
 
     @Test
     fun `should store and retrieve extended vulnerability fields`() = runBlocking {
-        val repositoryName = "navikt/comprehensive-test-repo-${System.currentTimeMillis()}"
+        val nameWithOwner = "navikt/comprehensive-test-repo-${System.currentTimeMillis()}"
         val message = GitHubRepositoryMessage(
-            repositoryName = repositoryName,
+            nameWithOwner = nameWithOwner,
             naisTeams = listOf("security-team"),
             vulnerabilities = listOf(
                 GitHubVulnerabilityMessage(
@@ -165,7 +165,7 @@ class GitHubRepositoryTest {
 
         repository.upsertRepositoryData(message)
 
-        val vulnerabilities = repository.getVulnerabilities(repositoryName)
+        val vulnerabilities = repository.getVulnerabilities(nameWithOwner)
         assertEquals(2, vulnerabilities.size)
 
         val critical = vulnerabilities.find { it.severity == "CRITICAL" }
