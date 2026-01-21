@@ -111,7 +111,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VulnResponse'
+                $ref: '#/components/schemas/GitHubVulnResponse'
         '400':
           description: Bad request - preferred_username claim not found in token
           content:
@@ -162,7 +162,6 @@ components:
       required:
         - team
         - workloads
-        - repositories
       properties:
         team:
           type: string
@@ -172,11 +171,6 @@ components:
           items:
             $ref: '#/components/schemas/VulnWorkloadDto'
           description: Kubernetes workloads (NAIS applications and jobs) with their vulnerabilities
-        repositories:
-          type: array
-          items:
-            $ref: '#/components/schemas/VulnRepositoryDto'
-          description: GitHub repositories with their vulnerabilities
     VulnWorkloadDto:
       type: object
       required:
@@ -210,21 +204,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VulnVulnerabilityDto'
-    VulnRepositoryDto:
-      type: object
-      required:
-        - name
-        - vulnerabilities
-      properties:
-        name:
-          type: string
-          description: GitHub repository name (e.g., navikt/my-repo)
-          example: "navikt/my-application"
-        vulnerabilities:
-          type: array
-          items:
-            $ref: '#/components/schemas/VulnVulnerabilityDto'
-          description: Vulnerabilities found in the GitHub repository
     VulnVulnerabilityDto:
       type: object
       required:
@@ -238,12 +217,12 @@ components:
         name:
           type: string
           nullable: true
-          description: Package name extracted from PURL identifier
+          description: Package name extracted from PURL identifier or GitHub package name
           example: "log4j-core"
         packageName:
           type: string
           nullable: true
-          description: Package name affected by the vulnerability (PURL format from Nais API)
+          description: Package name affected by the vulnerability (PURL format from Nais API or GitHub package name)
           example: "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
         description:
           type: string
@@ -265,6 +244,37 @@ components:
             - $ref: '#/components/schemas/RiskScoreBreakdown'
           nullable: true
           description: Detailed breakdown of how the risk score was calculated
+        dependencyScope:
+          type: string
+          nullable: true
+          description: Scope of the dependency (RUNTIME, DEVELOPMENT, etc.) - GitHub vulnerabilities only
+          example: "RUNTIME"
+        dependabotUpdatePullRequestUrl:
+          type: string
+          nullable: true
+          description: URL to the Dependabot pull request that updates this dependency - GitHub vulnerabilities only
+          example: "https://github.com/org/repo/pull/42"
+        publishedAt:
+          type: string
+          nullable: true
+          description: ISO 8601 timestamp when the vulnerability was published - GitHub vulnerabilities only
+          example: "2024-01-15T10:30:00Z"
+        cvssScore:
+          type: number
+          format: double
+          nullable: true
+          description: CVSS score for the vulnerability - GitHub vulnerabilities only
+          example: 9.8
+        summary:
+          type: string
+          nullable: true
+          description: Short summary of the vulnerability - GitHub vulnerabilities only
+          example: "Critical vulnerability in dependency"
+        packageEcosystem:
+          type: string
+          nullable: true
+          description: Package ecosystem (NPM, MAVEN, PIP, etc.) - GitHub vulnerabilities only
+          example: "NPM"
     RiskScoreBreakdown:
       type: object
       required:
@@ -299,16 +309,16 @@ components:
         name:
           type: string
           description: Factor name (e.g., severity, exposure, kev, epss). The severity factor represents the base score.
-          example: "exposure"
+          example: "kev"
         contribution:
           type: number
           format: double
           description: Numeric contribution of this factor to the total score
-          example: 70.0
+          example: 140.0
         explanation:
           type: string
           description: Human-readable explanation of the factor
-          example: "Application is externally accessible"
+          example: "Listed in CISA KEV catalog"
         impact:
           type: string
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
@@ -375,4 +385,120 @@ components:
           format: double
           description: Risk score threshold for low-priority vulnerabilities. Scores >= this value and < medium should be treated as low priority
           example: 30.0
+    GitHubVulnResponse:
+      type: object
+      required:
+        - userRole
+        - teams
+      properties:
+        userRole:
+          type: string
+          enum: [DEVELOPER, TEAM_MEMBER, NONE]
+          description: |
+            Role of the user requesting the data:
+            - DEVELOPER: User has direct NAIS team memberships
+            - TEAM_MEMBER: User belongs to teams via Teamkatalogen but has no direct NAIS memberships
+            - NONE: User has no team memberships in either system
+          example: "DEVELOPER"
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitHubVulnTeamDto'
+    GitHubVulnTeamDto:
+      type: object
+      required:
+        - team
+        - repositories
+      properties:
+        team:
+          type: string
+          description: Team name
+          example: "appsec"
+        repositories:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitHubVulnRepositoryDto'
+          description: GitHub repositories with their vulnerabilities
+    GitHubVulnRepositoryDto:
+      type: object
+      required:
+        - name
+        - vulnerabilities
+      properties:
+        name:
+          type: string
+          description: GitHub repository name (e.g., navikt/my-repo)
+          example: "navikt/tpt-backend"
+        vulnerabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/GitHubVulnVulnerabilityDto'
+          description: Vulnerabilities found in the GitHub repository
+    GitHubVulnVulnerabilityDto:
+      type: object
+      required:
+        - identifier
+        - riskScore
+      properties:
+        identifier:
+          type: string
+          description: CVE identifier
+          example: "CVE-2024-1234"
+        packageName:
+          type: string
+          nullable: true
+          description: Name of the affected package
+          example: "lodash"
+        packageEcosystem:
+          type: string
+          nullable: true
+          description: Package ecosystem (NPM, MAVEN, PIP, etc.)
+          example: "NPM"
+        description:
+          type: string
+          nullable: true
+          description: Human-readable description of the vulnerability
+          example: "Prototype pollution vulnerability allowing remote code execution"
+        summary:
+          type: string
+          nullable: true
+          description: Short summary of the vulnerability
+          example: "Prototype pollution in lodash"
+        vulnerabilityDetailsLink:
+          type: string
+          nullable: true
+          description: URL to detailed information about the vulnerability
+          example: "https://nvd.nist.gov/vuln/detail/CVE-2024-1234"
+        riskScore:
+          type: number
+          format: double
+          description: Calculated risk score. Higher scores indicate higher priority vulnerabilities.
+          example: 140.0
+        riskScoreBreakdown:
+          allOf:
+            - $ref: '#/components/schemas/RiskScoreBreakdown'
+          nullable: true
+          description: Detailed breakdown of how the risk score was calculated
+        dependencyScope:
+          type: string
+          nullable: true
+          description: Scope of the dependency (RUNTIME, DEVELOPMENT, etc.)
+          example: "RUNTIME"
+        dependabotUpdatePullRequestUrl:
+          type: string
+          nullable: true
+          description: URL to the Dependabot pull request that updates this dependency
+          example: "https://github.com/navikt/tpt-backend/pull/123"
+        publishedAt:
+          type: string
+          nullable: true
+          description: ISO 8601 timestamp when the vulnerability was published
+          example: "2024-01-15T10:30:00Z"
+        cvssScore:
+          type: number
+          format: double
+          nullable: true
+          description: CVSS score for the vulnerability
+          example: 7.0
+
 

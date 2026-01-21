@@ -435,4 +435,80 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             kafkaConsumer.stop()
         }
     }
+
+    @Test
+    fun `should consume and store extended vulnerability fields from Kafka message`() = runBlocking {
+        val comprehensiveMessage = """
+            {
+              "repositoryName": "navikt/comprehensive-test-repo",
+              "naisTeams": ["security-team"],
+              "vulnerabilities": [
+                {
+                  "severity": "CRITICAL",
+                  "identifiers": [
+                    {"value": "CVE-2024-9999", "type": "CVE"},
+                    {"value": "GHSA-abcd-efgh-ijkl", "type": "GHSA"}
+                  ],
+                  "dependencyScope": "RUNTIME",
+                  "dependabotUpdatePullRequestUrl": "https://github.com/org/repo/pull/42",
+                  "publishedAt": "2024-01-15T10:30:00Z",
+                  "cvssScore": 9.8,
+                  "summary": "Critical vulnerability in dependency",
+                  "packageEcosystem": "NPM",
+                  "packageName": "vulnerable-package"
+                },
+                {
+                  "severity": "MODERATE",
+                  "identifiers": [
+                    {"value": "CVE-2024-1111", "type": "CVE"}
+                  ],
+                  "dependencyScope": "DEVELOPMENT",
+                  "publishedAt": "2024-02-20T14:00:00Z",
+                  "cvssScore": 5.3,
+                  "summary": "Moderate severity issue",
+                  "packageEcosystem": "MAVEN",
+                  "packageName": "com.example:test-lib"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        try {
+            kafkaConsumer.start(this)
+            delay(2000)
+
+            kafkaProducer.send(ProducerRecord(testTopic, "comprehensive-key", comprehensiveMessage)).get()
+            delay(3000)
+
+            val storedRepo = repository.getRepository("navikt/comprehensive-test-repo")
+            assertNotNull(storedRepo)
+            assertEquals("navikt/comprehensive-test-repo", storedRepo.repositoryName)
+
+            val vulnerabilities = repository.getVulnerabilities("navikt/comprehensive-test-repo")
+            assertEquals(2, vulnerabilities.size)
+
+            val critical = vulnerabilities.find { it.severity == "CRITICAL" }
+            assertNotNull(critical)
+            assertEquals("RUNTIME", critical.dependencyScope)
+            assertEquals("https://github.com/org/repo/pull/42", critical.dependabotUpdatePullRequestUrl)
+            assertEquals(9.8, critical.cvssScore)
+            assertEquals("Critical vulnerability in dependency", critical.summary)
+            assertEquals("NPM", critical.packageEcosystem)
+            assertEquals("vulnerable-package", critical.packageName)
+            assertNotNull(critical.publishedAt)
+
+            val moderate = vulnerabilities.find { it.severity == "MODERATE" }
+            assertNotNull(moderate)
+            assertEquals("DEVELOPMENT", moderate.dependencyScope)
+            assertNull(moderate.dependabotUpdatePullRequestUrl)
+            assertEquals(5.3, moderate.cvssScore)
+            assertEquals("Moderate severity issue", moderate.summary)
+            assertEquals("MAVEN", moderate.packageEcosystem)
+            assertEquals("com.example:test-lib", moderate.packageName)
+            assertNotNull(moderate.publishedAt)
+        } finally {
+            kafkaConsumer.stop()
+        }
+    }
 }
+

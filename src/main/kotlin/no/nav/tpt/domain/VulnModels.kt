@@ -12,8 +12,7 @@ data class VulnResponse(
 @Serializable
 data class VulnTeamDto(
     val team: String,
-    val workloads: List<VulnWorkloadDto>,
-    val repositories: List<VulnRepositoryDto>
+    val workloads: List<VulnWorkloadDto>
 )
 
 @Serializable
@@ -27,12 +26,6 @@ data class VulnWorkloadDto(
 )
 
 @Serializable
-data class VulnRepositoryDto(
-    val name: String,
-    val vulnerabilities: List<VulnVulnerabilityDto>
-)
-
-@Serializable
 data class VulnVulnerabilityDto(
     val identifier: String,
     val name: String?,
@@ -40,5 +33,47 @@ data class VulnVulnerabilityDto(
     val description: String?,
     val vulnerabilityDetailsLink: String?,
     val riskScore: Double,
-    val riskScoreBreakdown: no.nav.tpt.domain.risk.RiskScoreBreakdown? = null
+    val riskScoreBreakdown: no.nav.tpt.domain.risk.RiskScoreBreakdown? = null,
+    val dependencyScope: String? = null,
+    val dependabotUpdatePullRequestUrl: String? = null,
+    val publishedAt: String? = null,
+    val cvssScore: Double? = null,
+    val summary: String? = null,
+    val packageEcosystem: String? = null
 )
+
+@Serializable
+data class GitHubVulnResponse(
+    val userRole: UserRole,
+    val teams: List<GitHubVulnTeamDto>
+)
+
+@Serializable
+data class GitHubVulnTeamDto(
+    val team: String,
+    val repositories: List<GitHubVulnRepositoryDto>
+)
+
+@Serializable
+data class GitHubVulnRepositoryDto(
+    val name: String,
+    val vulnerabilities: List<GitHubVulnVulnerabilityDto>
+)
+
+@Serializable
+data class GitHubVulnVulnerabilityDto(
+    val identifier: String,
+    val packageName: String?,
+    val packageEcosystem: String?,
+    val description: String?,
+    val summary: String?,
+    val vulnerabilityDetailsLink: String?,
+    val riskScore: Double,
+    val riskScoreBreakdown: no.nav.tpt.domain.risk.RiskScoreBreakdown?,
+    val dependencyScope: String?,
+    val dependabotUpdatePullRequestUrl: String?,
+    val publishedAt: String?,
+    val cvssScore: Double?
+)
+
+

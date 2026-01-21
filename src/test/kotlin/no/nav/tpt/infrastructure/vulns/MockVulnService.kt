@@ -132,8 +132,7 @@ class MockVulnService : VulnService {
                                 )
                             )
                         )
-                    ),
-                    repositories = emptyList()
+                    )
                 ),
                 VulnTeamDto(
                     team = "platform",
@@ -175,8 +174,7 @@ class MockVulnService : VulnService {
                                 )
                             )
                         )
-                    ),
-                    repositories = emptyList()
+                    )
                 )
             )
         )
@@ -205,22 +203,22 @@ class MockVulnService : VulnService {
         }
     }
 
-    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): VulnResponse {
-        return VulnResponse(
+    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): GitHubVulnResponse {
+        return GitHubVulnResponse(
             userRole = UserRole.DEVELOPER,
             teams = listOf(
-                VulnTeamDto(
+                GitHubVulnTeamDto(
                     team = "appsec",
-                    workloads = emptyList(),
                     repositories = listOf(
-                        VulnRepositoryDto(
+                        GitHubVulnRepositoryDto(
                             name = "navikt/tpt-backend",
                             vulnerabilities = listOf(
-                                VulnVulnerabilityDto(
+                                GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-98765",
-                                    name = null,
-                                    packageName = null,
+                                    packageName = "lodash",
+                                    packageEcosystem = "NPM",
                                     description = "GitHub-detected vulnerability in Node.js dependencies allowing prototype pollution",
+                                    summary = "Prototype pollution vulnerability in lodash",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-98765",
                                     riskScore = 140.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
@@ -242,13 +240,18 @@ class MockVulnService : VulnService {
                                             )
                                         ),
                                         totalScore = 140.0
-                                    )
+                                    ),
+                                    dependencyScope = "RUNTIME",
+                                    dependabotUpdatePullRequestUrl = "https://github.com/navikt/tpt-backend/pull/123",
+                                    publishedAt = "2024-01-15T10:30:00Z",
+                                    cvssScore = 7.0
                                 ),
-                                VulnVulnerabilityDto(
+                                GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-87654",
-                                    name = null,
-                                    packageName = null,
+                                    packageName = "axios",
+                                    packageEcosystem = "NPM",
                                     description = "Cross-site scripting vulnerability in frontend dependencies",
+                                    summary = "XSS vulnerability in axios",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-87654",
                                     riskScore = 45.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
@@ -263,18 +266,23 @@ class MockVulnService : VulnService {
                                             )
                                         ),
                                         totalScore = 45.0
-                                    )
+                                    ),
+                                    dependencyScope = "DEVELOPMENT",
+                                    dependabotUpdatePullRequestUrl = null,
+                                    publishedAt = "2024-02-10T14:00:00Z",
+                                    cvssScore = 4.5
                                 )
                             )
                         ),
-                        VulnRepositoryDto(
+                        GitHubVulnRepositoryDto(
                             name = "navikt/security-tools",
                             vulnerabilities = listOf(
-                                VulnVulnerabilityDto(
+                                GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-76543",
-                                    name = null,
-                                    packageName = null,
+                                    packageName = "com.example:vulnerable-lib",
+                                    packageEcosystem = "MAVEN",
                                     description = "Dependency confusion vulnerability allowing malicious package injection",
+                                    summary = "Dependency confusion in Maven package",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
                                     riskScore = 210.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
@@ -303,24 +311,28 @@ class MockVulnService : VulnService {
                                             )
                                         ),
                                         totalScore = 210.0
-                                    )
+                                    ),
+                                    dependencyScope = "RUNTIME",
+                                    dependabotUpdatePullRequestUrl = "https://github.com/navikt/security-tools/pull/456",
+                                    publishedAt = "2024-03-01T08:00:00Z",
+                                    cvssScore = 8.4
                                 )
                             )
                         )
                     )
                 ),
-                VulnTeamDto(
+                GitHubVulnTeamDto(
                     team = "platform",
-                    workloads = emptyList(),
                     repositories = listOf(
-                        VulnRepositoryDto(
+                        GitHubVulnRepositoryDto(
                             name = "navikt/security-tools",
                             vulnerabilities = listOf(
-                                VulnVulnerabilityDto(
+                                GitHubVulnVulnerabilityDto(
                                     identifier = "CVE-2024-76543",
-                                    name = null,
-                                    packageName = null,
+                                    packageName = "com.example:vulnerable-lib",
+                                    packageEcosystem = "MAVEN",
                                     description = "Dependency confusion vulnerability allowing malicious package injection",
+                                    summary = "Dependency confusion in Maven package",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
                                     riskScore = 210.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
@@ -349,7 +361,11 @@ class MockVulnService : VulnService {
                                             )
                                         ),
                                         totalScore = 210.0
-                                    )
+                                    ),
+                                    dependencyScope = "RUNTIME",
+                                    dependabotUpdatePullRequestUrl = "https://github.com/navikt/security-tools/pull/456",
+                                    publishedAt = "2024-03-01T08:00:00Z",
+                                    cvssScore = 8.4
                                 )
                             )
                         )

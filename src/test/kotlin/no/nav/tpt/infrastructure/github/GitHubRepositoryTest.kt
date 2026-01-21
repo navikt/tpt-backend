@@ -126,4 +126,67 @@ class GitHubRepositoryTest {
         val vulnerabilities = repository.getVulnerabilities(message.repositoryName)
         assertEquals(0, vulnerabilities.size)
     }
+
+    @Test
+    fun `should store and retrieve extended vulnerability fields`() = runBlocking {
+        val repositoryName = "navikt/comprehensive-test-repo-${System.currentTimeMillis()}"
+        val message = GitHubRepositoryMessage(
+            repositoryName = repositoryName,
+            naisTeams = listOf("security-team"),
+            vulnerabilities = listOf(
+                GitHubVulnerabilityMessage(
+                    severity = "CRITICAL",
+                    identifiers = listOf(
+                        GitHubIdentifierMessage("CVE-2024-9999", "CVE"),
+                        GitHubIdentifierMessage("GHSA-abcd-efgh-ijkl", "GHSA")
+                    ),
+                    dependencyScope = "RUNTIME",
+                    dependabotUpdatePullRequestUrl = "https://github.com/org/repo/pull/42",
+                    publishedAt = "2024-01-15T10:30:00Z",
+                    cvssScore = 9.8,
+                    summary = "Critical vulnerability in dependency",
+                    packageEcosystem = "NPM",
+                    packageName = "vulnerable-package"
+                ),
+                GitHubVulnerabilityMessage(
+                    severity = "MODERATE",
+                    identifiers = listOf(
+                        GitHubIdentifierMessage("CVE-2024-1111", "CVE")
+                    ),
+                    dependencyScope = "DEVELOPMENT",
+                    publishedAt = "2024-02-20T14:00:00Z",
+                    cvssScore = 5.3,
+                    summary = "Moderate severity issue",
+                    packageEcosystem = "MAVEN",
+                    packageName = "com.example:test-lib"
+                )
+            )
+        )
+
+        repository.upsertRepositoryData(message)
+
+        val vulnerabilities = repository.getVulnerabilities(repositoryName)
+        assertEquals(2, vulnerabilities.size)
+
+        val critical = vulnerabilities.find { it.severity == "CRITICAL" }
+        assertNotNull(critical)
+        assertEquals("RUNTIME", critical.dependencyScope)
+        assertEquals("https://github.com/org/repo/pull/42", critical.dependabotUpdatePullRequestUrl)
+        assertEquals(9.8, critical.cvssScore)
+        assertEquals("Critical vulnerability in dependency", critical.summary)
+        assertEquals("NPM", critical.packageEcosystem)
+        assertEquals("vulnerable-package", critical.packageName)
+        assertNotNull(critical.publishedAt)
+
+        val moderate = vulnerabilities.find { it.severity == "MODERATE" }
+        assertNotNull(moderate)
+        assertEquals("DEVELOPMENT", moderate.dependencyScope)
+        assertNull(moderate.dependabotUpdatePullRequestUrl)
+        assertEquals(5.3, moderate.cvssScore)
+        assertEquals("Moderate severity issue", moderate.summary)
+        assertEquals("MAVEN", moderate.packageEcosystem)
+        assertEquals("com.example:test-lib", moderate.packageName)
+        assertNotNull(moderate.publishedAt)
+    }
 }
+

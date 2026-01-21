@@ -442,7 +442,6 @@ class VulnServiceTest {
 
         assertEquals(1, result.teams.size)
         assertEquals("team-alpha", result.teams[0].team)
-        assertEquals(0, result.teams[0].workloads.size)
         assertEquals(1, result.teams[0].repositories.size)
         assertEquals("navikt/test-repo", result.teams[0].repositories[0].name)
         assertEquals(1, result.teams[0].repositories[0].vulnerabilities.size)

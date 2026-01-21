@@ -50,6 +50,13 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             val vulnId = GitHubVulnerabilities.insert {
                 it[repositoryName] = message.repositoryName
                 it[severity] = vuln.severity
+                it[dependencyScope] = vuln.dependencyScope
+                it[dependabotUpdatePullRequestUrl] = vuln.dependabotUpdatePullRequestUrl
+                it[publishedAt] = vuln.publishedAt?.let { dateStr -> Instant.parse(dateStr) }
+                it[cvssScore] = vuln.cvssScore?.toBigDecimal()
+                it[summary] = vuln.summary
+                it[packageEcosystem] = vuln.packageEcosystem
+                it[packageName] = vuln.packageName
                 it[createdAt] = Instant.now()
                 it[updatedAt] = Instant.now()
             } get GitHubVulnerabilities.id
@@ -96,6 +103,13 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
                 repositoryName = vulnRow[GitHubVulnerabilities.repositoryName],
                 severity = vulnRow[GitHubVulnerabilities.severity],
                 identifiers = identifiers,
+                dependencyScope = vulnRow[GitHubVulnerabilities.dependencyScope],
+                dependabotUpdatePullRequestUrl = vulnRow[GitHubVulnerabilities.dependabotUpdatePullRequestUrl],
+                publishedAt = vulnRow[GitHubVulnerabilities.publishedAt],
+                cvssScore = vulnRow[GitHubVulnerabilities.cvssScore]?.toDouble(),
+                summary = vulnRow[GitHubVulnerabilities.summary],
+                packageEcosystem = vulnRow[GitHubVulnerabilities.packageEcosystem],
+                packageName = vulnRow[GitHubVulnerabilities.packageName],
                 createdAt = vulnRow[GitHubVulnerabilities.createdAt],
                 updatedAt = vulnRow[GitHubVulnerabilities.updatedAt]
             )

@@ -112,8 +112,7 @@ class VulnServiceImpl(
             if (workloads.isNotEmpty()) {
                 VulnTeamDto(
                     team = teamSlug,
-                    workloads = workloads,
-                    repositories = emptyList()
+                    workloads = workloads
                 )
             } else {
                 null
@@ -123,11 +122,11 @@ class VulnServiceImpl(
         return VulnResponse(userRole = userContext.role, teams = teams)
     }
 
-    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): VulnResponse {
+    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): no.nav.tpt.domain.GitHubVulnResponse {
         val userContext = userContextService.getUserContext(email)
 
         if (userContext.teams.isEmpty()) {
-            return VulnResponse(userRole = userContext.role, teams = emptyList())
+            return no.nav.tpt.domain.GitHubVulnResponse(userRole = userContext.role, teams = emptyList())
         }
 
         val gitHubRepositoriesData = gitHubRepository.getRepositoriesByTeams(userContext.teams)
@@ -141,7 +140,7 @@ class VulnServiceImpl(
 
         val enrichmentData = fetchCveEnrichmentData(allCveIds)
 
-        val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.VulnRepositoryDto>>()
+        val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.GitHubVulnRepositoryDto>>()
 
         gitHubRepositoriesData.forEach { repo ->
             val repoVulns = gitHubRepository.getVulnerabilities(repo.repositoryName)
@@ -171,19 +170,24 @@ class VulnServiceImpl(
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
 
-                VulnVulnerabilityDto(
+                no.nav.tpt.domain.GitHubVulnVulnerabilityDto(
                     identifier = cveIdentifier,
-                    name = null,
-                    packageName = null,
-                    description = cveData?.description,
+                    packageName = vuln.packageName,
+                    packageEcosystem = vuln.packageEcosystem,
+                    description = vuln.summary ?: cveData?.description,
+                    summary = vuln.summary,
                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/$cveIdentifier",
                     riskScore = riskResult.score,
-                    riskScoreBreakdown = riskResult.breakdown
+                    riskScoreBreakdown = riskResult.breakdown,
+                    dependencyScope = vuln.dependencyScope,
+                    dependabotUpdatePullRequestUrl = vuln.dependabotUpdatePullRequestUrl,
+                    publishedAt = vuln.publishedAt?.toString(),
+                    cvssScore = vuln.cvssScore
                 )
             }
 
             if (vulnerabilities.isNotEmpty()) {
-                val repoDto = no.nav.tpt.domain.VulnRepositoryDto(
+                val repoDto = no.nav.tpt.domain.GitHubVulnRepositoryDto(
                     name = repo.repositoryName,
                     vulnerabilities = vulnerabilities
                 )
@@ -195,13 +199,12 @@ class VulnServiceImpl(
         }
 
         val teams = teamRepositories.map { (teamSlug, repositories) ->
-            VulnTeamDto(
+            no.nav.tpt.domain.GitHubVulnTeamDto(
                 team = teamSlug,
-                workloads = emptyList(),
                 repositories = repositories
             )
         }
 
-        return VulnResponse(userRole = userContext.role, teams = teams)
+        return no.nav.tpt.domain.GitHubVulnResponse(userRole = userContext.role, teams = teams)
     }
 }
