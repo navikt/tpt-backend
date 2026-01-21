@@ -10,7 +10,7 @@ spec:
     - access: read
       application: tpt-backend
       team: appsec
-    - access: write
+    - access: read
       application: tpt-kafka-manager
       team: appsec
     - access: write
