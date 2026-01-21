@@ -61,6 +61,9 @@ spec:
     logging:
       destinations:
         - id: loki
+    autoInstrumentation:
+      enabled: true
+      runtime: java
   env:
     - name: NAIS_API_URL
       value: "https://console.nav.cloud.nais.io/graphql"
@@ -74,5 +77,7 @@ spec:
       value: "15"
     - name: KAFKA_TOPIC
       value: "appsec.tpt"
+    - name: OTEL_LOGS_EXPORTER
+      value: otlp
   envFrom:
     - secret: tpt-backend
