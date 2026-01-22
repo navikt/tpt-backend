@@ -34,8 +34,6 @@ spec:
       claims:
         groups:
           - id: d633d27b-a470-4b9d-984e-85499f126e18
-    sidecar:
-      enabled: true
   kafka:
     pool: nav-prod
   env:
