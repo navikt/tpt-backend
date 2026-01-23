@@ -1,13 +1,21 @@
 package no.nav.tpt.infrastructure.kafka
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class GitHubRepositoryMessage(
-    val nameWithOwner: String,
+    @SerialName("nameWithOwner")
+    val nameWithOwner: String? = null,
+    @SerialName("repositoryName")
+    val repositoryName: String? = null,
     val naisTeams: List<String>? = null,
     val vulnerabilities: List<GitHubVulnerabilityMessage>? = null
-)
+) {
+    fun getRepositoryIdentifier(): String {
+        return nameWithOwner ?: repositoryName ?: throw IllegalArgumentException("Either nameWithOwner or repositoryName must be provided")
+    }
+}
 
 @Serializable
 data class GitHubVulnerabilityMessage(

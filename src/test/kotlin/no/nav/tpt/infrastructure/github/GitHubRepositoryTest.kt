@@ -1,13 +1,20 @@
 package no.nav.tpt.infrastructure.github
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.runBlocking
-import no.nav.tpt.infrastructure.config.AppConfig
-import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.kafka.GitHubIdentifierMessage
 import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
 import no.nav.tpt.infrastructure.kafka.GitHubVulnerabilityMessage
+import org.flywaydb.core.Flyway
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -15,14 +22,44 @@ import kotlin.test.assertTrue
 
 class GitHubRepositoryTest {
 
+    private lateinit var postgresContainer: PostgreSQLContainer<*>
+    private lateinit var database: Database
     private lateinit var repository: GitHubRepository
-    private lateinit var database: org.jetbrains.exposed.sql.Database
 
     @Before
     fun setup() {
-        val testConfig = AppConfig.fromEnvironment()
-        database = DatabaseFactory.init(testConfig)
+        postgresContainer = PostgreSQLContainer(DockerImageName.parse("postgres:17"))
+            .withDatabaseName("github_test")
+            .withUsername("test")
+            .withPassword("test")
+        postgresContainer.start()
+
+        val hikariConfig = HikariConfig().apply {
+            jdbcUrl = postgresContainer.jdbcUrl
+            username = postgresContainer.username
+            password = postgresContainer.password
+            driverClassName = "org.postgresql.Driver"
+        }
+        val dataSource = HikariDataSource(hikariConfig)
+
+        val flyway = Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .load()
+        flyway.migrate()
+
+        database = Database.connect(dataSource)
         repository = GitHubRepositoryImpl(database)
+    }
+
+    @After
+    fun teardown() {
+        transaction(database) {
+            GitHubVulnerabilityIdentifiers.deleteAll()
+            GitHubVulnerabilities.deleteAll()
+            GitHubRepositories.deleteAll()
+        }
+        postgresContainer.stop()
     }
 
     @Test
@@ -43,13 +80,14 @@ class GitHubRepositoryTest {
 
         repository.upsertRepositoryData(message)
 
-        val result = repository.getRepository(message.nameWithOwner)
+        val repoIdentifier = message.getRepositoryIdentifier()
+        val result = repository.getRepository(repoIdentifier)
         assertNotNull(result)
-        assertEquals(message.nameWithOwner, result.nameWithOwner)
+        assertEquals(repoIdentifier, result.nameWithOwner)
         assertEquals(3, result.naisTeams.size)
         assertTrue(result.naisTeams.containsAll(listOf("team-a", "team-b", "team-c")))
 
-        val vulnerabilities = repository.getVulnerabilities(message.nameWithOwner)
+        val vulnerabilities = repository.getVulnerabilities(repoIdentifier)
         assertEquals(1, vulnerabilities.size)
         assertEquals("CRITICAL", vulnerabilities[0].severity)
         assertEquals(2, vulnerabilities[0].identifiers.size)
@@ -123,7 +161,7 @@ class GitHubRepositoryTest {
         )
 
         repository.upsertRepositoryData(message)
-        val vulnerabilities = repository.getVulnerabilities(message.nameWithOwner)
+        val vulnerabilities = repository.getVulnerabilities(message.getRepositoryIdentifier())
         assertEquals(0, vulnerabilities.size)
     }
 
