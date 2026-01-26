@@ -12,11 +12,10 @@ src/main/kotlin/no/nav/tpt/
 │   └── user/                   # User context and role management interfaces
 ├── infrastructure/             # External integrations and technical implementations
 │   ├── auth/                   # Token introspection and authentication
-│   ├── cache/                  # Valkey cache implementation
-│   ├── cisa/                   # CISA KEV catalog integration
+│   ├── cisa/                   # CISA KEV catalog integration (PostgreSQL-backed)
 │   ├── config/                 # Application configuration
 │   ├── database/               # Database factory and connection management
-│   ├── epss/                   # EPSS API client and exploit prediction scores
+│   ├── epss/                   # EPSS API client with circuit breaker and PostgreSQL cache
 │   ├── github/                 # GitHub repository metadata storage and queries
 │   ├── kafka/                  # Kafka consumer for GitHub repository events
 │   ├── nais/                   # NAIS GraphQL API client for vulnerability data
@@ -50,7 +49,7 @@ src/test/                       # Test suite mirroring main structure
 ## Prerequisites
 - Java 25
 - Gradle 9.x
-- Docker (for Valkey cache and postgresql in tests)
+- Docker (for testcontainers & building production image)
 
 ## Environment Variables
 
@@ -61,11 +60,7 @@ src/test/                       # Test suite mirroring main structure
 - `NVD_API_URL` - NVD API URL, no default but currently https://services.nvd.nist.gov/rest/json/cves/2.0
 - `NVD_API_KEY` - NVD API key for higher rate limits (optional)
 - `EPSS_API_URL` - EPSS API URL, no default but currently https://api.first.org/data/v1
-- `VALKEY_HOST` - Valkey host (default: localhost)
-- `VALKEY_PORT` - Valkey port (default: 6379)
-- `VALKEY_USERNAME` - Valkey username (optional)
-- `VALKEY_PASSWORD` - Valkey password (optional)
-- `CACHE_TTL_MINUTES` - Cache TTL in minutes (default: 60)
+- `TEAMKATALOGEN_URL` - Teamkatalogen API URL (required)
 - `KAFKA_BROKERS` - Kafka broker addresses (optional, auto-injected by NAIS)
 - `KAFKA_TOPICS` - Comma-separated list of topics to consume (optional)
 - `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by NAIS)
@@ -86,19 +81,26 @@ Application starts on `http://localhost:8080`
 ./gradlew test
 ```
 
-Tests use mocked dependencies and testcontainers for Valkey and PostgreSQL.
+Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 
 ## Data Sources
 
-- **NAIS API** - Vulnerability data and application metadata
+- **NAIS API** - Vulnerability data and application metadata (direct API calls)
 - **NVD** - National Vulnerability Database (PostgreSQL-backed, syncs every 2 hours)
-- **CISA KEV** - Known Exploited Vulnerabilities catalog (Valkey-cached)
-- **EPSS** - Exploit Prediction Scoring System (Valkey-cached)
+- **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
+- **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
 - **Kafka** - Receives JSON data from other applications (optional)
 
 Initial NVD sync takes ~1-2 hours on first deployment.
 
-For detailed Kafka integration documentation, see [KAFKA_INTEGRATION.md](docs/KAFKA_INTEGRATION.md).
+### Data Persistence Strategy
+
+All external data sources are cached in PostgreSQL with staleness tracking:
+- **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
+- **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
+- **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
+
+This approach ensures data persistence across restarts and eliminates dependency on external cache services.
 
 ## API Endpoints
 
