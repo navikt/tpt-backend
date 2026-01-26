@@ -47,7 +47,7 @@ class CachedEpssService(
             return cachedScores
         }
 
-        logger.info("Fetching ${missingCveIds.size} (${missingCveIds.joinToString { "," }}) missing CVEs from EPSS API (${cachedScores.size} found in cache)")
+        logger.info("Fetching ${missingCveIds.size} (${missingCveIds.joinToString(", ")}) missing CVEs from EPSS API (${cachedScores.size} found in cache)")
 
         return try {
             val batches = createBatches(missingCveIds)
