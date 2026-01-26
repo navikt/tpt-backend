@@ -39,12 +39,10 @@ class UserContextServiceImpl(
             )
         }
 
-        // Check if user has clusters or productAreas (potential LEADER)
-        if (membershipResponse.clusters.isNotEmpty() || membershipResponse.productAreas.isNotEmpty()) {
-            val subteamNaisTeams = teamkatalogenService.getSubteamNaisTeams(
-                membershipResponse.clusters,
-                membershipResponse.productAreas
-            )
+        // Step 3: Check if user is LEADER (productAreas with subteams containing NAIS teams)
+        val allProductAreaIds = membershipResponse.clusterProductAreaIds + membershipResponse.productAreaIds
+        if (allProductAreaIds.isNotEmpty()) {
+            val subteamNaisTeams = teamkatalogenService.getSubteamNaisTeams(allProductAreaIds)
             
             if (subteamNaisTeams.isNotEmpty()) {
                 logger.debug("User $email is LEADER with ${subteamNaisTeams.size} subteam NAIS teams")

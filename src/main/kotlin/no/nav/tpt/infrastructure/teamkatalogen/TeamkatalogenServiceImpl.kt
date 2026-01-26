@@ -13,39 +13,31 @@ class TeamkatalogenServiceImpl(
         return client.getMembershipByEmail(email)
     }
 
-    override suspend fun getSubteamNaisTeams(
-        clusters: List<TeamkatalogenEntity>,
-        productAreas: List<TeamkatalogenEntity>
-    ): List<String> = coroutineScope {
-        val clusterTeams = clusters.map { cluster ->
-            async {
-                try {
-                    client.getSubteamsByClusterId(cluster.id).content
-                } catch (e: Exception) {
-                    logger.warn("Failed to fetch subteams for cluster ${cluster.id}: ${e.message}")
-                    emptyList()
-                }
-            }
-        }
+    override suspend fun getSubteamNaisTeams(productAreaIds: List<String>): List<String> = coroutineScope {
+        // Deduplicate productAreaIds
+        val uniqueProductAreaIds = productAreaIds.distinct()
+        
+        logger.debug("Fetching subteams for ${uniqueProductAreaIds.size} unique product areas")
 
-        val productAreaTeams = productAreas.map { productArea ->
+        // Fetch subteams for all productAreas in parallel
+        val productAreaTeams = uniqueProductAreaIds.map { productAreaId ->
             async {
                 try {
-                    client.getSubteamsByProductAreaId(productArea.id).content
+                    client.getSubteamsByProductAreaId(productAreaId).content
                 } catch (e: Exception) {
-                    logger.warn("Failed to fetch subteams for productArea ${productArea.id}: ${e.message}")
+                    logger.warn("Failed to fetch subteams for productArea $productAreaId: ${e.message}")
                     emptyList()
                 }
             }
         }
 
         // Await all results and flatten
-        val allSubteams = (clusterTeams + productAreaTeams).flatMap { it.await() }
+        val allSubteams = productAreaTeams.flatMap { it.await() }
 
         // Extract and deduplicate naisTeams
         val allNaisTeams = allSubteams.flatMap { it.naisTeams }.distinct()
 
-        logger.debug("Found ${allNaisTeams.size} unique NAIS teams from ${clusters.size} clusters and ${productAreas.size} product areas")
+        logger.debug("Found ${allNaisTeams.size} unique NAIS teams from ${uniqueProductAreaIds.size} product areas")
 
         allNaisTeams
     }

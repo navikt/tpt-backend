@@ -21,11 +21,6 @@ class EpssServiceImpl(
         }
 
         val validCveIds = cveIds.filter { it.matches(CVE_PATTERN) }
-        val invalidCveIds = cveIds.filterNot { it.matches(CVE_PATTERN) }
-
-        if (invalidCveIds.isNotEmpty()) {
-            logger.info("Filtered out ${invalidCveIds.size} invalid CVE ID(s): ${invalidCveIds.take(5).joinToString(", ")}${if (invalidCveIds.size > 5) "..." else ""}")
-        }
 
         if (validCveIds.isEmpty()) {
             logger.debug("No valid CVE IDs to fetch EPSS scores for")

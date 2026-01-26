@@ -5,14 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MembershipResponse(
     val naisTeams: List<String>,
-    val clusters: List<TeamkatalogenEntity> = emptyList(),
-    val productAreas: List<TeamkatalogenEntity> = emptyList()
-)
-
-@Serializable
-data class TeamkatalogenEntity(
-    val id: String,
-    val name: String? = null
+    val clusterProductAreaIds: List<String> = emptyList(),
+    val productAreaIds: List<String> = emptyList()
 )
 
 @Serializable
@@ -22,8 +16,6 @@ data class SubteamsResponse(
 
 @Serializable
 data class SubteamData(
-    val id: String,
-    val name: String? = null,
     val naisTeams: List<String>
 )
 
@@ -42,7 +34,8 @@ internal data class TeamMembership(
 @Serializable
 internal data class ClusterMembership(
     val id: String,
-    val name: String? = null
+    val name: String? = null,
+    val productAreaId: String? = null
 )
 
 @Serializable

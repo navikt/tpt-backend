@@ -309,13 +309,9 @@ class UserContextServiceImplTest {
                             val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
                                 content = listOf(
                                     no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
-                                        id = "team-1",
-                                        name = "AppSec Team",
                                         naisTeams = listOf("appsec", "security-team")
                                     ),
                                     no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
-                                        id = "team-2",
-                                        name = "Identity Team",
                                         naisTeams = listOf("identity-team")
                                     )
                                 )
@@ -388,7 +384,6 @@ class UserContextServiceImplTest {
                             val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
                                 content = listOf(
                                     no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
-                                        id = "team-3",
                                         naisTeams = listOf("team-data", "team-analytics")
                                     )
                                 )
@@ -451,7 +446,6 @@ class UserContextServiceImplTest {
                             val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
                                 content = listOf(
                                     no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
-                                        id = "team-empty",
                                         naisTeams = emptyList()
                                     )
                                 )
