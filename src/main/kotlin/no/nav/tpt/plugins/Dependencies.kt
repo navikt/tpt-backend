@@ -85,16 +85,12 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         valueSerializer = kotlinx.serialization.serializer()
     )
     val naisApiService = CachedNaisApiService(naisApiClient, naisApiCache)
-    val kevClient = KevClient(httpClient)
-    val kevCache = ValkeyCache<String, KevCatalog>(
-        pool = valkeyPool,
-        ttl = 24.minutes * 60,
-        keyPrefix = "kev",
-        valueSerializer = KevCatalog.serializer()
-    )
-    val kevService = CachedKevService(kevClient, kevCache)
 
     val database = DatabaseFactory.init(config)
+
+    val kevClient = KevClient(httpClient)
+    val kevRepository = KevRepositoryImpl(database)
+    val kevService = KevServiceImpl(kevClient, kevRepository)
 
     val epssClient = EpssClient(httpClient, baseUrl = config.epssApiUrl)
     val epssCircuitBreaker = ValkeyCircuitBreaker(

@@ -11,7 +11,7 @@ import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.createMockCachedKevService
+import no.nav.tpt.infrastructure.cisa.MockKevService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
@@ -32,7 +32,7 @@ import no.nav.tpt.routes.vulnRoutes
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: KevService = createMockCachedKevService(),
+    kevService: KevService = MockKevService(),
     epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
@@ -124,7 +124,7 @@ fun Application.installTestDependencies(
 fun Application.testModule(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: KevService = createMockCachedKevService(),
+    kevService: KevService = MockKevService(),
     epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
 ) {

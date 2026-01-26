@@ -6,6 +6,7 @@ import no.nav.tpt.domain.VulnVulnerabilityDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.infrastructure.cisa.KevCatalog
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
@@ -13,6 +14,7 @@ import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.purl.PurlParser
+import org.slf4j.LoggerFactory
 
 class VulnServiceImpl(
     private val naisApiService: NaisApiService,
@@ -23,6 +25,7 @@ class VulnServiceImpl(
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository
 ) : VulnService {
+    private val logger = LoggerFactory.getLogger(VulnServiceImpl::class.java)
 
     private data class CveEnrichmentData(
         val kevCveIds: Set<String>,
@@ -31,7 +34,19 @@ class VulnServiceImpl(
     )
 
     private suspend fun fetchCveEnrichmentData(cveIds: List<String>): CveEnrichmentData {
-        val kevCatalog = kevService.getKevCatalog()
+        val kevCatalog = try {
+            kevService.getKevCatalog()
+        } catch (e: Exception) {
+            // KevServiceImpl should handle this, but defensive catch in case
+            logger.warn("Unexpected error fetching KEV catalog, using empty KEV data: ${e.message}")
+            KevCatalog(
+                title = "CISA Catalog of Known Exploited Vulnerabilities",
+                catalogVersion = "unavailable",
+                dateReleased = "unavailable",
+                count = 0,
+                vulnerabilities = emptyList()
+            )
+        }
         val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
         val epssScores = epssService.getEpssScores(cveIds)
         val nvdData = nvdRepository.getCveDataBatch(cveIds)
