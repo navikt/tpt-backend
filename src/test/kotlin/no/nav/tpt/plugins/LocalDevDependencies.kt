@@ -132,12 +132,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
-        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
-        valkeyHost = valkey.host,
-        valkeyPort = valkey.getMappedPort(6379),
-        valkeyUsername = "default",
-        valkeyPassword = "default",
-        cacheTtlMinutes = 1L
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen"
     )
 
     val dependencies = Dependencies(

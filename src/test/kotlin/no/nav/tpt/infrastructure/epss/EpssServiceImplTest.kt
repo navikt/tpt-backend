@@ -65,8 +65,7 @@ class EpssServiceImplTest {
             EpssScore("CVE-2021-44228", "0.942510000", "0.999630000", "2026-01-20")
         )
 
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
         assertEquals(1, result.size)
@@ -106,8 +105,7 @@ class EpssServiceImplTest {
 
         val epssClient = EpssClient(httpClient, testBaseUrl)
         val repository = InMemoryEpssRepository()
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
 
@@ -155,8 +153,7 @@ class EpssServiceImplTest {
         )
         repository.setStaleCves(listOf("CVE-2021-44228"))
 
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
 
@@ -203,8 +200,7 @@ class EpssServiceImplTest {
             EpssScore("CVE-2021-44228", "0.942510000", "0.999630000", "2026-01-20")
         )
 
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228", "CVE-2022-22965"))
 
@@ -307,8 +303,7 @@ class EpssServiceImplTest {
 
         val epssClient = EpssClient(httpClient, testBaseUrl)
         val repository = InMemoryEpssRepository()
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228", "INVALID-CVE", "CVE-123", "not-a-cve"))
 
@@ -331,8 +326,7 @@ class EpssServiceImplTest {
 
         val epssClient = EpssClient(httpClient, testBaseUrl)
         val repository = InMemoryEpssRepository()
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("INVALID-CVE", "CVE-123", "not-a-cve"))
         assertTrue(result.isEmpty())
@@ -379,8 +373,7 @@ class EpssServiceImplTest {
 
         val epssClient = EpssClient(httpClient, testBaseUrl)
         val repository = InMemoryEpssRepository()
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val largeCveList = (1..150).map { "CVE-2023-${it.toString().padStart(5, '0')}" }
         val paramLength = largeCveList.joinToString(",").length
@@ -406,8 +399,7 @@ class EpssServiceImplTest {
 
         val epssClient = EpssClient(httpClient, testBaseUrl)
         val repository = InMemoryEpssRepository()
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(emptyList())
         assertTrue(result.isEmpty())
@@ -436,8 +428,7 @@ class EpssServiceImplTest {
         )
         repository.setStaleCves(listOf("CVE-2021-44228"))
 
-        val circuitBreaker = MockCircuitBreaker()
-        val service = EpssServiceImpl(epssClient, repository, circuitBreaker)
+        val service = EpssServiceImpl(epssClient, repository, MockCircuitBreaker())
 
         val result = service.getEpssScores(listOf("CVE-2021-44228"))
 

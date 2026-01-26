@@ -36,7 +36,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
-            override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(
@@ -47,7 +47,7 @@ class UserContextServiceImplTest {
                 )
             }
 
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(
@@ -117,11 +117,11 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
-            override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(teams = emptyList())
             }
 
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(
@@ -167,7 +167,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
-            override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(
@@ -178,7 +178,7 @@ class UserContextServiceImplTest {
                 )
             }
 
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(
@@ -246,11 +246,11 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
-            override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(teams = emptyList())
             }
 
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
                         TeamVulnerabilitiesData(

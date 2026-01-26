@@ -9,11 +9,6 @@ data class AppConfig(
     val nvdApiKey: String?,
     val epssApiUrl: String,
     val teamkatalogenUrl: String,
-    val valkeyHost: String,
-    val valkeyPort: Int,
-    val valkeyUsername: String,
-    val valkeyPassword: String,
-    val cacheTtlMinutes: Long,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
     val riskThresholdLow: Double = DEFAULT_RISK_THRESHOLD_LOW
@@ -33,21 +28,6 @@ data class AppConfig(
             val naisApiToken = System.getenv("NAIS_API_TOKEN")
                 ?: error("NAIS_API_TOKEN not configured")
 
-            val valkeyInstanceName = System.getenv("VALKEY_INSTANCE_NAME")
-                ?: "APPSEC"
-
-            val valkeyHost = System.getenv("VALKEY_HOST_$valkeyInstanceName")
-                ?: error("VALKEY_HOST_$valkeyInstanceName not configured")
-
-            val valkeyPort = System.getenv("VALKEY_PORT_$valkeyInstanceName")?.toIntOrNull()
-                ?: error("VALKEY_PORT_$valkeyInstanceName not configured")
-
-            val valkeyUsername = System.getenv("VALKEY_USERNAME_$valkeyInstanceName")
-                ?: error("VALKEY_USERNAME_$valkeyInstanceName not configured")
-
-            val valkeyPassword = System.getenv("VALKEY_PASSWORD_$valkeyInstanceName")
-                ?: error("VALKEY_PASSWORD_$valkeyInstanceName not configured")
-
             val dbJdbcUrl = System.getenv("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL")
                 ?: error("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL not configured")
 
@@ -59,9 +39,6 @@ data class AppConfig(
 
             val teamkatalogenUrl = System.getenv("TEAMKATALOGEN_URL") ?: error("TEAMKATALOGEN_URL not configured")
 
-            val cacheTtlMinutes = System.getenv("CACHE_TTL_MINUTES")?.toLongOrNull()
-                ?: 5L
-
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
@@ -70,12 +47,7 @@ data class AppConfig(
                 nvdApiKey = nvdApiKey,
                 nvdApiUrl = nvdApiUrl,
                 epssApiUrl = epssApiUrl,
-                teamkatalogenUrl = teamkatalogenUrl,
-                valkeyHost = valkeyHost,
-                valkeyPort = valkeyPort,
-                valkeyUsername = valkeyUsername,
-                valkeyPassword = valkeyPassword,
-                cacheTtlMinutes = cacheTtlMinutes
+                teamkatalogenUrl = teamkatalogenUrl
             )
         }
     }

@@ -64,14 +64,6 @@ paths:
         - Vulnerabilities
       security:
         - bearerAuth: []
-      parameters:
-        - name: bypassCache
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, bypasses the cache and fetches fresh data from NAIS API. Useful for debugging or ensuring up-to-date information.
       responses:
         '200':
           description: Successfully retrieved vulnerabilities

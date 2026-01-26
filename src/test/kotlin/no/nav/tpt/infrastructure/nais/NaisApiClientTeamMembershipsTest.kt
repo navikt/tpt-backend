@@ -50,10 +50,7 @@ class NaisApiClientTeamMembershipsTest {
 
         val response = naisApiClient.getTeamMembershipsForUser("notfound@external.com")
 
-        assertNotNull(response.errors)
-        assertTrue(response.errors.isNotEmpty())
-        assertEquals("The specified user was not found.", response.errors.first().message)
-        assertEquals(listOf("user"), response.errors.first().path)
+        assertTrue(response.isEmpty())
     }
 
     @Test
@@ -102,12 +99,9 @@ class NaisApiClientTeamMembershipsTest {
 
         val response = naisApiClient.getTeamMembershipsForUser("member@nav.no")
 
-        assertTrue(response.errors.isNullOrEmpty())
-        assertNotNull(response.data)
-        assertNotNull(response.data.user)
-        assertEquals(2, response.data.user.teams.nodes.size)
-        assertEquals("team-a", response.data.user.teams.nodes[0].team.slug)
-        assertEquals("team-b", response.data.user.teams.nodes[1].team.slug)
+        assertEquals(2, response.size)
+        assertEquals("team-a", response[0])
+        assertEquals("team-b", response[1])
     }
 
     @Test
@@ -145,9 +139,6 @@ class NaisApiClientTeamMembershipsTest {
 
         val response = naisApiClient.getTeamMembershipsForUser("developer@nav.no")
 
-        assertTrue(response.errors.isNullOrEmpty())
-        assertNotNull(response.data)
-        assertNotNull(response.data.user)
-        assertEquals(0, response.data.user.teams.nodes.size)
+        assertTrue(response.isEmpty())
     }
 }

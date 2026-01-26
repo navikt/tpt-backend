@@ -9,8 +9,6 @@ import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.infrastructure.cache.ValkeyCache
-import no.nav.tpt.infrastructure.cache.ValkeyClientFactory
 import no.nav.tpt.infrastructure.cisa.*
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
@@ -24,7 +22,6 @@ import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import no.nav.tpt.domain.user.UserContextService
-import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
 class Dependencies(
@@ -72,20 +69,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         config.naisApiToken
     )
 
-    val valkeyPool = ValkeyClientFactory.createPool(
-        config.valkeyHost,
-        config.valkeyPort,
-        config.valkeyUsername,
-        config.valkeyPassword
-    )
-    val naisApiCache = ValkeyCache<String, String>(
-        pool = valkeyPool,
-        ttl = config.cacheTtlMinutes.minutes,
-        keyPrefix = "nais-api",
-        valueSerializer = kotlinx.serialization.serializer()
-    )
-    val naisApiService = CachedNaisApiService(naisApiClient, naisApiCache)
-
     val database = DatabaseFactory.init(config)
 
     val kevClient = KevClient(httpClient)
@@ -93,11 +76,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val kevService = KevServiceImpl(kevClient, kevRepository)
 
     val epssClient = EpssClient(httpClient, baseUrl = config.epssApiUrl)
-    val epssCircuitBreaker = ValkeyCircuitBreaker(
-        pool = valkeyPool,
-        keyPrefix = "epss"
-    )
     val epssRepository = EpssRepositoryImpl(database)
+    val epssCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val epssService = EpssServiceImpl(epssClient, epssRepository, epssCircuitBreaker)
     val nvdClient = NvdClient(httpClient, apiKey = config.nvdApiKey, baseUrl = config.nvdApiUrl)
     val nvdRepository = NvdRepositoryImpl(database)
@@ -110,16 +90,16 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val teamkatalogenClient = TeamkatalogenClient(httpClient, config.teamkatalogenUrl)
     val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-    val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+    val userContextService = UserContextServiceImpl(naisApiClient, teamkatalogenService)
 
     val gitHubRepository = GitHubRepositoryImpl(database)
 
-    val vulnService = VulnServiceImpl(naisApiService, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
+    val vulnService = VulnServiceImpl(naisApiClient, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
 
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
-        naisApiService = naisApiService,
+        naisApiService = naisApiClient,
         kevService = kevService,
         epssService = epssService,
         database = database,

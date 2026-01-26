@@ -180,7 +180,7 @@ class MockVulnService : VulnService {
         )
     }
 
-    override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
+    override suspend fun fetchVulnerabilitiesForUser(email: String): VulnResponse {
         if (!mockDataFile.exists()) {
             return getDefaultMockData()
         }

@@ -61,12 +61,7 @@ fun Application.installTestDependencies(
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
-        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
-        valkeyHost = "localhost",
-        valkeyPort = 6379,
-        valkeyUsername = "test",
-        valkeyPassword = "test",
-        cacheTtlMinutes = 1
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen"
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()

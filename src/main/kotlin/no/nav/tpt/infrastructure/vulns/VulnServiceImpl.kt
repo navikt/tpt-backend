@@ -54,14 +54,14 @@ class VulnServiceImpl(
         return CveEnrichmentData(kevCveIds, epssScores, nvdData)
     }
 
-    override suspend fun fetchVulnerabilitiesForUser(email: String, bypassCache: Boolean): VulnResponse {
+    override suspend fun fetchVulnerabilitiesForUser(email: String): VulnResponse {
         val userContext = userContextService.getUserContext(email)
 
         if (userContext.teams.isEmpty()) {
             return VulnResponse(userRole = userContext.role, teams = emptyList())
         }
 
-        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email, bypassCache)
+        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email)
 
         val allCveIds = vulnerabilitiesData.teams
             .flatMap { it.workloads }
