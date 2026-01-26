@@ -94,20 +94,15 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     )
     val kevService = CachedKevService(kevClient, kevCache)
 
+    val database = DatabaseFactory.init(config)
+
     val epssClient = EpssClient(httpClient, baseUrl = config.epssApiUrl)
-    val epssCache = ValkeyCache<String, EpssScore>(
-        pool = valkeyPool,
-        ttl = 24.minutes * 60,
-        keyPrefix = "epss",
-        valueSerializer = EpssScore.serializer()
-    )
     val epssCircuitBreaker = ValkeyCircuitBreaker(
         pool = valkeyPool,
         keyPrefix = "epss"
     )
-    val epssService = CachedEpssService(epssClient, epssCache, epssCircuitBreaker)
-
-    val database = DatabaseFactory.init(config)
+    val epssRepository = EpssRepositoryImpl(database)
+    val epssService = EpssServiceImpl(epssClient, epssRepository, epssCircuitBreaker)
     val nvdClient = NvdClient(httpClient, apiKey = config.nvdApiKey, baseUrl = config.nvdApiUrl)
     val nvdRepository = NvdRepositoryImpl(database)
     val nvdSyncService = NvdSyncService(nvdClient, nvdRepository)

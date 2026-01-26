@@ -8,7 +8,6 @@ import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import org.slf4j.LoggerFactory
 
 data class TokenPrincipal(
-    val navIdent: String,
     val preferredUsername: String?,
     val claims: Map<String, String>
 )
@@ -29,18 +28,8 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                         return@authenticate null
                     }
 
-                    val navIdent = introspectionResult.claims["NAVident"]?.jsonPrimitive?.content
-                    logger.debug("NAVident from token: $navIdent")
-
-                    if (navIdent == null) {
-                        logger.warn("NAVident claim not found in token")
-                        return@authenticate null
-                    }
-
                     val preferredUsername = introspectionResult.claims["preferred_username"]?.jsonPrimitive?.content
                     logger.debug("preferred_username from token: $preferredUsername")
-
-                    logger.info("User $navIdent authenticated successfully")
 
                     val claimsMap = introspectionResult.claims.mapValues { (_, value) ->
                         when (value) {
@@ -48,7 +37,7 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                             else -> value.toString()
                         }
                     }
-                    TokenPrincipal(navIdent, preferredUsername, claimsMap)
+                    TokenPrincipal(preferredUsername, claimsMap)
                 } catch (e: Exception) {
                     logger.error("Token introspection failed: ${e.message}", e)
                     null

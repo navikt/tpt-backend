@@ -1,19 +1,17 @@
 package no.nav.tpt.infrastructure.epss
 
-import no.nav.tpt.infrastructure.cache.Cache
 import org.slf4j.LoggerFactory
 
-class CachedEpssService(
+class EpssServiceImpl(
     private val epssClient: EpssClient,
-    private val cache: Cache<String, EpssScore>,
-    private val circuitBreaker: CircuitBreaker
+    private val epssRepository: EpssRepository,
+    private val circuitBreaker: CircuitBreaker,
+    private val staleThresholdHours: Int = 24
 ) : EpssService {
-    private val logger = LoggerFactory.getLogger(CachedEpssService::class.java)
+    private val logger = LoggerFactory.getLogger(EpssServiceImpl::class.java)
 
     companion object {
-        // https://api.first.org/epss/
         private const val MAX_PARAMETER_LENGTH = 2000
-        // https://github.com/CVEProject/cve-schema/blob/main/schema/CVE_Record_Format.json
         private val CVE_PATTERN = Regex("^CVE-[0-9]{4}-[0-9]{4,19}$")
     }
 
@@ -34,24 +32,24 @@ class CachedEpssService(
             return emptyMap()
         }
 
-        val cachedScores = cache.getMany(validCveIds)
-        val missingCveIds = validCveIds.filterNot { cachedScores.containsKey(it) }
+        val dbScores = epssRepository.getEpssScores(validCveIds)
+        val staleCveIds = epssRepository.getStaleCves(validCveIds, staleThresholdHours)
 
-        if (missingCveIds.isEmpty()) {
-            logger.debug("Cache hit for all ${validCveIds.size} CVEs")
-            return cachedScores
+        if (staleCveIds.isEmpty()) {
+            logger.debug("All ${validCveIds.size} CVEs found in database and fresh")
+            return dbScores
         }
 
         if (circuitBreaker.isOpen()) {
-            logger.warn("Circuit breaker is OPEN - skipping EPSS API calls. Returning ${cachedScores.size} cached scores.")
-            return cachedScores
+            logger.warn("Circuit breaker is OPEN - skipping EPSS API calls. Returning ${dbScores.size} database scores (${staleCveIds.size} are stale).")
+            return dbScores
         }
 
-        logger.info("Fetching ${missingCveIds.size} (${missingCveIds.joinToString(", ")}) missing CVEs from EPSS API (${cachedScores.size} found in cache)")
+        logger.info("Fetching ${staleCveIds.size} stale/missing CVEs from EPSS API (${dbScores.size} found fresh in database)")
 
         return try {
-            val batches = createBatches(missingCveIds)
-            logger.debug("Split ${missingCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
+            val batches = createBatches(staleCveIds)
+            logger.debug("Split ${staleCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
 
             val fetchedScores = batches.flatMap { batch ->
                 val response = epssClient.getEpssScores(batch)
@@ -59,22 +57,22 @@ class CachedEpssService(
             }.associateBy { it.cve }
 
             circuitBreaker.recordSuccess()
-            cache.putMany(fetchedScores)
+            epssRepository.upsertEpssScores(fetchedScores.values.toList())
 
-            val allScores = cachedScores + fetchedScores
+            val allScores = dbScores + fetchedScores
 
-            logger.debug("Successfully fetched and cached ${fetchedScores.size} new EPSS scores")
+            logger.debug("Successfully fetched and stored ${fetchedScores.size} new/updated EPSS scores")
             allScores
         } catch (_: EpssRateLimitException) {
-            logger.error("Rate limit exceeded for EPSS API. Opening circuit breaker for 24 hours. Returning ${cachedScores.size} cached scores.")
+            logger.error("Rate limit exceeded for EPSS API. Opening circuit breaker. Returning ${dbScores.size} database scores.")
             circuitBreaker.recordFailure()
-            cachedScores
+            dbScores
         } catch (e: EpssApiException) {
-            logger.error("EPSS API error: ${e.message}. Returning ${cachedScores.size} cached scores.")
-            cachedScores
+            logger.error("EPSS API error: ${e.message}. Returning ${dbScores.size} database scores.")
+            dbScores
         } catch (e: Exception) {
-            logger.error("Unexpected error fetching EPSS scores: ${e.message}. Returning ${cachedScores.size} cached scores.", e)
-            cachedScores
+            logger.error("Unexpected error fetching EPSS scores: ${e.message}. Returning ${dbScores.size} database scores.", e)
+            dbScores
         }
     }
 
@@ -103,4 +101,3 @@ class CachedEpssService(
         return batches
     }
 }
-

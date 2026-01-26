@@ -107,7 +107,6 @@ API documentation available at `/swagger` once the application is running.
 ## Authentication
 
 Endpoints require a valid JWT Bearer token with:
-- `NAVident` claim for user identification
 - `preferred_username` claim for email
 
 
