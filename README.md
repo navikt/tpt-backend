@@ -2,6 +2,51 @@
 
 API to help developers prioritize which security issues to fix first. Fetches vulnerability data from NAIS, enriches with external data, and returns prioritized results.
 
+## Project Structure
+
+```
+src/main/kotlin/no/nav/tpt/
+├── domain/                     # Core business logic and interfaces
+│   ├── risk/                   # Risk scoring algorithms and factor calculations
+│   │   └── factors/            # Individual risk factor calculators (EPSS, KEV, build age, etc.)
+│   └── user/                   # User context and role management interfaces
+├── infrastructure/             # External integrations and technical implementations
+│   ├── auth/                   # Token introspection and authentication
+│   ├── cache/                  # Valkey cache implementation
+│   ├── cisa/                   # CISA KEV catalog integration
+│   ├── config/                 # Application configuration
+│   ├── database/               # Database factory and connection management
+│   ├── epss/                   # EPSS API client and exploit prediction scores
+│   ├── github/                 # GitHub repository metadata storage and queries
+│   ├── kafka/                  # Kafka consumer for GitHub repository events
+│   ├── nais/                   # NAIS GraphQL API client for vulnerability data
+│   ├── nvd/                    # NVD database sync service and CVE data management
+│   ├── purl/                   # Package URL (PURL) parsing utilities
+│   ├── teamkatalogen/          # Team membership data from Teamkatalogen API
+│   ├── user/                   # User role determination based on team membership
+│   └── vulns/                  # Vulnerability aggregation and enrichment service
+├── plugins/                    # Ktor plugins and application lifecycle
+│   ├── Authentication.kt       # JWT authentication configuration
+│   ├── Dependencies.kt         # Dependency injection setup
+│   ├── Kafka.kt                # Kafka consumer lifecycle management
+│   ├── LeaderElection.kt       # Kubernetes leader election for distributed tasks
+│   └── NvdSync.kt              # Scheduled NVD synchronization orchestration
+├── routes/                     # HTTP API endpoints
+│   ├── ConfigRoutes.kt         # Risk factor documentation endpoint
+│   ├── HealthRoutes.kt         # Liveness and readiness probes
+│   ├── ResponseHelpers.kt      # RFC 9457 Problem Details error responses
+│   └── VulnRoutes.kt           # Vulnerability query endpoints
+└── Application.kt              # Application entry point
+
+src/main/resources/
+├── db/migration/               # Flyway database migrations
+├── graphql/                    # GraphQL queries for NAIS API
+├── logback.xml                 # Logging configuration
+└── openapi.yaml                # OpenAPI specification
+
+src/test/                       # Test suite mirroring main structure
+```
+
 ## Prerequisites
 - Java 25
 - Gradle 9.x

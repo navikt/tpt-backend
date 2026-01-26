@@ -11,6 +11,7 @@ of the initial request.
 - The user will verify functionality manually and ask for changes if needed. No need to build or run the application for verification.
 - **DO NOT ADD EXTRA DOCUMENTATION OR EXPLANATIONS UNLESS SPECIFICALLY ASKED.**
 - Do not use timeout when running terminal commands, we are running zsh on macos.
+- When adding or removing functionality we update the root README.md with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
 
 ## Project Overview
 
@@ -38,7 +39,7 @@ The docker images will use distroless images. For testing we will avoid mocking 
 
 ### Core Technologies
 - **Framework**: Ktor (Netty engine)
-- **Language**: Kotlin (JVM target, Java 21)
+- **Language**: Kotlin (JVM target, Java 25)
 - **Dependency Injection**: Ktor lambda-based DI
 - **Serialization**: kotlinx.serialization
 - **Testing**: kotlin.test with Ktor test framework, Testcontainers for integration tests
@@ -235,7 +236,6 @@ suspend fun upsertCves(cves: List<NvdCveData>) {
 
 ## Performance Considerations
 
-- **Caching**: Valkey cache for API responses (configurable TTL)
 - **Database Indexes**: Proper indexes on frequently queried fields
 - **Connection Pooling**: HikariCP for efficient database connection management
 - **Batch Processing**: Chunked operations for large datasets (e.g., 500 CVEs per batch)
@@ -259,7 +259,7 @@ interface NvdRepository {
 - **Reversibility**: Avoid destructive changes; use new migrations to modify schema
 
 ### NVD Sync Strategy
-- **Initial Sync**: Year-by-year from 2002 to present (~12-15 hours, leader-only)
+- **Initial Sync**: Year-by-year from 2002 to present (~1-2 hours, leader-only)
 - **Incremental Sync**: Every 2 hours using `lastModifiedDate` tracking (leader-only)
 - **Leader Election**: Kubernetes native leader election prevents duplicate syncs
 - **Date Format**: ISO 8601 with UTC timezone (`2024-01-01T00:00:00.000Z`)
