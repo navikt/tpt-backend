@@ -4,7 +4,6 @@ ktor = "3.3.3"
 logback = "1.5.24"
 logstash-encoder = "9.0"
 kotlin-test = "2.3.0"
-valkey = "5.5.0"
 testcontainers = "1.21.4"
 kotlinx-coroutines = "1.10.2"
 junit = "6.0.2"
@@ -30,7 +29,6 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-encoder" }
-valkey-java = { module = "io.valkey:valkey-java", version.ref = "valkey" }
 jakarta-validation-api = { module = "jakarta.validation:jakarta.validation-api", version.ref = "jakarta-validation" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }

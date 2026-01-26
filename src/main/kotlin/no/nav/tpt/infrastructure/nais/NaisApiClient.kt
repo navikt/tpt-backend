@@ -10,7 +10,7 @@ class NaisApiClient(
     private val httpClient: HttpClient,
     private val apiUrl: String,
     private val token: String
-) {
+) : NaisApiService {
     private val logger = LoggerFactory.getLogger(NaisApiClient::class.java)
 
     private val applicationsForUserQuery = this::class.java.classLoader
@@ -38,13 +38,13 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load team-memberships-for-user.graphql")
 
-    suspend fun getVulnerabilitiesForUser(email: String): WorkloadVulnerabilitiesResponse {
+    override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
         val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
         val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")
 
         if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
             val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
-            return WorkloadVulnerabilitiesResponse(errors = allErrors)
+            return WorkloadVulnerabilitiesResponse(errors = allErrors).toData()
         }
 
         val mergedTeams = mergeWorkloadResponses(appResponse, jobResponse)
@@ -58,10 +58,10 @@ class NaisApiClient(
                     )
                 )
             )
-        )
+        ).toData()
     }
 
-    suspend fun getVulnerabilitiesForTeam(teamSlug: String): WorkloadVulnerabilitiesResponse {
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
         val appResponse = fetchTeamWorkloadVulnerabilities(teamSlug, applicationsForTeamQuery, "applications")
         val jobResponse = fetchTeamWorkloadVulnerabilities(teamSlug, jobVulnerabilitiesForTeamQuery, "jobs")
 
@@ -69,7 +69,7 @@ class NaisApiClient(
             val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
             return WorkloadVulnerabilitiesResponse(errors = allErrors.map {
                 WorkloadVulnerabilitiesResponse.GraphQLError(it.message, it.path)
-            })
+            }).toData()
         }
 
         val appTeam = appResponse.data?.team
@@ -83,7 +83,7 @@ class NaisApiClient(
                         path = listOf("team")
                     )
                 )
-            )
+            ).toData()
         }
 
         val team = WorkloadVulnerabilitiesResponse.TeamNode(
@@ -113,7 +113,7 @@ class NaisApiClient(
                     )
                 )
             )
-        )
+        ).toData()
     }
 
     private fun convertTeamWorkloadToUserWorkload(
@@ -601,7 +601,18 @@ class NaisApiClient(
         }
     }
 
-    suspend fun getTeamMembershipsForUser(email: String): TeamMembershipsForUserResponse {
+    override suspend fun getTeamMembershipsForUser(email: String): List<String> {
+        val response = getTeamMembershipsRaw(email)
+
+        if (!response.errors.isNullOrEmpty()) {
+            logger.warn("GraphQL errors for team memberships $email: ${response.errors.joinToString { "${it.message} at ${it.path}" }}")
+            return emptyList()
+        }
+
+        return response.data?.user?.teams?.nodes?.map { it.team.slug } ?: emptyList()
+    }
+
+    private suspend fun getTeamMembershipsRaw(email: String): TeamMembershipsForUserResponse {
         val request = TeamMembershipsForUserRequest(
             query = teamMembershipsForUserQuery,
             variables = TeamMembershipsForUserRequest.Variables(email = email)

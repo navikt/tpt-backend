@@ -28,9 +28,6 @@ spec:
         - host: www.cisa.gov
         - host: api.first.org
         - host: services.nvd.nist.gov
-  valkey:
-    - instance: appsec
-      access: readwrite
   gcp:
     sqlInstances:
       - type: POSTGRES_17
@@ -73,8 +70,6 @@ spec:
       value: "https://api.first.org/data/v1"
     - name: TEAMKATALOGEN_URL
       value: "https://teamkatalog-api.intern.nav.no"
-    - name: CACHE_TTL_MINUTES
-      value: "15"
     - name: KAFKA_TOPIC
       value: "appsec.tpt"
     - name: OTEL_LOGS_EXPORTER

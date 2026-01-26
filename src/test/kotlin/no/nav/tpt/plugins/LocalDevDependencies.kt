@@ -38,7 +38,6 @@ import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 private var postgresContainer: PostgreSQLContainer<*>? = null
-private var valkeyContainer: GenericContainer<*>? = null
 private var kafkaContainer: KafkaContainer? = null
 val KAFKA_WAIT_STRATEGY: WaitStrategy = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
 
@@ -53,15 +52,6 @@ fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     return postgresContainer!!
 }
 
-fun getOrCreateValkeyContainer(): GenericContainer<*> {
-    if (valkeyContainer == null) {
-        valkeyContainer = GenericContainer(DockerImageName.parse("ghcr.io/valkey-io/valkey:7.2-alpine"))
-            .withExposedPorts(6379)
-        valkeyContainer!!.start()
-    }
-    return valkeyContainer!!
-}
-
 fun getOrCreateKafkaContainer(): KafkaContainer {
 
     if (kafkaContainer == null) {
@@ -73,7 +63,6 @@ fun getOrCreateKafkaContainer(): KafkaContainer {
 
 val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDependencies") {
     val postgres = getOrCreatePostgresContainer()
-    val valkey = getOrCreateValkeyContainer()
     val kafka = getOrCreateKafkaContainer()
 
     val httpClient = HttpClient(CIO) {
@@ -132,12 +121,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
-        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
-        valkeyHost = valkey.host,
-        valkeyPort = valkey.getMappedPort(6379),
-        valkeyUsername = "default",
-        valkeyPassword = "default",
-        cacheTtlMinutes = 1L
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen"
     )
 
     val dependencies = Dependencies(

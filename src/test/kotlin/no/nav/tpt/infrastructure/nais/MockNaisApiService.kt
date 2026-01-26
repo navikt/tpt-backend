@@ -6,7 +6,7 @@ class MockNaisApiService(
     private val mockTeamMemberships: List<String>? = null
 ) : NaisApiService {
 
-    override suspend fun getVulnerabilitiesForUser(email: String, bypassCache: Boolean): UserVulnerabilitiesData {
+    override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
         if (!shouldSucceed) {
             throw RuntimeException("Mock error: Failed to fetch vulnerabilities for user")
         }
@@ -57,7 +57,7 @@ class MockNaisApiService(
         )
     }
 
-    override suspend fun getVulnerabilitiesForTeam(teamSlug: String, bypassCache: Boolean): UserVulnerabilitiesData {
+    override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
         if (!shouldSucceed) {
             throw RuntimeException("Mock error: Failed to fetch vulnerabilities for team")
         }

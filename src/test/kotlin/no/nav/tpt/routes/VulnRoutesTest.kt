@@ -394,69 +394,6 @@ class VulnRoutesTest {
     }
 
     @Test
-    fun `should return 200 and respect bypassCache query parameter`() = testApplication {
-        val tokenIntrospectionService = MockTokenIntrospectionService(
-            shouldSucceed = true,
-            navIdent = "test-ident",
-            preferredUsername = "test@example.com"
-        )
-
-        val naisApiService = MockNaisApiService(
-            shouldSucceed = true,
-            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
-                teams = listOf(
-                    TeamVulnerabilitiesData(
-                        teamSlug = "team-alpha",
-                        workloads = listOf(
-                            WorkloadData(
-                                id = "workload-1",
-                                name = "app1",
-                                workloadType = "app",
-                                imageTag = null,
-                                repository = null,
-                                environment = null,
-                                ingressTypes = listOf("INTERNAL"),
-                                vulnerabilities = listOf(
-                                    VulnerabilityData(
-                                        identifier = "CVE-2023-12345",
-                                        severity = "HIGH",
-                                        packageName = null,
-                                        description = null,
-                                        vulnerabilityDetailsLink = null,
-                                        suppressed = false
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        )
-
-        application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
-        }
-
-        val response = client.get("/vulnerabilities/user?bypassCache=true") {
-            header(HttpHeaders.Authorization, "Bearer valid-token")
-        }
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        val vulnResponse = Json.decodeFromString<VulnResponse>(response.bodyAsText())
-        assertEquals(1, vulnResponse.teams.size)
-    }
-
-    @Test
     fun `should include workloadType field in response`() = testApplication {
         val tokenIntrospectionService = MockTokenIntrospectionService(
             shouldSucceed = true,
