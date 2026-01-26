@@ -23,7 +23,37 @@ class TeamkatalogenClient(
         // Flatten the nested naisTeams arrays into a single list
         val allNaisTeams = apiResponse.teams.flatMap { it.naisTeams }
 
-        return MembershipResponse(naisTeams = allNaisTeams)
+        // Map clusters and productAreas to TeamkatalogenEntity
+        val clusters = apiResponse.clusters.map { TeamkatalogenEntity(it.id, it.name) }
+        val productAreas = apiResponse.productAreas.map { TeamkatalogenEntity(it.id, it.name) }
+
+        return MembershipResponse(
+            naisTeams = allNaisTeams,
+            clusters = clusters,
+            productAreas = productAreas
+        )
+    }
+
+    suspend fun getSubteamsByClusterId(clusterId: String): SubteamsResponse {
+        logger.debug("Fetching subteams for cluster: $clusterId")
+
+        val response = httpClient.get("$baseUrl/team") {
+            parameter("clusterId", clusterId)
+            parameter("status", "ACTIVE")
+        }
+
+        return response.body()
+    }
+
+    suspend fun getSubteamsByProductAreaId(productAreaId: String): SubteamsResponse {
+        logger.debug("Fetching subteams for productArea: $productAreaId")
+
+        val response = httpClient.get("$baseUrl/team") {
+            parameter("productAreaId", productAreaId)
+            parameter("status", "ACTIVE")
+        }
+
+        return response.body()
     }
 }
 

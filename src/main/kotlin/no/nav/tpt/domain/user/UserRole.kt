@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 enum class UserRole {
     DEVELOPER,
     TEAM_MEMBER,
+    LEADER,
     NONE
 }

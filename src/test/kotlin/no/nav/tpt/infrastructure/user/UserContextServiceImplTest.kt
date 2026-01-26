@@ -278,3 +278,213 @@ class UserContextServiceImplTest {
         assertEquals(emptyList(), userContext.teams)
     }
 }
+
+    @Test
+    fun `should assign LEADER role when user has cluster membership with subteams`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when {
+                        request.url.encodedPath == "/member/membership/byUserEmail" -> {
+                            val responseData = TeamkatalogenApiResponse(
+                                teams = emptyList(),
+                                clusters = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.ClusterMembership(
+                                        id = "cluster-123",
+                                        name = "Security Cluster"
+                                    )
+                                ),
+                                productAreas = emptyList()
+                            )
+                            val json = Json {
+                                ignoreUnknownKeys = true
+                            }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(TeamkatalogenApiResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        request.url.encodedPath == "/team" && request.url.parameters["clusterId"] == "cluster-123" -> {
+                            val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
+                                content = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
+                                        id = "team-1",
+                                        name = "AppSec Team",
+                                        naisTeams = listOf("appsec", "security-team")
+                                    ),
+                                    no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
+                                        id = "team-2",
+                                        name = "Identity Team",
+                                        naisTeams = listOf("identity-team")
+                                    )
+                                )
+                            )
+                            val json = Json {
+                                ignoreUnknownKeys = true
+                            }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        else -> error("Unhandled ${request.url}")
+                    }
+                }
+            }
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                })
+            }
+        }
+
+        val naisApiService = object : NaisApiService {
+            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+
+        val userContext = userContextService.getUserContext("leader@nav.no")
+
+        assertEquals("leader@nav.no", userContext.email)
+        assertEquals(UserRole.LEADER, userContext.role)
+        assertEquals(3, userContext.teams.size)
+        assertEquals(true, userContext.teams.contains("appsec"))
+        assertEquals(true, userContext.teams.contains("security-team"))
+        assertEquals(true, userContext.teams.contains("identity-team"))
+    }
+
+    @Test
+    fun `should assign LEADER role when user has productArea membership with subteams`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when {
+                        request.url.encodedPath == "/member/membership/byUserEmail" -> {
+                            val responseData = TeamkatalogenApiResponse(
+                                teams = emptyList(),
+                                clusters = emptyList(),
+                                productAreas = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.ProductAreaMembership(
+                                        id = "pa-456",
+                                        name = "Security Product Area"
+                                    )
+                                )
+                            )
+                            val json = Json { ignoreUnknownKeys = true }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(TeamkatalogenApiResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        request.url.encodedPath == "/team" && request.url.parameters["productAreaId"] == "pa-456" -> {
+                            val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
+                                content = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
+                                        id = "team-3",
+                                        naisTeams = listOf("team-data", "team-analytics")
+                                    )
+                                )
+                            )
+                            val json = Json { ignoreUnknownKeys = true }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        else -> error("Unhandled ${request.url}")
+                    }
+                }
+            }
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
+        val naisApiService = object : NaisApiService {
+            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+
+        val userContext = userContextService.getUserContext("pa-leader@nav.no")
+
+        assertEquals("pa-leader@nav.no", userContext.email)
+        assertEquals(UserRole.LEADER, userContext.role)
+        assertEquals(listOf("team-data", "team-analytics"), userContext.teams)
+    }
+
+    @Test
+    fun `should assign NONE role when user has cluster but subteams have no naisTeams`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when {
+                        request.url.encodedPath == "/member/membership/byUserEmail" -> {
+                            val responseData = TeamkatalogenApiResponse(
+                                teams = emptyList(),
+                                clusters = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.ClusterMembership(id = "empty-cluster")
+                                ),
+                                productAreas = emptyList()
+                            )
+                            val json = Json { ignoreUnknownKeys = true }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(TeamkatalogenApiResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        request.url.encodedPath == "/team" -> {
+                            val responseData = no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse(
+                                content = listOf(
+                                    no.nav.tpt.infrastructure.teamkatalogen.SubteamData(
+                                        id = "team-empty",
+                                        naisTeams = emptyList()
+                                    )
+                                )
+                            )
+                            val json = Json { ignoreUnknownKeys = true }
+                            respond(
+                                content = ByteReadChannel(json.encodeToString(no.nav.tpt.infrastructure.teamkatalogen.SubteamsResponse.serializer(), responseData)),
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                            )
+                        }
+                        else -> error("Unhandled ${request.url}")
+                    }
+                }
+            }
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
+        val naisApiService = object : NaisApiService {
+            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+
+        val userContext = userContextService.getUserContext("empty@nav.no")
+
+        assertEquals("empty@nav.no", userContext.email)
+        assertEquals(UserRole.NONE, userContext.role)
+        assertEquals(emptyList(), userContext.teams)
+    }
