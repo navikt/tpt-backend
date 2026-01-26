@@ -1,7 +1,9 @@
 package no.nav.tpt.infrastructure.cisa
 
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.json.json
 import java.time.Instant
 
 object KevCatalogMetadata : Table("kev_catalog_metadata") {
@@ -28,7 +30,7 @@ object KevVulnerabilities : Table("kev_vulnerabilities") {
     val dueDate = varchar("due_date", 30)
     val knownRansomwareCampaignUse = varchar("known_ransomware_campaign_use", 20)
     val notes = text("notes")
-    val cwes = text("cwes")
+    val cwes = json<List<String>>("cwes", Json.Default)
     val createdAt = timestamp("created_at").default(Instant.now())
 
     override val primaryKey = PrimaryKey(cveId)

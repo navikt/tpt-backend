@@ -72,7 +72,7 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
                 this[KevVulnerabilities.dueDate] = vuln.dueDate
                 this[KevVulnerabilities.knownRansomwareCampaignUse] = vuln.knownRansomwareCampaignUse
                 this[KevVulnerabilities.notes] = vuln.notes
-                this[KevVulnerabilities.cwes] = json.encodeToString<List<String>>(vuln.cwes)
+                this[KevVulnerabilities.cwes] = vuln.cwes
                 this[KevVulnerabilities.createdAt] = Instant.now()
             }
         }
@@ -115,9 +115,6 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
     }
 
     private fun toKevVulnerability(row: ResultRow): KevVulnerability {
-        val cwesJson = row[KevVulnerabilities.cwes]
-        val cwes = json.decodeFromString<List<String>>(cwesJson)
-        
         return KevVulnerability(
             cveID = row[KevVulnerabilities.cveId],
             vendorProject = row[KevVulnerabilities.vendorProject],
@@ -129,7 +126,7 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
             dueDate = row[KevVulnerabilities.dueDate],
             knownRansomwareCampaignUse = row[KevVulnerabilities.knownRansomwareCampaignUse],
             notes = row[KevVulnerabilities.notes],
-            cwes = cwes
+            cwes = row[KevVulnerabilities.cwes]
         )
     }
 }
