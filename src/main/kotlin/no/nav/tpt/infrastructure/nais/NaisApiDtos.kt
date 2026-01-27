@@ -1,5 +1,10 @@
 package no.nav.tpt.infrastructure.nais
 
+data class TeamInfo(
+    val slug: String,
+    val slackChannel: String?
+)
+
 data class VulnerabilityData(
     val identifier: String,
     val severity: String,

@@ -112,6 +112,27 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
     val vulnService = MockVulnService()
+    
+    // Mock vulnerability components
+    val mockVulnerabilityRepository = object : no.nav.tpt.domain.vulnerability.VulnerabilityRepository {
+        override suspend fun upsertVulnerability(vulnerability: no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData) = vulnerability
+        override suspend fun searchVulnerabilities(cveId: String?, teamSlug: String?, severities: List<String>?, hasExternalIngress: Boolean?, suppressed: Boolean?, limit: Int, offset: Int) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>() to 0
+        override suspend fun getActiveVulnerabilitiesForTeams(teamSlugs: List<String>) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
+        override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
+    }
+    
+    val mockVulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(naisApiService)
+    
+    val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
+        naisApiService = naisApiService,
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        leaderElection = leaderElection,
+        teamDelayMs = 1000
+    )
+    
+    val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
+        vulnerabilityRepository = mockVulnerabilityRepository
+    )
 
     val config = AppConfig(
         naisTokenIntrospectionEndpoint = "http://localhost:8080/mock-introspection",
@@ -138,7 +159,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
-        gitHubRepository = gitHubRepository
+        gitHubRepository = gitHubRepository,
+        vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
+        vulnerabilitySearchService = mockVulnerabilitySearchService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

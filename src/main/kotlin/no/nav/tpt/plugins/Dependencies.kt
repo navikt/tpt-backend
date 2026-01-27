@@ -22,6 +22,9 @@ import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.vulnerability.*
+import no.nav.tpt.infrastructure.vulnerability.*
+import no.nav.tpt.plugins.LeaderElection
 
 @Suppress("unused")
 class Dependencies(
@@ -38,7 +41,9 @@ class Dependencies(
     val vulnService: VulnService,
     val teamkatalogenService: TeamkatalogenService,
     val userContextService: UserContextService,
-    val gitHubRepository: GitHubRepository
+    val gitHubRepository: GitHubRepository,
+    val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
+    val vulnerabilitySearchService: VulnerabilitySearchService
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -94,7 +99,22 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val gitHubRepository = GitHubRepositoryImpl(database)
 
-    val vulnService = VulnServiceImpl(naisApiClient, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
+    val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl()
+    
+    val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
+        vulnerabilityRepository = vulnerabilityRepository,
+        userContextService = userContextService
+    )
+    
+    val vulnService = VulnServiceImpl(vulnerabilityDataService, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
+
+    val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
+        naisApiService = naisApiClient,
+        vulnerabilityRepository = vulnerabilityRepository,
+        leaderElection = leaderElection
+    )
+
+    val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
 
     val dependencies = Dependencies(
         appConfig = config,
@@ -110,7 +130,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
-        gitHubRepository = gitHubRepository
+        gitHubRepository = gitHubRepository,
+        vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
+        vulnerabilitySearchService = vulnerabilitySearchService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

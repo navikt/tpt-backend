@@ -122,6 +122,88 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/vulnerabilities/search:
+    post:
+      summary: Search vulnerabilities with flexible criteria
+      description: Search for vulnerabilities across teams, applications, and CVEs with pagination support
+      tags:
+        - Vulnerabilities
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VulnerabilitySearchRequest'
+      responses:
+        '200':
+          description: Successfully retrieved search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnerabilitySearchResponse'
+        '400':
+          description: Bad request - invalid search parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/sla/overdue:
+    get:
+      summary: Get SLA overdue report for teams
+      description: Returns vulnerabilities that are overdue according to SLA policy (critical >1 workday, others >30 days)
+      tags:
+        - SLA
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: team
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          description: Team slugs to generate report for (can be repeated)
+          example: team-a
+      responses:
+        '200':
+          description: Successfully generated SLA report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaOverdueResponse'
+        '400':
+          description: Bad request - at least one team parameter is required
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 components:
   securitySchemes:
     bearerAuth:
@@ -492,5 +574,161 @@ components:
           nullable: true
           description: CVSS score for the vulnerability
           example: 7.0
+    VulnerabilitySearchRequest:
+      type: object
+      properties:
+        teamSlugs:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Filter by team slugs
+          example: ["team-a", "team-b"]
+        applicationNames:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Filter by application names
+          example: ["my-app", "my-job"]
+        cveIds:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Filter by CVE identifiers
+          example: ["CVE-2024-1234", "CVE-2024-5678"]
+        limit:
+          type: integer
+          nullable: true
+          description: Maximum number of results to return (default 100)
+          example: 50
+        offset:
+          type: integer
+          nullable: true
+          description: Number of results to skip for pagination (default 0)
+          example: 0
+    VulnerabilitySearchResponse:
+      type: object
+      required:
+        - vulnerabilities
+        - total
+      properties:
+        vulnerabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoredVulnerability'
+          description: List of vulnerabilities matching search criteria
+        total:
+          type: integer
+          description: Total number of vulnerabilities matching criteria (before pagination)
+          example: 150
+    StoredVulnerability:
+      type: object
+      required:
+        - teamSlug
+        - applicationName
+        - cveId
+        - firstDetected
+      properties:
+        teamSlug:
+          type: string
+          description: Team identifier
+          example: "team-a"
+        applicationName:
+          type: string
+          description: Application or job name
+          example: "my-application"
+        cveId:
+          type: string
+          description: CVE identifier
+          example: "CVE-2024-1234"
+        firstDetected:
+          type: string
+          description: ISO 8601 timestamp when vulnerability was first detected
+          example: "2024-01-15T10:30:00Z"
+        lastSeen:
+          type: string
+          nullable: true
+          description: ISO 8601 timestamp when vulnerability was last seen
+          example: "2024-01-20T14:45:00Z"
+    SlaOverdueResponse:
+      type: object
+      required:
+        - teams
+        - summary
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSlaReport'
+          description: SLA status per team
+        summary:
+          $ref: '#/components/schemas/SlaSummary'
+          description: Aggregate summary across all teams
+    TeamSlaReport:
+      type: object
+      required:
+        - teamSlug
+        - overdueCritical
+        - overdueOther
+      properties:
+        teamSlug:
+          type: string
+          description: Team identifier
+          example: "team-a"
+        overdueCritical:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverdueVulnerability'
+          description: Critical vulnerabilities overdue (>1 workday)
+        overdueOther:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverdueVulnerability'
+          description: Non-critical vulnerabilities overdue (>30 days)
+    OverdueVulnerability:
+      type: object
+      required:
+        - cveId
+        - applicationName
+        - firstDetected
+        - daysOverdue
+      properties:
+        cveId:
+          type: string
+          description: CVE identifier
+          example: "CVE-2024-1234"
+        applicationName:
+          type: string
+          description: Application or job name
+          example: "my-application"
+        firstDetected:
+          type: string
+          description: ISO 8601 timestamp when vulnerability was first detected
+          example: "2024-01-15T10:30:00Z"
+        daysOverdue:
+          type: integer
+          description: Number of days overdue according to SLA policy
+          example: 5
+    SlaSummary:
+      type: object
+      required:
+        - totalCriticalOverdue
+        - totalOtherOverdue
+        - totalTeamsAffected
+      properties:
+        totalCriticalOverdue:
+          type: integer
+          description: Total number of critical vulnerabilities overdue across all teams
+          example: 12
+        totalOtherOverdue:
+          type: integer
+          description: Total number of non-critical vulnerabilities overdue across all teams
+          example: 45
+        totalTeamsAffected:
+          type: integer
+          description: Number of teams with overdue vulnerabilities
+          example: 3
 
 

@@ -26,11 +26,17 @@ class LeaderElection(private val httpClient: HttpClient) {
 
     private val cachedLeaderStatus = AtomicBoolean(false)
     private val checkIntervalSeconds = 60L
+    private val checksStarted = AtomicBoolean(false)
 
     fun startLeaderElectionChecks(scope: CoroutineScope) {
         if (electorUrl.isEmpty()) {
             logger.info("ELECTOR_GET_URL not set, assuming single instance (leader)")
             cachedLeaderStatus.set(true)
+            return
+        }
+
+        if (checksStarted.getAndSet(true)) {
+            logger.debug("Leader election checks already started, skipping")
             return
         }
 

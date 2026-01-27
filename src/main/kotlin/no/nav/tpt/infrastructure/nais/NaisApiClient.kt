@@ -38,6 +38,55 @@ class NaisApiClient(
         ?.readText()
         ?: error("Could not load team-memberships-for-user.graphql")
 
+    private val teamInformationQuery = this::class.java.classLoader
+        .getResource("graphql/team-information.graphql")
+        ?.readText()
+        ?: error("Could not load team-information.graphql")
+
+    override suspend fun getAllTeams(): List<TeamInfo> {
+        val allTeams = mutableListOf<TeamInformationResponse.TeamNode>()
+        var cursor: String? = null
+        var hasNextPage = true
+
+        while (hasNextPage) {
+            val request = TeamInformationRequest(
+                query = teamInformationQuery,
+                variables = TeamInformationRequest.Variables(
+                    teamFirst = 200,
+                    teamAfter = cursor
+                )
+            )
+
+            val response = try {
+                httpClient.post(apiUrl) {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    setBody(request)
+                }
+            } catch (e: Exception) {
+                logger.error("HTTP error fetching teams", e)
+                throw e
+            }
+
+            val pageResponse: TeamInformationResponse = response.body()
+
+            if (!pageResponse.errors.isNullOrEmpty()) {
+                logger.error("GraphQL errors fetching teams: ${pageResponse.errors.joinToString { "${it.message} at ${it.path}" }}")
+                throw Exception("Failed to fetch teams: ${pageResponse.errors.first().message}")
+            }
+
+            if (pageResponse.data?.teams == null) {
+                throw Exception("No data returned when fetching teams")
+            }
+
+            allTeams.addAll(pageResponse.data.teams.nodes)
+            hasNextPage = pageResponse.data.teams.pageInfo.hasNextPage
+            cursor = pageResponse.data.teams.pageInfo.endCursor
+        }
+
+        return allTeams.map { TeamInfo(it.slug, it.slackChannel) }
+    }
+
     override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
         val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
         val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")

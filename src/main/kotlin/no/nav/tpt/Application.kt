@@ -14,10 +14,12 @@ import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureNvdSync
+import no.nav.tpt.plugins.configureVulnerabilityDataSync
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 
 fun main() {
@@ -50,6 +52,7 @@ fun Application.module() {
 
     configureAuthentication(dependencies.tokenIntrospectionService)
     configureNvdSync()
+    configureVulnerabilityDataSync()
     configureKafka()
 
     routing {
@@ -57,6 +60,7 @@ fun Application.module() {
         healthRoutes()
         configRoutes()
         vulnRoutes()
+        vulnerabilitySearchRoutes()
     }
 }
 
