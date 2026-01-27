@@ -6,6 +6,13 @@ class MockNaisApiService(
     private val mockTeamMemberships: List<String>? = null
 ) : NaisApiService {
 
+    override suspend fun getAllTeams(): List<TeamInfo> {
+        if (!shouldSucceed) {
+            throw RuntimeException("Mock error: Failed to fetch teams")
+        }
+        return listOf(TeamInfo(slug = "team-lokal-utvikler", slackChannel = "#team-lokal-utvikler"))
+    }
+
     override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
         if (!shouldSucceed) {
             throw RuntimeException("Mock error: Failed to fetch vulnerabilities for user")

@@ -10,6 +10,9 @@ version = "0.0.1"
 
 kotlin {
     jvmToolchain(25)
+    compilerOptions {
+        freeCompilerArgs.add("-Xsuppress-version-warnings")
+    }
 }
 
 application {

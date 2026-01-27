@@ -72,8 +72,11 @@ fun Application.installTestDependencies(
 
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService)
 
+    val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+        naisApiService = naisApiService
+    )
     val vulnService = VulnServiceImpl(
-        naisApiService = naisApiService,
+        vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = MockEpssService(),
         nvdRepository = MockNvdRepository(),
@@ -96,6 +99,25 @@ fun Application.installTestDependencies(
 
     val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(stubDatabase)
 
+    // Mock vulnerability repository and service
+    val mockVulnerabilityRepository = object : no.nav.tpt.domain.vulnerability.VulnerabilityRepository {
+        override suspend fun upsertVulnerability(vulnerability: no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData) = vulnerability
+        override suspend fun searchVulnerabilities(cveId: String?, teamSlug: String?, severities: List<String>?, hasExternalIngress: Boolean?, suppressed: Boolean?, limit: Int, offset: Int) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>() to 0
+        override suspend fun getActiveVulnerabilitiesForTeams(teamSlugs: List<String>) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
+        override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
+    }
+    
+    val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
+        naisApiService = naisApiService,
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        leaderElection = mockLeaderElection,
+        teamDelayMs = 1000
+    )
+    
+    val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
+        vulnerabilityRepository = mockVulnerabilityRepository
+    )
+
     val dependencies = Dependencies(
         appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -110,7 +132,9 @@ fun Application.installTestDependencies(
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = actualUserContextService,
-        gitHubRepository = gitHubRepository
+        gitHubRepository = gitHubRepository,
+        vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
+        vulnerabilitySearchService = mockVulnerabilitySearchService
     )
 
     attributes.put(DependenciesKey, dependencies)

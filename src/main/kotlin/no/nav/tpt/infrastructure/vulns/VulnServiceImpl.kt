@@ -6,18 +6,18 @@ import no.nav.tpt.domain.VulnVulnerabilityDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.infrastructure.cisa.KevCatalog
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
-import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.purl.PurlParser
 import org.slf4j.LoggerFactory
 
 class VulnServiceImpl(
-    private val naisApiService: NaisApiService,
+    private val vulnerabilityDataService: VulnerabilityDataService,
     private val kevService: KevService,
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
@@ -61,7 +61,7 @@ class VulnServiceImpl(
             return VulnResponse(userRole = userContext.role, teams = emptyList())
         }
 
-        val vulnerabilitiesData = naisApiService.getVulnerabilitiesForUser(email)
+        val vulnerabilitiesData = vulnerabilityDataService.getVulnerabilitiesForUser(email)
 
         val allCveIds = vulnerabilitiesData.teams
             .flatMap { it.workloads }

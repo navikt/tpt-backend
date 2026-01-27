@@ -82,8 +82,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -137,8 +140,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -173,8 +179,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -232,8 +241,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -331,8 +343,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -373,8 +388,11 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = mockNaisApiService,
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -428,8 +446,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -510,8 +532,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -569,8 +595,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -647,8 +677,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -680,8 +714,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
@@ -750,8 +788,12 @@ class VulnServiceTest {
         }
 
         val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
+        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
+        val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
+            naisApiService = mockNaisApiService
+        )
         val vulnService = VulnServiceImpl(
-            naisApiService = MockNaisApiService(shouldSucceed = true),
+            vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
             nvdRepository = MockNvdRepository(),
