@@ -15,9 +15,9 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO, database) {
+            minRetryDelay = 100
+            maxRetryDelay = 1000
             maxAttempts = 3
-            minRepetitionDelay = 100
-            maxRepetitionDelay = 1000
             block()
         }
 
