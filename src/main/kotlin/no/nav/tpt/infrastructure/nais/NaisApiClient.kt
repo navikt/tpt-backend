@@ -116,23 +116,15 @@ class NaisApiClient(
 
         if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
             val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
-            return WorkloadVulnerabilitiesResponse(errors = allErrors.map {
-                WorkloadVulnerabilitiesResponse.GraphQLError(it.message, it.path)
-            }).toData()
+            val errorMessage = allErrors.joinToString("; ") { "${it.message} at ${it.path}" }
+            throw Exception("GraphQL errors for team $teamSlug: $errorMessage")
         }
 
         val appTeam = appResponse.data?.team
         val jobTeam = jobResponse.data?.team
 
         if (appTeam == null && jobTeam == null) {
-            return WorkloadVulnerabilitiesResponse(
-                errors = listOf(
-                    WorkloadVulnerabilitiesResponse.GraphQLError(
-                        message = "Team not found or no data returned",
-                        path = listOf("team")
-                    )
-                )
-            ).toData()
+            throw Exception("Team $teamSlug not found or no data returned")
         }
 
         val team = WorkloadVulnerabilitiesResponse.TeamNode(
