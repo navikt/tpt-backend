@@ -14,7 +14,7 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
-class LeaderElection(private val httpClient: HttpClient) {
+open class LeaderElection(private val httpClient: HttpClient) {
     private val logger = LoggerFactory.getLogger(LeaderElection::class.java)
     private val electorUrl = System.getenv("ELECTOR_GET_URL") ?: ""
     private val hostname = try {
@@ -26,11 +26,17 @@ class LeaderElection(private val httpClient: HttpClient) {
 
     private val cachedLeaderStatus = AtomicBoolean(false)
     private val checkIntervalSeconds = 60L
+    private val checksStarted = AtomicBoolean(false)
 
     fun startLeaderElectionChecks(scope: CoroutineScope) {
         if (electorUrl.isEmpty()) {
             logger.info("ELECTOR_GET_URL not set, assuming single instance (leader)")
             cachedLeaderStatus.set(true)
+            return
+        }
+
+        if (checksStarted.getAndSet(true)) {
+            logger.debug("Leader election checks already started, skipping")
             return
         }
 
@@ -65,7 +71,7 @@ class LeaderElection(private val httpClient: HttpClient) {
         }
     }
 
-    fun isLeader(): Boolean {
+    open fun isLeader(): Boolean {
         return cachedLeaderStatus.get()
     }
 

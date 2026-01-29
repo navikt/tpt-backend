@@ -9,95 +9,6 @@ interface GraphQLErrorInterface {
 }
 
 @Serializable
-data class ApplicationsForUserRequest(
-    val query: String,
-    val variables: Variables
-) {
-    @Serializable
-    data class Variables(
-        val email: String,
-        val appFirst: Int = 100,
-        val appAfter: String? = null,
-        val teamsFirst: Int = 10,
-        val teamsAfter: String? = null
-    )
-}
-
-@Serializable
-data class ApplicationsForUserResponse(
-    val data: Data? = null,
-    val errors: List<GraphQLError>? = null
-) {
-    @Serializable
-    data class Data(
-        val user: User?
-    )
-
-    @Serializable
-    data class User(
-        val teams: Teams
-    )
-
-    @Serializable
-    data class Teams(
-        val pageInfo: PageInfo,
-        val nodes: List<TeamNode>
-    )
-
-    @Serializable
-    data class TeamNode(
-        val team: Team
-    )
-
-    @Serializable
-    data class Team(
-        val slug: String,
-        val applications: Applications
-    )
-
-    @Serializable
-    data class Applications(
-        val pageInfo: PageInfo,
-        val nodes: List<Application>
-    )
-
-    @Serializable
-    data class PageInfo(
-        val hasNextPage: Boolean,
-        val endCursor: String?
-    )
-
-
-    @Serializable
-    data class Application(
-        val name: String,
-        val ingresses: List<Ingress>,
-        val deployments: Deployments
-    )
-
-    @Serializable
-    data class Ingress(
-        val type: String
-    )
-
-    @Serializable
-    data class Deployments(
-        val nodes: List<Deployment>
-    )
-
-    @Serializable
-    data class Deployment(
-        val environmentName: String
-    )
-
-    @Serializable
-    data class GraphQLError(
-        override val message: String,
-        override val path: List<String>? = null
-    ) : GraphQLErrorInterface
-}
-
-@Serializable
 data class WorkloadVulnerabilitiesRequest(
     val query: String,
     val variables: Variables
@@ -364,6 +275,53 @@ data class TeamMembershipsForUserResponse(
     @Serializable
     data class Team(
         val slug: String
+    )
+
+    @Serializable
+    data class GraphQLError(
+        override val message: String,
+        override val path: List<String>? = null
+    ) : GraphQLErrorInterface
+}
+
+@Serializable
+data class TeamInformationRequest(
+    val query: String,
+    val variables: Variables = Variables()
+) {
+    @Serializable
+    data class Variables(
+        val teamFirst: Int = 200,
+        val teamAfter: String? = null
+    )
+}
+
+@Serializable
+data class TeamInformationResponse(
+    val data: Data? = null,
+    val errors: List<GraphQLError>? = null
+) {
+    @Serializable
+    data class Data(
+        val teams: Teams
+    )
+
+    @Serializable
+    data class Teams(
+        val pageInfo: PageInfo,
+        val nodes: List<TeamNode>
+    )
+
+    @Serializable
+    data class PageInfo(
+        val hasNextPage: Boolean,
+        val endCursor: String?
+    )
+
+    @Serializable
+    data class TeamNode(
+        val slug: String,
+        val slackChannel: String?
     )
 
     @Serializable

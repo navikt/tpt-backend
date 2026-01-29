@@ -36,6 +36,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
@@ -117,6 +118,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(teams = emptyList())
             }
@@ -167,6 +169,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(
                     teams = listOf(
@@ -246,6 +249,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
                 return UserVulnerabilitiesData(teams = emptyList())
             }
@@ -337,6 +341,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
@@ -405,6 +410,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
@@ -467,6 +473,7 @@ class UserContextServiceImplTest {
         }
 
         val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
             override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
             override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
