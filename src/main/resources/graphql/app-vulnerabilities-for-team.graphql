@@ -1,4 +1,4 @@
-query ApplicationVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int!, $workloadAfter: String, $vulnFirst: Int!, $vulnAfter: String) {
+query ApplicationVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int!, $workloadAfter: Cursor, $vulnFirst: Int!, $vulnAfter: Cursor) {
   team(slug: $team) {
     slug
     applications(first: $workloadFirst, after: $workloadAfter) {

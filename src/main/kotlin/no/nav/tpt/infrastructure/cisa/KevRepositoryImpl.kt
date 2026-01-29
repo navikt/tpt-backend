@@ -1,6 +1,7 @@
 package no.nav.tpt.infrastructure.cisa
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -13,7 +14,12 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
     private val json = Json { ignoreUnknownKeys = true }
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+        newSuspendedTransaction(Dispatchers.IO, database) {
+            maxAttempts = 3
+            minRepetitionDelay = 100
+            maxRepetitionDelay = 1000
+            block()
+        }
 
     override suspend fun getKevCatalog(): KevCatalog? = dbQuery {
         val latestCatalog = KevCatalogMetadata
@@ -60,7 +66,10 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
         } get KevCatalogMetadata.id
 
         catalog.vulnerabilities.chunked(100).forEach { chunk ->
-            KevVulnerabilities.batchInsert(chunk) { vuln ->
+            KevVulnerabilities.batchUpsert(
+                data = chunk,
+                keys = arrayOf(KevVulnerabilities.cveId)
+            ) { vuln ->
                 this[KevVulnerabilities.cveId] = vuln.cveID
                 this[KevVulnerabilities.catalogId] = catalogId
                 this[KevVulnerabilities.vendorProject] = vuln.vendorProject

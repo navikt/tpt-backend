@@ -1,4 +1,4 @@
-query JobVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int!, $workloadAfter: String, $vulnFirst: Int!, $vulnAfter: String) {
+query JobVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int!, $workloadAfter: Cursor, $vulnFirst: Int!, $vulnAfter: Cursor) {
   team(slug: $team) {
     slug
     jobs(first: $workloadFirst, after: $workloadAfter) {
