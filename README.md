@@ -109,17 +109,17 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
 - Synced every 6 hours from Nais API (leader-elected, configurable)
-- Single denormalized table for fast queries (no JOINs)
+- **Two-table structure** for efficiency:
+  - `cves` - CVE reference data (stored once per CVE)
+  - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)
 - Tracks `discovered_at` and `last_seen_at` timestamps for SLA calculations
-- Automatic cleanup of stale data (deleted apps/teams)
+- Automatic cleanup of stale data (deleted apps/teams) and orphaned CVEs
 - Supports search by team, CVE, severity, ingress type
 
 **Other Data Sources:**
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
 - **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
-
-This approach ensures data persistence across restarts and eliminates dependency on external cache services.
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`
@@ -128,7 +128,6 @@ Full API documentation available at `/swagger` or see `src/main/resources/openap
 
 Endpoints require a valid JWT Bearer token with:
 - `preferred_username` claim for email
-
 
 ## License
 
