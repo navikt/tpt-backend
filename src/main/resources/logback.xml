@@ -7,4 +7,6 @@
     <root level="INFO">
         <appender-ref ref="STDOUT_JSON"/>
     </root>
+
+    <logger name="org.apache.kafka" level="WARN"/>
 </configuration>
