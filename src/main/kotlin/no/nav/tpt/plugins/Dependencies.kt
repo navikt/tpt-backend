@@ -123,7 +123,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
-        userContextService = userContextService
+        userContextService = userContextService,
+        naisApiService = naisApiClient
     )
 
     val vulnService = VulnServiceImpl(
