@@ -2,29 +2,46 @@ package no.nav.tpt.plugins
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
+import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.infrastructure.cisa.*
+import no.nav.tpt.infrastructure.cisa.KevClient
+import no.nav.tpt.infrastructure.cisa.KevRepositoryImpl
+import no.nav.tpt.infrastructure.cisa.KevService
+import no.nav.tpt.infrastructure.cisa.KevServiceImpl
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
-import no.nav.tpt.infrastructure.epss.*
-import no.nav.tpt.infrastructure.nais.*
+import no.nav.tpt.infrastructure.epss.EpssClient
+import no.nav.tpt.infrastructure.epss.EpssRepositoryImpl
+import no.nav.tpt.infrastructure.epss.EpssService
+import no.nav.tpt.infrastructure.epss.EpssServiceImpl
+import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
-import no.nav.tpt.infrastructure.nvd.*
-import no.nav.tpt.infrastructure.teamkatalogen.*
+import no.nav.tpt.infrastructure.nais.NaisApiClient
+import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.nvd.NvdClient
+import no.nav.tpt.infrastructure.nvd.NvdRepository
+import no.nav.tpt.infrastructure.nvd.NvdRepositoryImpl
+import no.nav.tpt.infrastructure.nvd.NvdSyncService
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
+import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
+import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
+import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
+import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
+import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
-import no.nav.tpt.domain.user.UserContextService
-import no.nav.tpt.domain.vulnerability.*
-import no.nav.tpt.infrastructure.vulnerability.*
-import no.nav.tpt.plugins.LeaderElection
 
 @Suppress("unused")
 class Dependencies(
@@ -52,6 +69,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val config = AppConfig.fromEnvironment()
 
     val httpClient = HttpClient(CIO) {
+        install(UserAgent) {
+            agent = "Nav TPT Backend"
+        }
         install(ContentNegotiation) {
             json(Json {
                 prettyPrint = true
@@ -69,9 +89,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     )
 
     val naisApiClient = NaisApiClient(
-        httpClient,
-        config.naisApiUrl,
-        config.naisApiToken
+        httpClient = httpClient,
+        apiUrl = config.naisApiUrl,
+        token = config.naisApiToken
     )
 
     val database = DatabaseFactory.init(config)
@@ -100,13 +120,21 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gitHubRepository = GitHubRepositoryImpl(database)
 
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl()
-    
+
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
         userContextService = userContextService
     )
-    
-    val vulnService = VulnServiceImpl(vulnerabilityDataService, kevService, epssService, nvdRepository, riskScorer, userContextService, gitHubRepository)
+
+    val vulnService = VulnServiceImpl(
+        vulnerabilityDataService = vulnerabilityDataService,
+        kevService = kevService,
+        epssService = epssService,
+        nvdRepository = nvdRepository,
+        riskScorer = riskScorer,
+        userContextService = userContextService,
+        gitHubRepository = gitHubRepository
+    )
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
         naisApiService = naisApiClient,

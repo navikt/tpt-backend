@@ -14,7 +14,7 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
-class LeaderElection(private val httpClient: HttpClient) {
+open class LeaderElection(private val httpClient: HttpClient) {
     private val logger = LoggerFactory.getLogger(LeaderElection::class.java)
     private val electorUrl = System.getenv("ELECTOR_GET_URL") ?: ""
     private val hostname = try {
@@ -71,7 +71,7 @@ class LeaderElection(private val httpClient: HttpClient) {
         }
     }
 
-    fun isLeader(): Boolean {
+    open fun isLeader(): Boolean {
         return cachedLeaderStatus.get()
     }
 

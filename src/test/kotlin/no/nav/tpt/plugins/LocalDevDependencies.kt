@@ -121,7 +121,10 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
     }
     
-    val mockVulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(naisApiService)
+    val mockVulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
+        override suspend fun getVulnerabilitiesForUser(email: String) = 
+            naisApiService.getVulnerabilitiesForUser(email)
+    }
     
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,

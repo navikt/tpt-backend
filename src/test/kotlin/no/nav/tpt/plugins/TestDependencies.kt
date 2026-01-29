@@ -28,6 +28,7 @@ import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.vulnerabilitySearchRoutes
 
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
@@ -72,9 +73,11 @@ fun Application.installTestDependencies(
 
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService)
 
-    val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.NaisApiVulnerabilityService(
-        naisApiService = naisApiService
-    )
+    val vulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
+        override suspend fun getVulnerabilitiesForUser(email: String) = 
+            naisApiService.getVulnerabilitiesForUser(email)
+    }
+    
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
@@ -162,6 +165,7 @@ fun Application.testModule(
         healthRoutes()
         configRoutes()
         vulnRoutes()
+        vulnerabilitySearchRoutes()
     }
 }
 

@@ -1,6 +1,8 @@
 # Titt-På-Ting Backend
 
 API to help developers prioritize which security issues to fix first. Fetches vulnerability data from Nais, enriches with external data, and returns prioritized results.
+The API uses the preferred_username claim of a valid bearer token to fetch vulnerability data for the user's teams. 
+User Role is set depending on how the user is linked to one or more namespaces.
 
 ## Project Structure
 
@@ -11,10 +13,6 @@ src/main/kotlin/no/nav/tpt/
 │   │   └── factors/                           # Individual risk factor calculators (EPSS, KEV, build age, etc.)
 │   ├── user/                                  # User context and role management interfaces
 │   └── vulnerability/                         # Vulnerability domain models and repository interface
-│       ├── VulnerabilityDataService.kt        # Abstraction for vulnerability data sources
-│       ├── VulnerabilityRepository.kt         # Repository interface for vulnerability storage
-│       ├── VulnerabilitySearchModels.kt       # Search request/response models
-│       └── VulnerabilityStorageModels.kt      # Database entity models
 ├── infrastructure/                            # External integrations and technical implementations
 │   ├── auth/                                  # Token introspection and authentication
 │   ├── cisa/                                  # CISA KEV catalog integration (PostgreSQL-backed)
@@ -29,12 +27,6 @@ src/main/kotlin/no/nav/tpt/
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
 │   ├── vulnerability/                         # Vulnerability data layer implementations
-│   │   ├── DatabaseVulnerabilityService.kt    # Queries synced vulnerability database
-│   │   ├── NaisApiVulnerabilityService.kt     # Live Nais API vulnerability queries
-│   │   ├── VulnerabilityDataSyncJob.kt        # Background sync job (leader-elected)
-│   │   ├── VulnerabilityRepositoryImpl.kt     # PostgreSQL repository implementation
-│   │   ├── VulnerabilitySearchService.kt      # Vulnerability search and SLA tracking
-│   │   └── VulnerabilityStorageTables.kt      # Exposed ORM table definitions
 │   └── vulns/                                 # Vulnerability aggregation and enrichment service
 ├── plugins/                                   # Ktor plugins and application lifecycle
 │   ├── Authentication.kt                      # JWT authentication configuration
