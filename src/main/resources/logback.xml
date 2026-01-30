@@ -11,4 +11,8 @@
     <logger name="org.apache.kafka" level="WARN" additivity="false">
         <appender-ref ref="STDOUT_JSON"/>
     </logger>
+
+    <logger name="no.nav.tpt" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT_JSON"/>
+    </logger>
 </configuration>
