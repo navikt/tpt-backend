@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.purl
+package no.nav.tpt.infrastructure.vulns.utils
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

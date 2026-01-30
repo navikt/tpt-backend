@@ -23,7 +23,6 @@ src/main/kotlin/no/nav/tpt/
 │   ├── kafka/                                 # Kafka consumer for GitHub repository events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── nvd/                                   # NVD database sync service and CVE data management
-│   ├── purl/                                  # Package URL (PURL) parsing utilities
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
 │   ├── vulnerability/                         # Vulnerability data layer implementations

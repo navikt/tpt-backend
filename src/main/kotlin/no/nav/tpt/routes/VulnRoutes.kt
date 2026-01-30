@@ -30,13 +30,13 @@ fun Route.vulnRoutes() {
         }
 
         rateLimit(RateLimitName("vulnerabilities-refresh")) {
-            post("/vulnerabilities/refresh") {
+            get("/vulnerabilities/refresh") {
                 val principal = call.principal<TokenPrincipal>()
                 val email = principal?.preferredUsername
 
                 if (email == null) {
                     call.respondBadRequest("preferred_username claim not found in token")
-                    return@post
+                    return@get
                 }
 
                 try {
@@ -50,7 +50,7 @@ fun Route.vulnRoutes() {
                             "message" to "No teams to refresh",
                             "results" to emptyList<Any>()
                         ))
-                        return@post
+                        return@get
                     }
                     
                     val results = vulnerabilityTeamSyncService.syncTeams(userContext.teams)

@@ -123,7 +123,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/refresh:
-    post:
+    get:
       summary: Refresh vulnerability data for authenticated user's teams
       description: |
         Triggers a manual sync of vulnerability data from NAIS API for all teams the authenticated user belongs to.

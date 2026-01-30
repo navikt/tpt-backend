@@ -13,7 +13,7 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nvd.NvdRepository
-import no.nav.tpt.infrastructure.purl.PurlParser
+import no.nav.tpt.infrastructure.vulns.utils.PurlParser
 import org.slf4j.LoggerFactory
 
 class VulnServiceImpl(

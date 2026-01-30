@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.purl
+package no.nav.tpt.infrastructure.vulns.utils
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -49,5 +49,3 @@ object PurlParser {
         }
     }
 }
-
-
