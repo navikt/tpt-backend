@@ -5,7 +5,9 @@ import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
@@ -29,6 +31,7 @@ import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
+import kotlin.time.Duration.Companion.seconds
 
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
@@ -110,8 +113,14 @@ fun Application.installTestDependencies(
         override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
     }
     
+    val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
+        naisApiService = naisApiService,
+        vulnerabilityRepository = mockVulnerabilityRepository
+    )
+    
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
         leaderElection = mockLeaderElection,
         teamDelayMs = 1000
@@ -137,7 +146,8 @@ fun Application.installTestDependencies(
         userContextService = actualUserContextService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
-        vulnerabilitySearchService = mockVulnerabilitySearchService
+        vulnerabilitySearchService = mockVulnerabilitySearchService,
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -157,6 +167,15 @@ fun Application.testModule(
             prettyPrint = true
             isLenient = true
         })
+    }
+
+    install(RateLimit) {
+        register(RateLimitName("vulnerabilities-refresh")) {
+            rateLimiter(limit = 1, refillPeriod = 60.seconds)
+            requestKey { call ->
+                call.principal<TokenPrincipal>()?.preferredUsername ?: "anonymous"
+            }
+        }
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)
