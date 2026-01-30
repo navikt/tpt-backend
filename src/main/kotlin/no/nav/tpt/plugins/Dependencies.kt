@@ -40,6 +40,7 @@ import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
+import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 
@@ -60,7 +61,8 @@ class Dependencies(
     val userContextService: UserContextService,
     val gitHubRepository: GitHubRepository,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
-    val vulnerabilitySearchService: VulnerabilitySearchService
+    val vulnerabilitySearchService: VulnerabilitySearchService,
+    val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -121,10 +123,16 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl()
 
+    val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
+        naisApiService = naisApiClient,
+        vulnerabilityRepository = vulnerabilityRepository
+    )
+
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
         userContextService = userContextService,
-        naisApiService = naisApiClient
+        naisApiService = naisApiClient,
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService
     )
 
     val vulnService = VulnServiceImpl(
@@ -139,6 +147,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
         naisApiService = naisApiClient,
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         vulnerabilityRepository = vulnerabilityRepository,
         leaderElection = leaderElection
     )
@@ -161,7 +170,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
-        vulnerabilitySearchService = vulnerabilitySearchService
+        vulnerabilitySearchService = vulnerabilitySearchService,
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

@@ -126,8 +126,14 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
             naisApiService.getVulnerabilitiesForUser(email)
     }
     
+    val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
+        naisApiService = naisApiService,
+        vulnerabilityRepository = mockVulnerabilityRepository
+    )
+    
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
         leaderElection = leaderElection,
         teamDelayMs = 1000
@@ -164,7 +170,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
-        vulnerabilitySearchService = mockVulnerabilitySearchService
+        vulnerabilitySearchService = mockVulnerabilitySearchService,
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService
     )
 
     application.attributes.put(DependenciesKey, dependencies)
