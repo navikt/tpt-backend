@@ -4,6 +4,7 @@ import no.nav.tpt.domain.admin.*
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 
 class AdminServiceImpl(
@@ -12,39 +13,37 @@ class AdminServiceImpl(
 ) : AdminService {
     private val logger = LoggerFactory.getLogger(AdminServiceImpl::class.java)
     
-    override suspend fun getTeamsOverview(): TeamsOverviewResponse {
-        logger.debug("Fetching teams overview from database")
+    private val overviewCache = AdminReportCache<TeamsOverviewResponse>(ttl = Duration.ofMinutes(30))
+    private val slaCache = AdminReportCache<TeamsSlaReportResponse>(ttl = Duration.ofMinutes(30))
+    
+    override suspend fun getTeamsOverview(): TeamsOverviewResponse = overviewCache.get {
+        logger.debug("Generating teams overview report (not cached)")
         
-        val allVulnerabilities = vulnerabilityRepository.getAllActiveVulnerabilities()
-        logger.debug("Found ${allVulnerabilities.size} active vulnerabilities in database")
+        val teamCounts = vulnerabilityRepository.getTeamVulnerabilityCounts()
+        logger.debug("Aggregated ${teamCounts.size} teams from database")
         
-        val teamGroups = allVulnerabilities.groupBy { it.teamSlug }
-        
-        val teamOverviews = teamGroups.map { (teamSlug, vulns) ->
-            val severityCounts = vulns.groupBy { it.severity?.uppercase() ?: "UNKNOWN" }
-                .mapValues { it.value.size }
-            
+        val teamOverviews = teamCounts.map { count ->
             TeamOverview(
-                teamSlug = teamSlug,
-                totalVulnerabilities = vulns.size,
-                criticalVulnerabilities = severityCounts["CRITICAL"] ?: 0,
-                highVulnerabilities = severityCounts["HIGH"] ?: 0,
-                mediumVulnerabilities = severityCounts["MEDIUM"] ?: 0,
-                lowVulnerabilities = severityCounts["LOW"] ?: 0,
-                unknownVulnerabilities = severityCounts["UNKNOWN"] ?: 0
+                teamSlug = count.teamSlug,
+                totalVulnerabilities = count.totalCount,
+                criticalVulnerabilities = count.criticalCount,
+                highVulnerabilities = count.highCount,
+                mediumVulnerabilities = count.mediumCount,
+                lowVulnerabilities = count.lowCount,
+                unknownVulnerabilities = count.unknownCount
             )
-        }.sortedByDescending { it.totalVulnerabilities }
+        }
         
-        return TeamsOverviewResponse(
+        TeamsOverviewResponse(
             teams = teamOverviews,
             totalTeams = teamOverviews.size,
-            totalVulnerabilities = allVulnerabilities.size,
+            totalVulnerabilities = teamCounts.sumOf { it.totalCount },
             generatedAt = Instant.now().toString()
         )
     }
     
-    override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse {
-        logger.debug("Fetching teams SLA report from database")
+    override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse = slaCache.get {
+        logger.debug("Generating teams SLA report (not cached)")
         
         val allVulnerabilities = vulnerabilityRepository.getAllActiveVulnerabilities()
         logger.debug("Found ${allVulnerabilities.size} active vulnerabilities in database")
@@ -69,7 +68,7 @@ class AdminServiceImpl(
         val totalCriticalOverdue = teamSlaOverviews.sumOf { it.criticalOverdue }
         val totalNonCriticalOverdue = teamSlaOverviews.sumOf { it.nonCriticalOverdue }
         
-        return TeamsSlaReportResponse(
+        TeamsSlaReportResponse(
             teams = teamSlaOverviews,
             totalTeams = teamSlaOverviews.size,
             totalOverdue = totalCriticalOverdue + totalNonCriticalOverdue,

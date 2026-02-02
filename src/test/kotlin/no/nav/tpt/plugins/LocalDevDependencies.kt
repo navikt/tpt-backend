@@ -121,6 +121,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         override suspend fun getActiveVulnerabilitiesForTeams(teamSlugs: List<String>) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
         override suspend fun getAllActiveVulnerabilities() = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
         override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
+        override suspend fun getTeamVulnerabilityCounts() = emptyList<no.nav.tpt.domain.vulnerability.TeamVulnerabilityCount>()
     }
     
     val mockVulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
