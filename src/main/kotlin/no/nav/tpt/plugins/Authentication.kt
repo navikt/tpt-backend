@@ -9,7 +9,8 @@ import org.slf4j.LoggerFactory
 
 data class TokenPrincipal(
     val preferredUsername: String?,
-    val claims: Map<String, String>
+    val claims: Map<String, String>,
+    val groups: List<String> = emptyList()
 )
 
 fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospectionService) {
@@ -37,7 +38,16 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                             else -> value.toString()
                         }
                     }
-                    TokenPrincipal(preferredUsername, claimsMap)
+                    
+                    val groups = introspectionResult.claims["groups"]?.let { groupsElement ->
+                        when (groupsElement) {
+                            is kotlinx.serialization.json.JsonArray -> groupsElement.mapNotNull { it.jsonPrimitive.content }
+                            else -> emptyList()
+                        }
+                    } ?: emptyList()
+                    logger.debug("groups from token: ${groups.size} groups found")
+                    
+                    TokenPrincipal(preferredUsername, claimsMap, groups)
                 } catch (e: Exception) {
                     logger.error("Token introspection failed: ${e.message}", e)
                     null

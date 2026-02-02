@@ -12,7 +12,7 @@
         <appender-ref ref="STDOUT_JSON"/>
     </logger>
 
-    <logger name="no.nav.tpt" level="DEBUG" additivity="false">
+    <logger name="no.nav.tpt" level="INFO" additivity="false">
         <appender-ref ref="STDOUT_JSON"/>
     </logger>
 </configuration>

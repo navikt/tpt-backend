@@ -35,3 +35,29 @@ suspend fun ApplicationCall.respondInternalServerError(errorContext: String, exc
     )
 }
 
+suspend fun ApplicationCall.respondUnauthorized(detail: String) {
+    respond(
+        HttpStatusCode.Unauthorized,
+        ProblemDetail(
+            type = "about:blank",
+            title = "Unauthorized",
+            status = HttpStatusCode.Unauthorized.value,
+            detail = detail,
+            instance = request.local.uri
+        )
+    )
+}
+
+suspend fun ApplicationCall.respondForbidden(detail: String) {
+    respond(
+        HttpStatusCode.Forbidden,
+        ProblemDetail(
+            type = "about:blank",
+            title = "Forbidden",
+            status = HttpStatusCode.Forbidden.value,
+            detail = detail,
+            instance = request.local.uri
+        )
+    )
+}
+

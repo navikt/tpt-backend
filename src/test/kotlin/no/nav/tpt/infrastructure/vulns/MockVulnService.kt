@@ -180,7 +180,7 @@ class MockVulnService : VulnService {
         )
     }
 
-    override suspend fun fetchVulnerabilitiesForUser(email: String): VulnResponse {
+    override suspend fun fetchVulnerabilitiesForUser(email: String, groups: List<String>): VulnResponse {
         if (!mockDataFile.exists()) {
             return getDefaultMockData()
         }
@@ -203,7 +203,7 @@ class MockVulnService : VulnService {
         }
     }
 
-    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): GitHubVulnResponse {
+    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String, groups: List<String>): GitHubVulnResponse {
         return GitHubVulnResponse(
             userRole = UserRole.DEVELOPER,
             teams = listOf(

@@ -9,6 +9,7 @@ data class AppConfig(
     val nvdApiKey: String?,
     val epssApiUrl: String,
     val teamkatalogenUrl: String,
+    val adminGroups: String?,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
     val riskThresholdLow: Double = DEFAULT_RISK_THRESHOLD_LOW
@@ -39,6 +40,8 @@ data class AppConfig(
 
             val teamkatalogenUrl = System.getenv("TEAMKATALOGEN_URL") ?: error("TEAMKATALOGEN_URL not configured")
 
+            val adminGroups = System.getenv("ADMIN_GROUPS")
+
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
@@ -47,7 +50,8 @@ data class AppConfig(
                 nvdApiKey = nvdApiKey,
                 nvdApiUrl = nvdApiUrl,
                 epssApiUrl = epssApiUrl,
-                teamkatalogenUrl = teamkatalogenUrl
+                teamkatalogenUrl = teamkatalogenUrl,
+                adminGroups = adminGroups
             )
         }
     }

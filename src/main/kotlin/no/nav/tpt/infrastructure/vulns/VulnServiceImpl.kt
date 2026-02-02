@@ -54,8 +54,8 @@ class VulnServiceImpl(
         return CveEnrichmentData(kevCveIds, epssScores, nvdData)
     }
 
-    override suspend fun fetchVulnerabilitiesForUser(email: String): VulnResponse {
-        val userContext = userContextService.getUserContext(email)
+    override suspend fun fetchVulnerabilitiesForUser(email: String, groups: List<String>): VulnResponse {
+        val userContext = userContextService.getUserContext(email, groups)
 
         if (userContext.teams.isEmpty()) {
             return VulnResponse(userRole = userContext.role, teams = emptyList())
@@ -137,8 +137,8 @@ class VulnServiceImpl(
         return VulnResponse(userRole = userContext.role, teams = teams)
     }
 
-    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String): no.nav.tpt.domain.GitHubVulnResponse {
-        val userContext = userContextService.getUserContext(email)
+    override suspend fun fetchGitHubVulnerabilitiesForUser(email: String, groups: List<String>): no.nav.tpt.domain.GitHubVulnResponse {
+        val userContext = userContextService.getUserContext(email, groups)
 
         if (userContext.teams.isEmpty()) {
             return no.nav.tpt.domain.GitHubVulnResponse(userRole = userContext.role, teams = emptyList())

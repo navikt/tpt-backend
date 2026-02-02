@@ -82,7 +82,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val kevService: KevService = MockKevService()
     val epssService: EpssService = MockEpssService()
     val teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
-    val userContextService: UserContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+    val adminAuthorizationService = no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl()
+    val userContextService: UserContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = postgres.jdbcUrl
@@ -151,7 +152,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
-        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen"
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
+        adminGroups = null
     )
 
     val dependencies = Dependencies(
@@ -168,6 +170,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
+        adminAuthorizationService = adminAuthorizationService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,

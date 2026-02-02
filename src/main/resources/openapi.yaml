@@ -168,6 +168,41 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /admin/status:
+    get:
+      summary: Admin status endpoint
+      description: |
+        Returns OK status if the authenticated user has admin privileges.
+        This endpoint validates that the user's JWT token contains groups that match the configured admin groups.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User has admin privileges
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/vulnerabilities/search:
     post:
       summary: Search vulnerabilities with flexible criteria
@@ -266,11 +301,13 @@ components:
       properties:
         userRole:
           type: string
-          enum: [DEVELOPER, TEAM_MEMBER, NONE]
+          enum: [ADMIN, DEVELOPER, TEAM_MEMBER, LEADER, NONE]
           description: |
             Role of the user requesting the data:
+            - ADMIN: User is in an admin group (has elevated privileges)
             - DEVELOPER: User has direct NAIS team memberships
             - TEAM_MEMBER: User belongs to teams via Teamkatalogen but has no direct NAIS memberships
+            - LEADER: User manages product areas with NAIS subteams
             - NONE: User has no team memberships in either system
           example: "DEVELOPER"
         teams:
@@ -513,11 +550,13 @@ components:
       properties:
         userRole:
           type: string
-          enum: [DEVELOPER, TEAM_MEMBER, NONE]
+          enum: [ADMIN, DEVELOPER, TEAM_MEMBER, LEADER, NONE]
           description: |
             Role of the user requesting the data:
+            - ADMIN: User is in an admin group (has elevated privileges)
             - DEVELOPER: User has direct NAIS team memberships
             - TEAM_MEMBER: User belongs to teams via Teamkatalogen but has no direct NAIS memberships
+            - LEADER: User manages product areas with NAIS subteams
             - NONE: User has no team memberships in either system
           example: "DEVELOPER"
         teams:

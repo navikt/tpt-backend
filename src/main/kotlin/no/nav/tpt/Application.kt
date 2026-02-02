@@ -19,6 +19,7 @@ import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureNvdSync
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
 import no.nav.tpt.plugins.dependencies
+import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
@@ -74,6 +75,7 @@ fun Application.module() {
         configRoutes()
         vulnRoutes()
         vulnerabilitySearchRoutes()
+        adminRoutes()
     }
 }
 

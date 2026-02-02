@@ -76,5 +76,7 @@ spec:
       value: "appsec.tpt"
     - name: OTEL_LOGS_EXPORTER
       value: otlp
+    - name: ADMIN_GROUPS
+      value: "d633d27b-a470-4b9d-984e-85499f126e18"
   envFrom:
     - secret: tpt-backend

@@ -5,7 +5,7 @@ class MockUserContextService(
     private val mockTeams: List<String> = emptyList()
 ) : UserContextService {
 
-    override suspend fun getUserContext(email: String): UserContext {
+    override suspend fun getUserContext(email: String, groups: List<String>): UserContext {
         return UserContext(
             email = email,
             role = mockRole,

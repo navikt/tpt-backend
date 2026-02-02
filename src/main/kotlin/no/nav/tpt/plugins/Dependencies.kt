@@ -8,6 +8,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
@@ -35,6 +36,7 @@ import no.nav.tpt.infrastructure.nvd.NvdSyncService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
+import no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
@@ -59,6 +61,7 @@ class Dependencies(
     val vulnService: VulnService,
     val teamkatalogenService: TeamkatalogenService,
     val userContextService: UserContextService,
+    val adminAuthorizationService: AdminAuthorizationService,
     val gitHubRepository: GitHubRepository,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
@@ -117,7 +120,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val teamkatalogenClient = TeamkatalogenClient(httpClient, config.teamkatalogenUrl)
     val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-    val userContextService = UserContextServiceImpl(naisApiClient, teamkatalogenService)
+    val adminAuthorizationService = AdminAuthorizationServiceImpl(config.adminGroups)
+
+    val userContextService = UserContextServiceImpl(naisApiClient, teamkatalogenService, adminAuthorizationService)
 
     val gitHubRepository = GitHubRepositoryImpl(database)
 
@@ -168,6 +173,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
+        adminAuthorizationService = adminAuthorizationService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,

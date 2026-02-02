@@ -27,6 +27,7 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
@@ -40,6 +41,7 @@ fun Application.installTestDependencies(
     epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
+    adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
     httpClient: HttpClient? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
@@ -65,7 +67,8 @@ fun Application.installTestDependencies(
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
-        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen"
+        teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
+        adminGroups = null
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
@@ -74,7 +77,8 @@ fun Application.installTestDependencies(
     val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
     val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
 
-    val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService)
+    val actualAdminAuthorizationService = adminAuthorizationService ?: no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl()
+    val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService, actualAdminAuthorizationService)
 
     val vulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
         override suspend fun getVulnerabilitiesForUser(email: String) = 
@@ -144,6 +148,7 @@ fun Application.installTestDependencies(
         vulnService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = actualUserContextService,
+        adminAuthorizationService = actualAdminAuthorizationService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
@@ -158,9 +163,10 @@ fun Application.testModule(
     naisApiService: NaisApiService = MockNaisApiService(),
     kevService: KevService = MockKevService(),
     epssService: EpssService = MockEpssService(),
-    teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
+    teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
+    adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null
 ) {
-    installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService, teamkatalogenService)
+    installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService)
 
     install(ServerContentNegotiation) {
         json(Json {
@@ -185,6 +191,7 @@ fun Application.testModule(
         configRoutes()
         vulnRoutes()
         vulnerabilitySearchRoutes()
+        adminRoutes()
     }
 }
 

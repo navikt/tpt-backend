@@ -67,7 +67,8 @@ class UserContextServiceImplTest {
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("test@nav.no")
 
@@ -142,7 +143,8 @@ class UserContextServiceImplTest {
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("test@nav.no")
 
@@ -200,7 +202,8 @@ class UserContextServiceImplTest {
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("member@nav.no")
 
@@ -273,7 +276,8 @@ class UserContextServiceImplTest {
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
 
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("notfound@external.com")
 
@@ -281,7 +285,6 @@ class UserContextServiceImplTest {
         assertEquals(UserRole.NONE, userContext.role)
         assertEquals(emptyList(), userContext.teams)
     }
-}
 
     @Test
     fun `should assign LEADER role when user has cluster membership with subteams`() = runTest {
@@ -349,7 +352,8 @@ class UserContextServiceImplTest {
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("leader@nav.no")
 
@@ -418,7 +422,8 @@ class UserContextServiceImplTest {
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("pa-leader@nav.no")
 
@@ -481,7 +486,8 @@ class UserContextServiceImplTest {
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
-        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
 
         val userContext = userContextService.getUserContext("empty@nav.no")
 
@@ -489,3 +495,75 @@ class UserContextServiceImplTest {
         assertEquals(UserRole.NONE, userContext.role)
         assertEquals(emptyList(), userContext.teams)
     }
+
+    @Test
+    fun `should return ADMIN role when user has admin group`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when (request.url.encodedPath) {
+                        "/query" -> respond(
+                            content = ByteReadChannel("""{"data":{"teams":[]}}"""),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                        else -> error("Unhandled ${request.url.encodedPath}")
+                    }
+                }
+            }
+        }
+
+        val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
+            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getTeamMembershipsForUser(email: String) = listOf("team-a", "team-b")
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group-1,admin-group-2")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
+
+        val userContext = userContextService.getUserContext("admin@nav.no", listOf("admin-group-1", "other-group"))
+
+        assertEquals("admin@nav.no", userContext.email)
+        assertEquals(UserRole.ADMIN, userContext.role)
+        assertEquals(listOf("team-a", "team-b"), userContext.teams)
+    }
+
+    @Test
+    fun `should prioritize ADMIN role over DEVELOPER when user has admin group`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when (request.url.encodedPath) {
+                        "/query" -> respond(
+                            content = ByteReadChannel("""{"data":{"teams":[]}}"""),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                        else -> error("Unhandled ${request.url.encodedPath}")
+                    }
+                }
+            }
+        }
+
+        val naisApiService = object : NaisApiService {
+            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
+            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
+            override suspend fun getTeamMembershipsForUser(email: String) = listOf("dev-team")
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group")
+        val userContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
+
+        val userContext = userContextService.getUserContext("admin-dev@nav.no", listOf("admin-group"))
+
+        assertEquals(UserRole.ADMIN, userContext.role)
+        assertEquals(listOf("dev-team"), userContext.teams)
+    }
+}

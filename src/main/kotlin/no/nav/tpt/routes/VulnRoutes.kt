@@ -22,7 +22,7 @@ fun Route.vulnRoutes() {
 
             try {
                 val vulnService = call.dependencies.vulnService
-                val response = vulnService.fetchVulnerabilitiesForUser(email)
+                val response = vulnService.fetchVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.respondInternalServerError("Failed to fetch vulnerabilities", e)
@@ -43,7 +43,7 @@ fun Route.vulnRoutes() {
                     val vulnerabilityTeamSyncService = call.dependencies.vulnerabilityTeamSyncService
                     val userContextService = call.dependencies.userContextService
                     
-                    val userContext = userContextService.getUserContext(email)
+                    val userContext = userContextService.getUserContext(email, principal.groups)
                     
                     if (userContext.teams.isEmpty()) {
                         call.respond(HttpStatusCode.OK, mapOf(
@@ -83,7 +83,7 @@ fun Route.vulnRoutes() {
 
             try {
                 val vulnService = call.dependencies.vulnService
-                val response = vulnService.fetchGitHubVulnerabilitiesForUser(email)
+                val response = vulnService.fetchGitHubVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.respondInternalServerError("Failed to fetch GitHub vulnerabilities", e)
