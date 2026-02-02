@@ -10,9 +10,9 @@ junit = "6.0.2"
 fabrikt = "1.25.0"
 jakarta-validation = "3.1.1"
 postgresql = "42.7.9"
-exposed = "0.61.0"
+exposed = "1.0.0"
 hikaricp = "7.0.2"
-flyway = "11.20.2"
+flyway = "11.20.3"
 kafka = "4.1.1"
 
 [libraries]
