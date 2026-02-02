@@ -43,5 +43,7 @@ data class TeamSlaOverview(
     val criticalOverdue: Int,
     val nonCriticalOverdue: Int,
     val criticalWithinSla: Int,
-    val nonCriticalWithinSla: Int
+    val nonCriticalWithinSla: Int,
+    val repositoriesOutOfSla: Int,
+    val maxDaysOverdue: Long
 )

@@ -60,7 +60,9 @@ class AdminServiceImpl(
                 criticalOverdue = teamStatus.criticalOverdue,
                 nonCriticalOverdue = teamStatus.nonCriticalOverdue,
                 criticalWithinSla = teamStatus.criticalWithinSla,
-                nonCriticalWithinSla = teamStatus.nonCriticalWithinSla
+                nonCriticalWithinSla = teamStatus.nonCriticalWithinSla,
+                repositoriesOutOfSla = teamStatus.repositoriesOutOfSla,
+                maxDaysOverdue = teamStatus.maxDaysOverdue
             )
         }
         

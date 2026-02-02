@@ -9,11 +9,13 @@ User Role is set depending on how the user is linked to one or more namespaces.
 ```
 src/main/kotlin/no/nav/tpt/
 ├── domain/                                    # Core business logic and interfaces
+│   ├── admin/                                 # Admin overview and reporting interfaces
 │   ├── risk/                                  # Risk scoring algorithms and factor calculations
 │   │   └── factors/                           # Individual risk factor calculators (EPSS, KEV, build age, etc.)
 │   ├── user/                                  # User context and role management interfaces
 │   └── vulnerability/                         # Vulnerability domain models and repository interface
 ├── infrastructure/                            # External integrations and technical implementations
+│   ├── admin/                                 # Admin data aggregation and queries
 │   ├── auth/                                  # Token introspection and authentication
 │   ├── cisa/                                  # CISA KEV catalog integration (PostgreSQL-backed)
 │   ├── config/                                # Application configuration
@@ -35,6 +37,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── NvdSync.kt                             # Scheduled NVD synchronization orchestration
 │   └── VulnerabilityDataSync.kt               # Scheduled vulnerability data sync (leader-elected)
 ├── routes/                                    # HTTP API endpoints
+│   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── ResponseHelpers.kt                     # RFC 9457 Problem Details error responses
