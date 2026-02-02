@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MembershipResponse(
     val naisTeams: List<String>,
+    val clusterIds: List<String> = emptyList(),
     val clusterProductAreaIds: List<String> = emptyList(),
     val productAreaIds: List<String> = emptyList()
 )

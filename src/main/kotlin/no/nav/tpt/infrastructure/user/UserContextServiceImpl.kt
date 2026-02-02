@@ -54,10 +54,12 @@ class UserContextServiceImpl(
             )
         }
 
-        // Step 3: Check if user is LEADER (productAreas with subteams containing NAIS teams)
+        // Step 3: Check if user is LEADER (clusters/productAreas with subteams containing NAIS teams)
+        val allClusterIds = membershipResponse.clusterIds
         val allProductAreaIds = membershipResponse.clusterProductAreaIds + membershipResponse.productAreaIds
-        if (allProductAreaIds.isNotEmpty()) {
-            val subteamNaisTeams = teamkatalogenService.getSubteamNaisTeams(allProductAreaIds)
+        
+        if (allClusterIds.isNotEmpty() || allProductAreaIds.isNotEmpty()) {
+            val subteamNaisTeams = teamkatalogenService.getSubteamNaisTeams(allClusterIds, allProductAreaIds)
             
             if (subteamNaisTeams.isNotEmpty()) {
                 logger.debug("User $email is LEADER with ${subteamNaisTeams.size} subteam NAIS teams")
@@ -89,9 +91,11 @@ class UserContextServiceImpl(
             return membershipResponse.naisTeams
         }
         
+        val allClusterIds = membershipResponse.clusterIds
         val allProductAreaIds = membershipResponse.clusterProductAreaIds + membershipResponse.productAreaIds
-        if (allProductAreaIds.isNotEmpty()) {
-            return teamkatalogenService.getSubteamNaisTeams(allProductAreaIds)
+        
+        if (allClusterIds.isNotEmpty() || allProductAreaIds.isNotEmpty()) {
+            return teamkatalogenService.getSubteamNaisTeams(allClusterIds, allProductAreaIds)
         }
         
         return emptyList()

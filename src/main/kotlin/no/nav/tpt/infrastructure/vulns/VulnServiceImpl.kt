@@ -204,6 +204,7 @@ class VulnServiceImpl(
             if (vulnerabilities.isNotEmpty()) {
                 val repoDto = no.nav.tpt.domain.GitHubVulnRepositoryDto(
                     nameWithOwner = repo.nameWithOwner,
+                    usesDistroless = repo.usesDistroless,
                     vulnerabilities = vulnerabilities
                 )
 

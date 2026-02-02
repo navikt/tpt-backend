@@ -31,8 +31,10 @@ class TeamkatalogenServiceImplTest {
                         }
                         request.url.encodedPath == "/team" -> {
                             val productAreaId = request.url.parameters["productAreaId"]
-                            val response = subteamResponses[productAreaId]
-                                ?: error("No mock response for productAreaId=$productAreaId")
+                            val clusterId = request.url.parameters["clusterId"]
+                            val key = productAreaId ?: clusterId
+                            val response = subteamResponses[key]
+                                ?: error("No mock response for productAreaId=$productAreaId, clusterId=$clusterId")
                             
                             respond(
                                 content = ByteReadChannel(response),
@@ -78,8 +80,10 @@ class TeamkatalogenServiceImplTest {
         val service = TeamkatalogenServiceImpl(client)
 
         val membership = client.getMembershipByEmail("user@nav.no")
-        val allProductAreaIds = membership.clusterProductAreaIds + membership.productAreaIds
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            membership.clusterProductAreaIds + membership.productAreaIds
+        )
 
         assertEquals(3, naisTeams.size)
         assertTrue(naisTeams.containsAll(listOf("appsec", "security-team", "identity-team")))
@@ -112,8 +116,10 @@ class TeamkatalogenServiceImplTest {
         val service = TeamkatalogenServiceImpl(client)
 
         val membership = client.getMembershipByEmail("user@nav.no")
-        val allProductAreaIds = membership.clusterProductAreaIds + membership.productAreaIds
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            membership.clusterProductAreaIds + membership.productAreaIds
+        )
 
         assertEquals(2, naisTeams.size)
         assertTrue(naisTeams.containsAll(listOf("data-team", "analytics-team")))
@@ -155,8 +161,10 @@ class TeamkatalogenServiceImplTest {
         val service = TeamkatalogenServiceImpl(client)
 
         val membership = client.getMembershipByEmail("user@nav.no")
-        val allProductAreaIds = membership.clusterProductAreaIds + membership.productAreaIds
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            membership.clusterProductAreaIds + membership.productAreaIds
+        )
 
         assertEquals(4, naisTeams.size)
         assertTrue(naisTeams.containsAll(listOf("team-a", "team-b", "team-c", "team-d")))
@@ -195,7 +203,10 @@ class TeamkatalogenServiceImplTest {
         // Should only fetch once despite two clusters pointing to same productArea
         assertEquals(1, allProductAreaIds.distinct().size)
         
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            allProductAreaIds
+        )
         assertEquals(2, naisTeams.size)
         assertTrue(naisTeams.containsAll(listOf("appsec", "security-team")))
     }
@@ -227,8 +238,10 @@ class TeamkatalogenServiceImplTest {
         val service = TeamkatalogenServiceImpl(client)
 
         val membership = client.getMembershipByEmail("user@nav.no")
-        val allProductAreaIds = membership.clusterProductAreaIds + membership.productAreaIds
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            membership.clusterProductAreaIds + membership.productAreaIds
+        )
 
         assertTrue(naisTeams.isEmpty())
     }
@@ -248,8 +261,10 @@ class TeamkatalogenServiceImplTest {
         val service = TeamkatalogenServiceImpl(client)
 
         val membership = client.getMembershipByEmail("user@nav.no")
-        val allProductAreaIds = membership.clusterProductAreaIds + membership.productAreaIds
-        val naisTeams = service.getSubteamNaisTeams(allProductAreaIds)
+        val naisTeams = service.getSubteamNaisTeams(
+            membership.clusterIds,
+            membership.clusterProductAreaIds + membership.productAreaIds
+        )
 
         assertTrue(naisTeams.isEmpty())
     }

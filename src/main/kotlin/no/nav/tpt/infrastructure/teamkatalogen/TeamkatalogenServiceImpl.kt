@@ -13,14 +13,26 @@ class TeamkatalogenServiceImpl(
         return client.getMembershipByEmail(email)
     }
 
-    override suspend fun getSubteamNaisTeams(productAreaIds: List<String>): List<String> = coroutineScope {
-        // Deduplicate productAreaIds
-        val uniqueProductAreaIds = productAreaIds.distinct()
+    override suspend fun getSubteamNaisTeams(clusterIds: List<String>, productAreaIds: List<String>): List<String> = coroutineScope {
+        // Combine and deduplicate all IDs
+        val allIds = (clusterIds + productAreaIds).distinct()
         
-        logger.debug("Fetching subteams for ${uniqueProductAreaIds.size} unique product areas")
+        logger.debug("Fetching subteams for ${clusterIds.size} clusters and ${productAreaIds.size} product areas (${allIds.size} total)")
 
-        // Fetch subteams for all productAreas in parallel
-        val productAreaTeams = uniqueProductAreaIds.map { productAreaId ->
+        // Fetch subteams for clusters
+        val clusterTeams = clusterIds.distinct().map { clusterId ->
+            async {
+                try {
+                    client.getSubteamsByClusterId(clusterId).content
+                } catch (e: Exception) {
+                    logger.warn("Failed to fetch subteams for cluster $clusterId: ${e.message}")
+                    emptyList()
+                }
+            }
+        }
+
+        // Fetch subteams for productAreas
+        val productAreaTeams = productAreaIds.distinct().map { productAreaId ->
             async {
                 try {
                     client.getSubteamsByProductAreaId(productAreaId).content
@@ -32,12 +44,12 @@ class TeamkatalogenServiceImpl(
         }
 
         // Await all results and flatten
-        val allSubteams = productAreaTeams.flatMap { it.await() }
+        val allSubteams = (clusterTeams + productAreaTeams).flatMap { it.await() }
 
         // Extract and deduplicate naisTeams
         val allNaisTeams = allSubteams.flatMap { it.naisTeams }.distinct()
 
-        logger.debug("Found ${allNaisTeams.size} unique NAIS teams from ${uniqueProductAreaIds.size} product areas")
+        logger.debug("Found ${allNaisTeams.size} unique NAIS teams from ${clusterIds.size} clusters and ${productAreaIds.size} product areas")
 
         allNaisTeams
     }

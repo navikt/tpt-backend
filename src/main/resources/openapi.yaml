@@ -588,6 +588,11 @@ components:
           type: string
           description: GitHub repository name with owner (e.g., navikt/my-repo)
           example: "navikt/tpt-backend"
+        usesDistroless:
+          type: boolean
+          nullable: true
+          description: Whether the repository uses distroless Docker images
+          example: true
         vulnerabilities:
           type: array
           items:

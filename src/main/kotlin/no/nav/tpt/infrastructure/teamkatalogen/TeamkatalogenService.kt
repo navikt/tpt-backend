@@ -2,6 +2,6 @@ package no.nav.tpt.infrastructure.teamkatalogen
 
 interface TeamkatalogenService {
     suspend fun getMembershipByEmail(email: String): MembershipResponse
-    suspend fun getSubteamNaisTeams(productAreaIds: List<String>): List<String>
+    suspend fun getSubteamNaisTeams(clusterIds: List<String>, productAreaIds: List<String>): List<String>
 }
 
