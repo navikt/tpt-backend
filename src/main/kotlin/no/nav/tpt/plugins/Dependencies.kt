@@ -8,10 +8,12 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import no.nav.tpt.domain.admin.AdminService
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
+import no.nav.tpt.infrastructure.admin.AdminServiceImpl
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevClient
@@ -62,6 +64,7 @@ class Dependencies(
     val teamkatalogenService: TeamkatalogenService,
     val userContextService: UserContextService,
     val adminAuthorizationService: AdminAuthorizationService,
+    val adminService: AdminService,
     val gitHubRepository: GitHubRepository,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
@@ -159,6 +162,11 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
 
+    val adminService = AdminServiceImpl(
+        vulnerabilityRepository = vulnerabilityRepository,
+        vulnerabilitySearchService = vulnerabilitySearchService
+    )
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -174,6 +182,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
+        adminService = adminService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,

@@ -119,6 +119,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         override suspend fun upsertVulnerability(vulnerability: no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData) = vulnerability
         override suspend fun searchVulnerabilities(cveId: String?, teamSlug: String?, severities: List<String>?, hasExternalIngress: Boolean?, suppressed: Boolean?, limit: Int, offset: Int) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>() to 0
         override suspend fun getActiveVulnerabilitiesForTeams(teamSlugs: List<String>) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
+        override suspend fun getAllActiveVulnerabilities() = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
         override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
     }
     
@@ -142,6 +143,11 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     
     val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
         vulnerabilityRepository = mockVulnerabilityRepository
+    )
+    
+    val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        vulnerabilitySearchService = mockVulnerabilitySearchService
     )
 
     val config = AppConfig(
@@ -171,6 +177,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
+        adminService = mockAdminService,
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,

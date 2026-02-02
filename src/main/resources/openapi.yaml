@@ -203,6 +203,79 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /admin/teams/overview:
+    get:
+      summary: Get teams vulnerability overview
+      description: |
+        Returns an overview of vulnerabilities for all teams in the system.
+        Shows total vulnerabilities and severity breakdown for each team.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved teams overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamsOverviewResponse'
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /admin/teams/sla:
+    get:
+      summary: Get teams SLA report
+      description: |
+        Returns an SLA compliance report for all teams in the system.
+        Shows overdue vulnerabilities and SLA status for each team.
+        Critical vulnerabilities are overdue after 1 workday, others after 30 days.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved teams SLA report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamsSlaReportResponse'
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/vulnerabilities/search:
     post:
       summary: Search vulnerabilities with flexible criteria
@@ -861,3 +934,141 @@ components:
           type: integer
           description: Number of vulnerabilities skipped due to validation errors
           example: 5
+    
+    TeamsOverviewResponse:
+      type: object
+      required:
+        - teams
+        - totalTeams
+        - totalVulnerabilities
+        - generatedAt
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamOverview'
+          description: List of teams with their vulnerability counts
+        totalTeams:
+          type: integer
+          description: Total number of teams with vulnerabilities
+          example: 42
+        totalVulnerabilities:
+          type: integer
+          description: Total number of vulnerabilities across all teams
+          example: 1523
+        generatedAt:
+          type: string
+          description: ISO 8601 timestamp when the report was generated
+          example: "2024-01-15T10:30:00Z"
+    
+    TeamOverview:
+      type: object
+      required:
+        - teamSlug
+        - totalVulnerabilities
+        - criticalVulnerabilities
+        - highVulnerabilities
+        - mediumVulnerabilities
+        - lowVulnerabilities
+        - unknownVulnerabilities
+      properties:
+        teamSlug:
+          type: string
+          description: Team identifier
+          example: "team-security"
+        totalVulnerabilities:
+          type: integer
+          description: Total number of vulnerabilities for this team
+          example: 87
+        criticalVulnerabilities:
+          type: integer
+          description: Number of critical severity vulnerabilities
+          example: 5
+        highVulnerabilities:
+          type: integer
+          description: Number of high severity vulnerabilities
+          example: 12
+        mediumVulnerabilities:
+          type: integer
+          description: Number of medium severity vulnerabilities
+          example: 35
+        lowVulnerabilities:
+          type: integer
+          description: Number of low severity vulnerabilities
+          example: 30
+        unknownVulnerabilities:
+          type: integer
+          description: Number of vulnerabilities with unknown severity
+          example: 5
+    
+    TeamsSlaReportResponse:
+      type: object
+      required:
+        - teams
+        - totalTeams
+        - totalOverdue
+        - totalCriticalOverdue
+        - totalNonCriticalOverdue
+        - generatedAt
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSlaOverview'
+          description: SLA status for each team
+        totalTeams:
+          type: integer
+          description: Total number of teams with vulnerabilities
+          example: 42
+        totalOverdue:
+          type: integer
+          description: Total number of overdue vulnerabilities across all teams
+          example: 234
+        totalCriticalOverdue:
+          type: integer
+          description: Total number of overdue critical vulnerabilities across all teams
+          example: 45
+        totalNonCriticalOverdue:
+          type: integer
+          description: Total number of overdue non-critical vulnerabilities across all teams
+          example: 189
+        generatedAt:
+          type: string
+          description: ISO 8601 timestamp when the report was generated
+          example: "2024-01-15T10:30:00Z"
+    
+    TeamSlaOverview:
+      type: object
+      required:
+        - teamSlug
+        - totalVulnerabilities
+        - criticalOverdue
+        - nonCriticalOverdue
+        - criticalWithinSla
+        - nonCriticalWithinSla
+      properties:
+        teamSlug:
+          type: string
+          description: Team identifier
+          example: "team-security"
+        totalVulnerabilities:
+          type: integer
+          description: Total number of vulnerabilities for this team
+          example: 87
+        criticalOverdue:
+          type: integer
+          description: Number of critical vulnerabilities overdue (>1 workday)
+          example: 3
+        nonCriticalOverdue:
+          type: integer
+          description: Number of non-critical vulnerabilities overdue (>30 days)
+          example: 12
+        criticalWithinSla:
+          type: integer
+          description: Number of critical vulnerabilities within SLA
+          example: 7
+        nonCriticalWithinSla:
+          type: integer
+          description: Number of non-critical vulnerabilities within SLA
+          example: 65
+

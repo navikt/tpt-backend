@@ -12,8 +12,8 @@ import no.nav.tpt.plugins.dependencies
 fun Route.vulnRoutes() {
     authenticate("auth-bearer") {
         get("/vulnerabilities/user") {
-            val principal = call.principal<TokenPrincipal>()
-            val email = principal?.preferredUsername
+            val principal = call.principal<TokenPrincipal>()!!
+            val email = principal.preferredUsername
 
             if (email == null) {
                 call.respondBadRequest("preferred_username claim not found in token")
@@ -31,8 +31,8 @@ fun Route.vulnRoutes() {
 
         rateLimit(RateLimitName("vulnerabilities-refresh")) {
             get("/vulnerabilities/refresh") {
-                val principal = call.principal<TokenPrincipal>()
-                val email = principal?.preferredUsername
+                val principal = call.principal<TokenPrincipal>()!!
+                val email = principal.preferredUsername
 
                 if (email == null) {
                     call.respondBadRequest("preferred_username claim not found in token")
@@ -73,8 +73,8 @@ fun Route.vulnRoutes() {
         }
 
         get("/vulnerabilities/github/user") {
-            val principal = call.principal<TokenPrincipal>()
-            val email = principal?.preferredUsername
+            val principal = call.principal<TokenPrincipal>()!!
+            val email = principal.preferredUsername
 
             if (email == null) {
                 call.respondBadRequest("preferred_username claim not found in token")
