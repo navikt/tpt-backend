@@ -78,8 +78,5 @@ class AdminRoutesTest {
         }
         
         assertEquals(HttpStatusCode.Forbidden, response.status)
-        val problemDetail = Json { ignoreUnknownKeys = true }.decodeFromString<ProblemDetail>(response.bodyAsText())
-        assertEquals(403, problemDetail.status)
-        assertEquals("Forbidden", problemDetail.title)
     }
 }

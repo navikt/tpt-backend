@@ -382,11 +382,11 @@ class DefaultRiskScorerTest {
         assertNotNull(breakdown)
 
         val factorNames = breakdown?.factors?.map { it.name }?.toSet()
-        assertTrue(factorNames?.contains("exposure") == true)
-        assertTrue(factorNames?.contains("kev") == true)
-        assertTrue(factorNames?.contains("epss") == true)
-        assertTrue(factorNames?.contains("environment") == true)
-        assertTrue(factorNames?.contains("build_age") == true)
+        assertEquals(factorNames?.contains("exposure"), true)
+        assertEquals(factorNames?.contains("kev"), true)
+        assertEquals(factorNames?.contains("epss"), true)
+        assertEquals(factorNames?.contains("environment"), true)
+        assertEquals(factorNames?.contains("build_age"), true)
     }
 
     @Test

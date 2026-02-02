@@ -19,5 +19,12 @@ updates:
       gradle:
         patterns:
         - "*"
+        update-types:
+          - "minor,patch"
+      gradle-major:
+        patterns:
+        - "*"
+        update-types:
+          - "major"
     cooldown:
       default-days: 7
