@@ -6,13 +6,14 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.seconds
 import no.nav.tpt.plugins.LocalDevDependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
-import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
@@ -46,6 +47,13 @@ fun Application.localDevModule() {
             prettyPrint = true
             isLenient = true
         })
+    }
+
+    install(RateLimit) {
+        register(RateLimitName("vulnerabilities-refresh")) {
+            rateLimiter(limit = 1, refillPeriod = 60.seconds)
+            requestKey { "local-dev" }
+        }
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)
