@@ -35,3 +35,9 @@ data class GitHubIdentifierMessage(
     val value: String,
     val type: String
 )
+
+@Serializable
+data class DockerfileFeaturesMessage(
+    val repoName: String,
+    val usesDistroless: Boolean
+)

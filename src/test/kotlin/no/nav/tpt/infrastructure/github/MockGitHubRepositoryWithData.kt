@@ -90,6 +90,10 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         // No-op for mock
     }
 
+    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean) {
+        // No-op for mock
+    }
+
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? {
         return mockRepositories.find { it.nameWithOwner == nameWithOwner }
     }

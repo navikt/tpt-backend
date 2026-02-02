@@ -30,7 +30,7 @@ class GitHubRepositoryKafkaConsumer(
                     try {
                         val records = consumer?.poll(Duration.ofSeconds(1))
                         records?.forEach { record ->
-                            processRecord(record, this)
+                            processRecord(record)
                         }
                         isHealthyFlag = true
                     } catch (e: Exception) {
@@ -49,32 +49,40 @@ class GitHubRepositoryKafkaConsumer(
         }
     }
 
-    private fun processRecord(record: ConsumerRecord<String, String>, scope: CoroutineScope) {
-        logger.info(
-            "Received GitHub repository message - Topic: ${record.topic()}, " +
-            "Partition: ${record.partition()}, " +
-            "Offset: ${record.offset()}, " +
-            "Key: ${record.key()}"
-        )
+    private suspend fun processRecord(record: ConsumerRecord<String, String>) {
+        try {
+            when (record.key()) {
+                "dockerfile_features" -> processDockerfileFeatures(record)
+                else -> processRepositoryMessage(record)
+            }
+        } catch (e: Exception) {
+            logger.error("Error processing message with key ${record.key()}: ${record.value()}", e)
+        }
+    }
 
+    private suspend fun processRepositoryMessage(record: ConsumerRecord<String, String>) {
         try {
             val message = json.decodeFromString<GitHubRepositoryMessage>(record.value())
-            logger.info(
-                "Parsed GitHub repository message: repositoryName=${message.getRepositoryIdentifier()}, " +
-                "teams=${message.naisTeams?.joinToString() ?: "none"}, " +
-                "vulnerabilities=${message.vulnerabilities?.size ?: 0}"
-            )
-
-            scope.launch(Dispatchers.IO) {
-                try {
-                    repository.upsertRepositoryData(message)
-                    logger.info("Successfully upserted GitHub repository data for: ${message.getRepositoryIdentifier()}")
-                } catch (e: Exception) {
-                    logger.error("Error upserting GitHub repository data for ${message.getRepositoryIdentifier()}", e)
-                }
+            try {
+                repository.upsertRepositoryData(message)
+            } catch (e: Exception) {
+                logger.error("Error upserting GitHub repository data for ${message.getRepositoryIdentifier()}", e)
             }
         } catch (e: Exception) {
             logger.error("Error parsing GitHub repository message: ${record.value()}", e)
+        }
+    }
+
+    private suspend fun processDockerfileFeatures(record: ConsumerRecord<String, String>) {
+        try {
+            val message = json.decodeFromString<DockerfileFeaturesMessage>(record.value())
+            try {
+                repository.updateDockerfileFeatures(message.repoName, message.usesDistroless)
+            } catch (e: Exception) {
+                logger.error("Error updating dockerfile features for ${message.repoName}", e)
+            }
+        } catch (e: Exception) {
+            logger.error("Error parsing dockerfile features message: ${record.value()}", e)
         }
     }
 }

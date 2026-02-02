@@ -510,5 +510,70 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             kafkaConsumer.stop()
         }
     }
+
+    @Test
+    fun `should consume and store dockerfile features message`() = runBlocking {
+        val dockerfileFeaturesMessage = """
+            {
+              "repoName": "navikt/test",
+              "usesDistroless": true
+            }
+        """.trimIndent()
+
+        try {
+            kafkaConsumer.start(this)
+            delay(2000)
+
+            kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
+            delay(3000)
+
+            val storedRepo = repository.getRepository("navikt/test")
+            assertNotNull(storedRepo)
+            assertEquals("navikt/test", storedRepo.nameWithOwner)
+            assertEquals(true, storedRepo.usesDistroless)
+        } finally {
+            kafkaConsumer.stop()
+        }
+    }
+
+    @Test
+    fun `should update existing repository with dockerfile features`() = runBlocking {
+        val initialRepoMessage = """
+            {
+              "nameWithOwner": "navikt/existing-repo",
+              "naisTeams": ["team-test"],
+              "vulnerabilities": []
+            }
+        """.trimIndent()
+
+        val dockerfileFeaturesMessage = """
+            {
+              "repoName": "navikt/existing-repo",
+              "usesDistroless": false
+            }
+        """.trimIndent()
+
+        try {
+            kafkaConsumer.start(this)
+            delay(2000)
+
+            kafkaProducer.send(ProducerRecord(testTopic, "repo-key", initialRepoMessage)).get()
+            delay(3000)
+
+            val initialRepo = repository.getRepository("navikt/existing-repo")
+            assertNotNull(initialRepo)
+            assertNull(initialRepo.usesDistroless)
+
+            kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
+            delay(3000)
+
+            val updatedRepo = repository.getRepository("navikt/existing-repo")
+            assertNotNull(updatedRepo)
+            assertEquals(false, updatedRepo.usesDistroless)
+            assertEquals("team-test", updatedRepo.naisTeams[0])
+        } finally {
+            kafkaConsumer.stop()
+        }
+    }
 }
 

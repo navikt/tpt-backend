@@ -77,6 +77,29 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         logger.info("Upserted $vulnCount vulnerabilities for: $repoIdentifier")
     }
 
+    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean) = dbQuery {
+        val existingRow = GitHubRepositories.selectAll()
+            .where { GitHubRepositories.nameWithOwner eq repoName }
+            .singleOrNull()
+
+        if (existingRow != null) {
+            GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
+                it[GitHubRepositories.usesDistroless] = usesDistroless
+                it[updatedAt] = Instant.now()
+            }
+            logger.info("Updated dockerfile features for: $repoName (usesDistroless=$usesDistroless)")
+        } else {
+            GitHubRepositories.insert {
+                it[nameWithOwner] = repoName
+                it[naisTeams] = emptyList()
+                it[GitHubRepositories.usesDistroless] = usesDistroless
+                it[createdAt] = Instant.now()
+                it[updatedAt] = Instant.now()
+            }
+            logger.info("Inserted new GitHub repository with dockerfile features: $repoName (usesDistroless=$usesDistroless)")
+        }
+    }
+
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
         GitHubRepositories.selectAll()
             .where { GitHubRepositories.nameWithOwner eq nameWithOwner }
@@ -137,6 +160,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         return GitHubRepositoryData(
             nameWithOwner = row[GitHubRepositories.nameWithOwner],
             naisTeams = row[GitHubRepositories.naisTeams].toList(),
+            usesDistroless = row[GitHubRepositories.usesDistroless],
             createdAt = row[GitHubRepositories.createdAt],
             updatedAt = row[GitHubRepositories.updatedAt]
         )

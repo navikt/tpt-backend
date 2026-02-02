@@ -22,6 +22,8 @@ spec:
       rules:
         - application: tpt-frontend
     outbound:
+      rules:
+        - application: tpt-data-collector
       external:
         - host: teamkatalog-api.intern.nav.no
         - host: console.nav.cloud.nais.io
