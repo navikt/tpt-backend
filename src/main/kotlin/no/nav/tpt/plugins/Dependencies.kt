@@ -163,8 +163,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
 
     val adminService = AdminServiceImpl(
-        vulnerabilityRepository = vulnerabilityRepository,
-        vulnerabilitySearchService = vulnerabilitySearchService
+        vulnerabilityRepository = vulnerabilityRepository
     )
 
     val dependencies = Dependencies(

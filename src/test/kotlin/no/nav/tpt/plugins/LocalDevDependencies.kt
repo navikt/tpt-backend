@@ -9,6 +9,11 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.vulnerability.TeamSlaSummary
+import no.nav.tpt.domain.vulnerability.TeamVulnerabilityCount
+import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
+import no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult
+import no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevService
@@ -30,7 +35,6 @@ import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.MockVulnService
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
-import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.containers.wait.strategy.WaitStrategy
@@ -78,7 +82,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     }
 
     val tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService()
-    val naisApiService: NaisApiService = MockNaisApiService()
+    val naisApiService: NaisApiService = MockNaisApiService(
+        mockTeamMemberships = listOf("team-lokal-utvikler", "team-b", "team-c")
+    )
     val kevService: KevService = MockKevService()
     val epssService: EpssService = MockEpssService()
     val teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
@@ -114,20 +120,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val vulnService = MockVulnService()
     
-    // Mock vulnerability components
-    val mockVulnerabilityRepository = object : no.nav.tpt.domain.vulnerability.VulnerabilityRepository {
-        override suspend fun upsertVulnerability(vulnerability: no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData) = vulnerability
-        override suspend fun searchVulnerabilities(cveId: String?, teamSlug: String?, severities: List<String>?, hasExternalIngress: Boolean?, suppressed: Boolean?, limit: Int, offset: Int) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>() to 0
-        override suspend fun getActiveVulnerabilitiesForTeams(teamSlugs: List<String>) = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
-        override suspend fun getAllActiveVulnerabilities() = emptyList<no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult>()
-        override suspend fun deleteOldDataForTeam(teamSlug: String, beforeTimestamp: java.time.Instant) = 0
-        override suspend fun getTeamVulnerabilityCounts() = emptyList<no.nav.tpt.domain.vulnerability.TeamVulnerabilityCount>()
-    }
-    
-    val mockVulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForUser(email: String) = 
-            naisApiService.getVulnerabilitiesForUser(email)
-    }
+    val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
         naisApiService = naisApiService,
@@ -147,8 +140,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     )
     
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
-        vulnerabilityRepository = mockVulnerabilityRepository,
-        vulnerabilitySearchService = mockVulnerabilitySearchService
+        vulnerabilityRepository = mockVulnerabilityRepository
     )
 
     val config = AppConfig(

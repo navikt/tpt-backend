@@ -2,14 +2,12 @@ package no.nav.tpt.infrastructure.admin
 
 import no.nav.tpt.domain.admin.*
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
-import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 
 class AdminServiceImpl(
-    private val vulnerabilityRepository: VulnerabilityRepository,
-    private val vulnerabilitySearchService: VulnerabilitySearchService
+    private val vulnerabilityRepository: VulnerabilityRepository
 ) : AdminService {
     private val logger = LoggerFactory.getLogger(AdminServiceImpl::class.java)
     
@@ -45,23 +43,19 @@ class AdminServiceImpl(
     override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse = slaCache.get {
         logger.debug("Generating teams SLA report (not cached)")
         
-        val allVulnerabilities = vulnerabilityRepository.getAllActiveVulnerabilities()
-        logger.debug("Found ${allVulnerabilities.size} active vulnerabilities in database")
+        val teamSlaSummaries = vulnerabilityRepository.getTeamSlaSummaries()
+        logger.debug("Calculated SLA for ${teamSlaSummaries.size} teams in database")
         
-        val allTeamSlugs = allVulnerabilities.map { it.teamSlug }.distinct()
-        
-        val slaReport = vulnerabilitySearchService.getOverdueSlaReport(allTeamSlugs)
-        
-        val teamSlaOverviews = slaReport.teams.map { teamStatus ->
+        val teamSlaOverviews = teamSlaSummaries.map { summary ->
             TeamSlaOverview(
-                teamSlug = teamStatus.teamSlug,
-                totalVulnerabilities = teamStatus.totalVulnerabilities,
-                criticalOverdue = teamStatus.criticalOverdue,
-                nonCriticalOverdue = teamStatus.nonCriticalOverdue,
-                criticalWithinSla = teamStatus.criticalWithinSla,
-                nonCriticalWithinSla = teamStatus.nonCriticalWithinSla,
-                repositoriesOutOfSla = teamStatus.repositoriesOutOfSla,
-                maxDaysOverdue = teamStatus.maxDaysOverdue
+                teamSlug = summary.teamSlug,
+                totalVulnerabilities = summary.totalVulnerabilities,
+                criticalOverdue = summary.criticalOverdue,
+                nonCriticalOverdue = summary.nonCriticalOverdue,
+                criticalWithinSla = summary.criticalWithinSla,
+                nonCriticalWithinSla = summary.nonCriticalWithinSla,
+                repositoriesOutOfSla = summary.repositoriesOutOfSla,
+                maxDaysOverdue = summary.maxDaysOverdue
             )
         }
         
@@ -74,7 +68,7 @@ class AdminServiceImpl(
             totalOverdue = totalCriticalOverdue + totalNonCriticalOverdue,
             totalCriticalOverdue = totalCriticalOverdue,
             totalNonCriticalOverdue = totalNonCriticalOverdue,
-            generatedAt = slaReport.generatedAt
+            generatedAt = Instant.now().toString()
         )
     }
 }

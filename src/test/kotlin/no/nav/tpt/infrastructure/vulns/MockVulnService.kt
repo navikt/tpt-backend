@@ -21,7 +21,7 @@ class MockVulnService : VulnService {
             userRole = UserRole.DEVELOPER,
             teams = listOf(
                 VulnTeamDto(
-                    team = "appsec",
+                    team = "team-lokal-utvikler",
                     workloads = listOf(
                         VulnWorkloadDto(
                             id = "app-1",
@@ -135,7 +135,7 @@ class MockVulnService : VulnService {
                     )
                 ),
                 VulnTeamDto(
-                    team = "platform",
+                    team = "team-b",
                     workloads = listOf(
                         VulnWorkloadDto(
                             id = "job-1",
@@ -208,7 +208,7 @@ class MockVulnService : VulnService {
             userRole = UserRole.DEVELOPER,
             teams = listOf(
                 GitHubVulnTeamDto(
-                    team = "appsec",
+                    team = "team-lokal-utvikler",
                     repositories = listOf(
                         GitHubVulnRepositoryDto(
                             nameWithOwner = "navikt/tpt-backend",
@@ -322,7 +322,7 @@ class MockVulnService : VulnService {
                     )
                 ),
                 GitHubVulnTeamDto(
-                    team = "platform",
+                    team = "team-b",
                     repositories = listOf(
                         GitHubVulnRepositoryDto(
                             nameWithOwner = "navikt/security-tools",

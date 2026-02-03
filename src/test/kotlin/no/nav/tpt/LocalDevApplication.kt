@@ -18,6 +18,7 @@ import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 
 fun main() {
@@ -62,6 +63,7 @@ fun Application.localDevModule() {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")
         healthRoutes()
         configRoutes()
+        vulnerabilitySearchRoutes()
         vulnRoutes()
     }
 
@@ -72,13 +74,6 @@ fun Application.localDevModule() {
     log.info("Swagger UI: http://0.0.0.0:8080/swagger")
     log.info("User: lokal.utvikler@nav.no (NAVident: Z999999)")
     log.info("Authentication: Any Bearer token accepted")
-    log.info("Mock Data:")
-    log.info("  - Workloads: src/test/resources/mock-vulnerabilities.json")
-    log.info("  - GitHub Repos: 3 repositories (tpt-backend, security-tools, example-app)")
-    log.info("  - GitHub Vulns: 6 vulnerabilities across repos")
-    log.info("Endpoints:")
-    log.info("  - GET /vulnerabilities/user - Kubernetes workload vulnerabilities")
-    log.info("  - GET /vulnerabilities/github/user - GitHub repository vulnerabilities")
     log.info("=".repeat(80))
 }
 
