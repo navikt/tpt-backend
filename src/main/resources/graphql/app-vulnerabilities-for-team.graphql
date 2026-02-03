@@ -16,6 +16,7 @@ query ApplicationVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int = 50, 
           nodes {
             repository
             environmentName
+            createdAt
           }
         }
         image {

@@ -29,6 +29,9 @@ class MockNaisApiService(
                             workloadType = "app",
                             imageTag = "2026.01.13-10.30-abc123",
                             repository = "ghcr.io/navikt/app-lokal-utvikler",
+                            environment = "production",
+                            ingressTypes = emptyList(),
+                            createdAt = null,
                             vulnerabilities = listOf(
                                 VulnerabilityData(
                                     identifier = "CVE-2023-12345",
@@ -55,8 +58,6 @@ class MockNaisApiService(
                                     suppressed = false
                                 )
                             ),
-                            environment = "production",
-                            ingressTypes = emptyList()
                         )
                     )
                 )
@@ -80,6 +81,9 @@ class MockNaisApiService(
                             workloadType = "app",
                             imageTag = "2026.01.13-10.30-abc123",
                             repository = "ghcr.io/navikt/app-${teamSlug}",
+                            environment = "production",
+                            ingressTypes = emptyList(),
+                            createdAt = null,
                             vulnerabilities = listOf(
                                 VulnerabilityData(
                                     identifier = "CVE-2023-12345",
@@ -90,8 +94,6 @@ class MockNaisApiService(
                                     suppressed = false
                                 )
                             ),
-                            environment = "production",
-                            ingressTypes = emptyList()
                         )
                     )
                 )

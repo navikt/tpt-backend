@@ -1,7 +1,6 @@
 package no.nav.tpt.infrastructure.cisa
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -11,7 +10,6 @@ import java.time.Instant
 
 class KevRepositoryImpl(private val database: Database) : KevRepository {
     private val logger = LoggerFactory.getLogger(KevRepositoryImpl::class.java)
-    private val json = Json { ignoreUnknownKeys = true }
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO, database) {

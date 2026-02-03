@@ -102,7 +102,7 @@ class NaisApiClient(
             data = WorkloadVulnerabilitiesResponse.Data(
                 user = WorkloadVulnerabilitiesResponse.User(
                     teams = WorkloadVulnerabilitiesResponse.Teams(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        pageInfo = GraphQLTypes.PageInfo(false, null),
                         nodes = mergedTeams
                     )
                 )
@@ -128,17 +128,17 @@ class NaisApiClient(
         }
 
         val team = WorkloadVulnerabilitiesResponse.TeamNode(
-            team = WorkloadVulnerabilitiesResponse.Team(
+            team = GraphQLTypes.Team(
                 slug = teamSlug,
                 applications = appTeam?.applications?.let { apps ->
-                    WorkloadVulnerabilitiesResponse.WorkloadConnection(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(apps.pageInfo.hasNextPage, apps.pageInfo.endCursor),
+                    GraphQLTypes.WorkloadConnection(
+                        pageInfo = GraphQLTypes.PageInfo(apps.pageInfo.hasNextPage, apps.pageInfo.endCursor),
                         nodes = apps.nodes.map { convertTeamWorkloadToUserWorkload(it) }
                     )
                 },
                 jobs = jobTeam?.jobs?.let { jobs ->
-                    WorkloadVulnerabilitiesResponse.WorkloadConnection(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(jobs.pageInfo.hasNextPage, jobs.pageInfo.endCursor),
+                    GraphQLTypes.WorkloadConnection(
+                        pageInfo = GraphQLTypes.PageInfo(jobs.pageInfo.hasNextPage, jobs.pageInfo.endCursor),
                         nodes = jobs.nodes.map { convertTeamWorkloadToUserWorkload(it) }
                     )
                 }
@@ -149,7 +149,7 @@ class NaisApiClient(
             data = WorkloadVulnerabilitiesResponse.Data(
                 user = WorkloadVulnerabilitiesResponse.User(
                     teams = WorkloadVulnerabilitiesResponse.Teams(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        pageInfo = GraphQLTypes.PageInfo(false, null),
                         nodes = listOf(team)
                     )
                 )
@@ -158,44 +158,9 @@ class NaisApiClient(
     }
 
     private fun convertTeamWorkloadToUserWorkload(
-        teamWorkload: TeamWorkloadVulnerabilitiesResponse.WorkloadNode
-    ): WorkloadVulnerabilitiesResponse.WorkloadNode {
-        return WorkloadVulnerabilitiesResponse.WorkloadNode(
-            id = teamWorkload.id,
-            name = teamWorkload.name,
-            ingresses = teamWorkload.ingresses.map {
-                WorkloadVulnerabilitiesResponse.Ingress(it.type)
-            },
-            deployments = WorkloadVulnerabilitiesResponse.Deployments(
-                nodes = teamWorkload.deployments.nodes.map {
-                    WorkloadVulnerabilitiesResponse.Deployment(it.repository, it.environmentName)
-                }
-            ),
-            image = teamWorkload.image?.let { img ->
-                WorkloadVulnerabilitiesResponse.Image(
-                    name = img.name,
-                    tag = img.tag,
-                    vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(
-                            img.vulnerabilities.pageInfo.hasNextPage,
-                            img.vulnerabilities.pageInfo.endCursor
-                        ),
-                        nodes = img.vulnerabilities.nodes.map { vuln ->
-                            WorkloadVulnerabilitiesResponse.Vulnerability(
-                                identifier = vuln.identifier,
-                                severity = vuln.severity,
-                                packageName = vuln.packageName,
-                                description = vuln.description,
-                                vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
-                                suppression = vuln.suppression?.let {
-                                    WorkloadVulnerabilitiesResponse.Suppression(it.state)
-                                }
-                            )
-                        }
-                    )
-                )
-            }
-        )
+        teamWorkload: GraphQLTypes.WorkloadNode
+    ): GraphQLTypes.WorkloadNode {
+        return teamWorkload
     }
 
     private suspend fun fetchTeamWorkloadVulnerabilities(
@@ -203,7 +168,7 @@ class NaisApiClient(
         query: String,
         workloadType: String
     ): TeamWorkloadVulnerabilitiesResponse {
-        val allWorkloadsWithVulns = mutableListOf<TeamWorkloadVulnerabilitiesResponse.WorkloadNode>()
+        val allWorkloadsWithVulns = mutableListOf<GraphQLTypes.WorkloadNode>()
         var workloadCursor: String? = null
         var hasMoreWorkloads = true
 
@@ -239,7 +204,7 @@ class NaisApiClient(
             if (pageResponse.data?.team == null) {
                 return TeamWorkloadVulnerabilitiesResponse(
                     errors = listOf(
-                        TeamWorkloadVulnerabilitiesResponse.GraphQLError(
+                        GraphQLTypes.GraphQLError(
                             message = "Team not found or no data returned",
                             path = listOf("team")
                         )
@@ -269,16 +234,16 @@ class NaisApiClient(
 
         return TeamWorkloadVulnerabilitiesResponse(
             data = TeamWorkloadVulnerabilitiesResponse.Data(
-                team = TeamWorkloadVulnerabilitiesResponse.Team(
+                team = GraphQLTypes.Team(
                     slug = slug,
                     applications = if (workloadType == "applications")
-                        TeamWorkloadVulnerabilitiesResponse.WorkloadConnection(
-                            pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        GraphQLTypes.WorkloadConnection(
+                            pageInfo = GraphQLTypes.PageInfo(false, null),
                             nodes = allWorkloadsWithVulns
                         ) else null,
                     jobs = if (workloadType == "jobs")
-                        TeamWorkloadVulnerabilitiesResponse.WorkloadConnection(
-                            pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        GraphQLTypes.WorkloadConnection(
+                            pageInfo = GraphQLTypes.PageInfo(false, null),
                             nodes = allWorkloadsWithVulns
                         ) else null
                 )
@@ -287,16 +252,16 @@ class NaisApiClient(
     }
 
     private suspend fun paginateVulnerabilitiesForTeamWorkload(
-        workload: TeamWorkloadVulnerabilitiesResponse.WorkloadNode,
+        workload: GraphQLTypes.WorkloadNode,
         teamSlug: String,
         query: String,
         workloadType: String
-    ): TeamWorkloadVulnerabilitiesResponse.WorkloadNode {
+    ): GraphQLTypes.WorkloadNode {
         if (workload.image == null) {
             return workload
         }
 
-        val allVulns = mutableListOf<TeamWorkloadVulnerabilitiesResponse.Vulnerability>()
+        val allVulns = mutableListOf<GraphQLTypes.Vulnerability>()
         var vulnCursor: String?
         var hasMoreVulns: Boolean
 
@@ -351,16 +316,16 @@ class NaisApiClient(
             }
         }
 
-        return TeamWorkloadVulnerabilitiesResponse.WorkloadNode(
+        return GraphQLTypes.WorkloadNode(
             id = workload.id,
             name = workload.name,
             ingresses = workload.ingresses,
             deployments = workload.deployments,
-            image = TeamWorkloadVulnerabilitiesResponse.Image(
+            image = GraphQLTypes.Image(
                 name = workload.image.name,
                 tag = workload.image.tag,
-                vulnerabilities = TeamWorkloadVulnerabilitiesResponse.Vulnerabilities(
-                    pageInfo = TeamWorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                vulnerabilities = GraphQLTypes.Vulnerabilities(
+                    pageInfo = GraphQLTypes.PageInfo(false, null),
                     nodes = allVulns
                 )
             )
@@ -410,7 +375,7 @@ class NaisApiClient(
             if (pageResponse.data?.user == null) {
                 return WorkloadVulnerabilitiesResponse(
                     errors = listOf(
-                        WorkloadVulnerabilitiesResponse.GraphQLError(
+                        GraphQLTypes.GraphQLError(
                             message = "User not found or no data returned",
                             path = listOf("user")
                         )
@@ -428,7 +393,7 @@ class NaisApiClient(
                     else -> null
                 } ?: continue
 
-                val allWorkloadsWithVulns = mutableListOf<WorkloadVulnerabilitiesResponse.WorkloadNode>()
+                val allWorkloadsWithVulns = mutableListOf<GraphQLTypes.WorkloadNode>()
                 var workloadCursor = workloadConnection.pageInfo.endCursor
                 var hasMoreWorkloads = workloadConnection.pageInfo.hasNextPage
 
@@ -492,21 +457,21 @@ class NaisApiClient(
 
                 val teamWithWorkloads = when (workloadType) {
                     "applications" -> WorkloadVulnerabilitiesResponse.TeamNode(
-                        team = WorkloadVulnerabilitiesResponse.Team(
+                        team = GraphQLTypes.Team(
                             slug = teamSlug,
-                            applications = WorkloadVulnerabilitiesResponse.WorkloadConnection(
-                                pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                            applications = GraphQLTypes.WorkloadConnection(
+                                pageInfo = GraphQLTypes.PageInfo(false, null),
                                 nodes = workloadsWithAllVulns
                             ),
                             jobs = null
                         )
                     )
                     "jobs" -> WorkloadVulnerabilitiesResponse.TeamNode(
-                        team = WorkloadVulnerabilitiesResponse.Team(
+                        team = GraphQLTypes.Team(
                             slug = teamSlug,
                             applications = null,
-                            jobs = WorkloadVulnerabilitiesResponse.WorkloadConnection(
-                                pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                            jobs = GraphQLTypes.WorkloadConnection(
+                                pageInfo = GraphQLTypes.PageInfo(false, null),
                                 nodes = workloadsWithAllVulns
                             )
                         )
@@ -525,7 +490,7 @@ class NaisApiClient(
             data = WorkloadVulnerabilitiesResponse.Data(
                 user = WorkloadVulnerabilitiesResponse.User(
                     teams = WorkloadVulnerabilitiesResponse.Teams(
-                        pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                        pageInfo = GraphQLTypes.PageInfo(false, null),
                         nodes = allTeams
                     )
                 )
@@ -534,17 +499,17 @@ class NaisApiClient(
     }
 
     private suspend fun paginateVulnerabilitiesForWorkload(
-        workload: WorkloadVulnerabilitiesResponse.WorkloadNode,
+        workload: GraphQLTypes.WorkloadNode,
         email: String,
         teamCursor: String?,
         query: String,
         workloadType: String
-    ): WorkloadVulnerabilitiesResponse.WorkloadNode {
+    ): GraphQLTypes.WorkloadNode {
         if (workload.image == null) {
             return workload
         }
 
-        val allVulns = mutableListOf<WorkloadVulnerabilitiesResponse.Vulnerability>()
+        val allVulns = mutableListOf<GraphQLTypes.Vulnerability>()
         var vulnCursor: String?
         var hasMoreVulns: Boolean
 
@@ -603,16 +568,16 @@ class NaisApiClient(
             }
         }
 
-        return WorkloadVulnerabilitiesResponse.WorkloadNode(
+        return GraphQLTypes.WorkloadNode(
             id = workload.id,
             name = workload.name,
             ingresses = workload.ingresses,
             deployments = workload.deployments,
-            image = WorkloadVulnerabilitiesResponse.Image(
+            image = GraphQLTypes.Image(
                 name = workload.image.name,
                 tag = workload.image.tag,
-                vulnerabilities = WorkloadVulnerabilitiesResponse.Vulnerabilities(
-                    pageInfo = WorkloadVulnerabilitiesResponse.PageInfo(false, null),
+                vulnerabilities = GraphQLTypes.Vulnerabilities(
+                    pageInfo = GraphQLTypes.PageInfo(false, null),
                     nodes = allVulns
                 )
             )
@@ -633,7 +598,7 @@ class NaisApiClient(
             val jobTeam = jobTeams.firstOrNull { it.team.slug == slug }
 
             WorkloadVulnerabilitiesResponse.TeamNode(
-                team = WorkloadVulnerabilitiesResponse.Team(
+                team = GraphQLTypes.Team(
                     slug = slug,
                     applications = appTeam?.team?.applications,
                     jobs = jobTeam?.team?.jobs

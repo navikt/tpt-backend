@@ -381,6 +381,11 @@ components:
           nullable: true
           description: GitHub repository name (e.g., navikt/app-name)
           example: "navikt/my-application"
+        lastDeploy:
+          type: string
+          nullable: true
+          description: Last deployment timestamp in ISO 8601 format
+          example: "2026-01-12T11:26:21.02093Z"
         vulnerabilities:
           type: array
           items:

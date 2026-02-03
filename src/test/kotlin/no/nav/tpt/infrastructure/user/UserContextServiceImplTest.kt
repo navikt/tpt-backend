@@ -35,34 +35,18 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = "team-a",
-                            workloads = emptyList()
-                        )
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-a",
+                        workloads = emptyList()
                     )
                 )
-            }
-
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = teamSlug,
-                            workloads = emptyList()
-                        )
-                    )
-                )
-            }
-
-            override suspend fun getTeamMembershipsForUser(email: String): List<String> {
-                return listOf("team-a")
-            }
-        }
+            ),
+            mockTeamMemberships = listOf("team-a")
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -118,27 +102,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(teams = emptyList())
-            }
-
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = teamSlug,
-                            workloads = emptyList()
-                        )
-                    )
-                )
-            }
-
-            override suspend fun getTeamMembershipsForUser(email: String): List<String> {
-                return emptyList()
-            }
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = emptyList()
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -170,34 +138,18 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = "team-a",
-                            workloads = emptyList()
-                        )
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-a",
+                        workloads = emptyList()
                     )
                 )
-            }
-
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = teamSlug,
-                            workloads = emptyList()
-                        )
-                    )
-                )
-            }
-
-            override suspend fun getTeamMembershipsForUser(email: String): List<String> {
-                return listOf("team-a")
-            }
-        }
+            ),
+            mockTeamMemberships = listOf("team-a")
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -251,27 +203,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(teams = emptyList())
-            }
-
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
-                return UserVulnerabilitiesData(
-                    teams = listOf(
-                        TeamVulnerabilitiesData(
-                            teamSlug = teamSlug,
-                            workloads = emptyList()
-                        )
-                    )
-                )
-            }
-
-            override suspend fun getTeamMembershipsForUser(email: String): List<String> {
-                return emptyList()
-            }
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = emptyList()
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -343,12 +279,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = emptyList()
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -413,12 +348,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = emptyList()
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -477,12 +411,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getTeamMembershipsForUser(email: String) = emptyList<String>()
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = emptyList()
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -513,12 +446,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getTeamMembershipsForUser(email: String) = listOf("team-a", "team-b")
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = listOf("team-a", "team-b")
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
@@ -549,12 +481,11 @@ class UserContextServiceImplTest {
             }
         }
 
-        val naisApiService = object : NaisApiService {
-            override suspend fun getAllTeams(): List<TeamInfo> = emptyList()
-            override suspend fun getVulnerabilitiesForUser(email: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getVulnerabilitiesForTeam(teamSlug: String) = UserVulnerabilitiesData(teams = emptyList())
-            override suspend fun getTeamMembershipsForUser(email: String) = listOf("dev-team")
-        }
+        val naisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList()),
+            mockTeamMemberships = listOf("dev-team")
+        )
 
         val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
         val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
