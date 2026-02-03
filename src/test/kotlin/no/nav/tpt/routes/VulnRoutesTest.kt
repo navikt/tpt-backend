@@ -125,6 +125,7 @@ class VulnRoutesTest {
                                 repository = "ghcr.io/navikt/app1",
                                 environment = "production",
                                 ingressTypes = listOf("EXTERNAL"),
+                                createdAt = "2026-01-12T11:26:21.02093Z",
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
@@ -243,6 +244,7 @@ class VulnRoutesTest {
                                 repository = null,
                                 environment = "production",
                                 ingressTypes = listOf("EXTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-11111",
@@ -267,6 +269,7 @@ class VulnRoutesTest {
                                 repository = null,
                                 environment = "production",
                                 ingressTypes = listOf("INTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-22222",
@@ -334,6 +337,7 @@ class VulnRoutesTest {
                                 repository = null,
                                 environment = null,
                                 ingressTypes = listOf("INTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-99999",
@@ -416,6 +420,7 @@ class VulnRoutesTest {
                                 repository = "ghcr.io/navikt/test-app",
                                 environment = "production",
                                 ingressTypes = listOf("EXTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2024-00001",
@@ -435,6 +440,7 @@ class VulnRoutesTest {
                                 repository = "ghcr.io/navikt/test-job",
                                 environment = "production",
                                 ingressTypes = emptyList(),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2024-00002",

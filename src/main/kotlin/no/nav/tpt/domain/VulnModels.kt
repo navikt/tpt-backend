@@ -22,6 +22,7 @@ data class VulnWorkloadDto(
     val workloadType: String,
     val environment: String?,
     val repository: String?,
+    val lastDeploy: String?,
     val vulnerabilities: List<VulnVulnerabilityDto>
 )
 

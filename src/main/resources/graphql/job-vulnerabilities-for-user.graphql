@@ -20,6 +20,7 @@ query JobVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter
                 nodes {
                   repository
                   environmentName
+                  createdAt
                 }
               }
               image {

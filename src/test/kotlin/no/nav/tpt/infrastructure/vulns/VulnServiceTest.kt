@@ -39,6 +39,7 @@ class VulnServiceTest {
                                 repository = null,
                                 environment = "prod",
                                 ingressTypes = listOf("INTERNAL", "EXTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-12345",
@@ -130,6 +131,7 @@ class VulnServiceTest {
                                 repository = null,
                                 environment = "production",
                                 ingressTypes = listOf("INTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = emptyList()
                             )
                         )
@@ -222,6 +224,7 @@ class VulnServiceTest {
                                 repository = null,
                                 environment = "production",
                                 ingressTypes = emptyList(),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-99999",
@@ -286,6 +289,7 @@ class VulnServiceTest {
                                 repository = null,
                                 environment = "prod",
                                 ingressTypes = listOf("EXTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-11111",
@@ -310,6 +314,7 @@ class VulnServiceTest {
                                 repository = null,
                                 environment = "prod",
                                 ingressTypes = listOf("INTERNAL"),
+                                createdAt = null,
                                 vulnerabilities = listOf(
                                     VulnerabilityData(
                                         identifier = "CVE-2023-22222",

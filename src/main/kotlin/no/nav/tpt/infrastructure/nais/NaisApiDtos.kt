@@ -27,6 +27,7 @@ data class WorkloadData(
     val repository: String?,
     val environment: String?,
     val ingressTypes: List<String>,
+    val createdAt: String?,
     val vulnerabilities: List<VulnerabilityData>
 )
 

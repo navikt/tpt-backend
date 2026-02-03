@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 class EpssServiceImpl(
     private val epssClient: EpssClient,
     private val epssRepository: EpssRepository,
-    private val circuitBreaker: CircuitBreaker,
+    private val circuitBreaker: InMemoryCircuitBreaker,
     private val staleThresholdHours: Int = 24
 ) : EpssService {
     private val logger = LoggerFactory.getLogger(EpssServiceImpl::class.java)

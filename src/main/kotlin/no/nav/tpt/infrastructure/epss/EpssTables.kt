@@ -15,13 +15,3 @@ object EpssScores : Table("epss_scores") {
 
     override val primaryKey = PrimaryKey(cveId)
 }
-
-data class EpssScoreData(
-    val cveId: String,
-    val epssScore: String,
-    val percentile: String,
-    val scoreDate: String,
-    val lastUpdated: Instant,
-    val createdAt: Instant,
-    val updatedAt: Instant
-)

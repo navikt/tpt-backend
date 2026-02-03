@@ -23,6 +23,7 @@ query ApplicationVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $t
                 nodes {
                   repository
                   environmentName
+                  createdAt
                 }
               }
               image {

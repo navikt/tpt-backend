@@ -22,7 +22,7 @@ internal fun WorkloadVulnerabilitiesResponse.toData(): UserVulnerabilitiesData {
 }
 
 private fun mapWorkloadNode(
-    workloadNode: WorkloadVulnerabilitiesResponse.WorkloadNode,
+    workloadNode: GraphQLTypes.WorkloadNode,
     workloadType: String
 ): WorkloadData {
     val vulnerabilities = workloadNode.image?.vulnerabilities?.nodes?.map { vuln ->
@@ -44,6 +44,7 @@ private fun mapWorkloadNode(
         repository = workloadNode.deployments.nodes.firstOrNull()?.repository,
         environment = workloadNode.deployments.nodes.firstOrNull()?.environmentName,
         ingressTypes = workloadNode.ingresses.map { it.type },
+        createdAt = workloadNode.deployments.nodes.firstOrNull()?.createdAt,
         vulnerabilities = vulnerabilities
     )
 }

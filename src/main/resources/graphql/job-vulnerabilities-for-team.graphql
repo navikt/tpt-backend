@@ -13,6 +13,7 @@ query JobVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int = 50, $workloa
           nodes {
             repository
             environmentName
+            createdAt
           }
         }
         image {
