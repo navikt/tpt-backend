@@ -97,7 +97,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 
 ## Data Sources
 
-- **Nais API** - Vulnerability data and application metadata (scheduled sync to PostgreSQL every 6 hours)
+- **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
 - **NVD** - National Vulnerability Database (PostgreSQL-backed, syncs every 2 hours)
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
@@ -110,7 +110,7 @@ Initial NVD sync takes ~1-2 hours on first deployment. Vulnerability data sync t
 All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
-- Synced every 6 hours from Nais API (leader-elected, configurable)
+- Synced at 6am and 6pm Oslo time from Nais API (leader-elected)
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)
   - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)

@@ -11,7 +11,7 @@ class InMemoryCircuitBreaker(
     private val failureCount = AtomicInteger(0)
     private val openedAt = AtomicReference<Instant?>(null)
 
-    suspend fun isOpen(): Boolean {
+    fun isOpen(): Boolean {
         val openTime = openedAt.get() ?: return false
         val elapsed = Instant.now().epochSecond - openTime.epochSecond
         
@@ -23,12 +23,12 @@ class InMemoryCircuitBreaker(
         return true
     }
 
-    suspend fun recordSuccess() {
+    fun recordSuccess() {
         failureCount.set(0)
         openedAt.set(null)
     }
 
-    suspend fun recordFailure() {
+    fun recordFailure() {
         val failures = failureCount.incrementAndGet()
         if (failures >= failureThreshold) {
             openedAt.set(Instant.now())
