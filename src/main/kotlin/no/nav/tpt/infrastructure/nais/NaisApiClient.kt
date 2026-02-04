@@ -63,6 +63,9 @@ class NaisApiClient(
                     bearerAuth(token)
                     setBody(request)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                logger.debug("Request cancelled while fetching teams (instance shutting down)")
+                throw e
             } catch (e: Exception) {
                 logger.error("HTTP error fetching teams", e)
                 throw e
@@ -189,6 +192,9 @@ class NaisApiClient(
                     bearerAuth(token)
                     setBody(request)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                logger.debug("Request cancelled while fetching $workloadType for team $teamSlug (instance shutting down)")
+                throw e
             } catch (e: Exception) {
                 logger.error("HTTP error fetching $workloadType for team $teamSlug", e)
                 throw e

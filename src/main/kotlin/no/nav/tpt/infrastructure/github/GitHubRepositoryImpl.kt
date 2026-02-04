@@ -29,12 +29,12 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
                 }
                 it[updatedAt] = Instant.now()
             }
-            logger.info("Updated GitHub repository for: $repoIdentifier")
+            logger.debug("Updated GitHub repository for: $repoIdentifier")
 
             // Only delete and update vulnerabilities if present in message
             message.vulnerabilities?.let {
                 GitHubVulnerabilities.deleteWhere { nameWithOwner eq repoIdentifier }
-                logger.info("Deleted existing vulnerabilities for: $repoIdentifier")
+                logger.debug("Deleted existing vulnerabilities for: $repoIdentifier")
             }
         } else {
             // Insert new repository
@@ -74,7 +74,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
 
         val vulnCount = message.vulnerabilities?.size ?: 0
-        logger.info("Upserted $vulnCount vulnerabilities for: $repoIdentifier")
+        logger.debug("Upserted $vulnCount vulnerabilities for: $repoIdentifier")
     }
 
     override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean) = dbQuery {

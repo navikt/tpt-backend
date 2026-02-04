@@ -26,7 +26,7 @@ object DatabaseFactory {
 
             // Performance tuning
             isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            transactionIsolation = "TRANSACTION_READ_COMMITTED"
         }
 
         val dataSource = HikariDataSource(hikariConfig)
@@ -44,7 +44,7 @@ object DatabaseFactory {
         val database = Database.connect(dataSource)
 
         // Set transaction isolation level
-        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_REPEATABLE_READ
+        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_READ_COMMITTED
 
         logger.info("Database connection initialized successfully")
 
