@@ -14,7 +14,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO, database) { block() }
 
-    override suspend fun upsertRepositoryData(message: GitHubRepositoryMessage) = dbQuery {
+    override suspend fun upsertRepositoryData(message: GitHubRepositoryMessage): Unit = dbQuery {
         val repoIdentifier = message.getRepositoryIdentifier()
 
         val existingRow = GitHubRepositories.selectAll()
@@ -22,32 +22,25 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             .singleOrNull()
 
         if (existingRow != null) {
-            // Update existing repository - only update teams if present in message
             GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoIdentifier }) {
                 message.naisTeams?.let { teams ->
                     it[naisTeams] = teams
                 }
                 it[updatedAt] = Instant.now()
             }
-            logger.debug("Updated GitHub repository for: $repoIdentifier")
 
-            // Only delete and update vulnerabilities if present in message
             message.vulnerabilities?.let {
                 GitHubVulnerabilities.deleteWhere { nameWithOwner eq repoIdentifier }
-                logger.debug("Deleted existing vulnerabilities for: $repoIdentifier")
             }
         } else {
-            // Insert new repository
             GitHubRepositories.insert {
                 it[nameWithOwner] = repoIdentifier
                 it[naisTeams] = message.naisTeams ?: emptyList()
                 it[createdAt] = Instant.now()
                 it[updatedAt] = Instant.now()
             }
-            logger.info("Inserted new GitHub repository: $repoIdentifier")
         }
 
-        // Insert vulnerabilities if present in message
         message.vulnerabilities?.forEach { vuln ->
             val vulnId = GitHubVulnerabilities.insert {
                 it[nameWithOwner] = repoIdentifier
@@ -72,32 +65,14 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
                 }
             }
         }
-
-        val vulnCount = message.vulnerabilities?.size ?: 0
-        logger.debug("Upserted $vulnCount vulnerabilities for: $repoIdentifier")
     }
 
-    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean) = dbQuery {
-        val existingRow = GitHubRepositories.selectAll()
-            .where { GitHubRepositories.nameWithOwner eq repoName }
-            .singleOrNull()
-
-        if (existingRow != null) {
-            GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
-                it[GitHubRepositories.usesDistroless] = usesDistroless
-                it[updatedAt] = Instant.now()
-            }
-            logger.info("Updated dockerfile features for: $repoName (usesDistroless=$usesDistroless)")
-        } else {
-            GitHubRepositories.insert {
-                it[nameWithOwner] = repoName
-                it[naisTeams] = emptyList()
-                it[GitHubRepositories.usesDistroless] = usesDistroless
-                it[createdAt] = Instant.now()
-                it[updatedAt] = Instant.now()
-            }
-            logger.info("Inserted new GitHub repository with dockerfile features: $repoName (usesDistroless=$usesDistroless)")
+    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean): Unit = dbQuery {
+        GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
+            it[GitHubRepositories.usesDistroless] = usesDistroless
+            it[updatedAt] = Instant.now()
         }
+        Unit
     }
 
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
