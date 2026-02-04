@@ -15,45 +15,22 @@ class GitHubRepositoryKafkaConsumer(
 
     private val logger = LoggerFactory.getLogger(GitHubRepositoryKafkaConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
-    private var consumerJob: Job? = null
+    private var messageCount = 0
+    private var lastLogTime = System.currentTimeMillis()
 
-    override fun start(scope: CoroutineScope) {
-        logger.info("Starting Kafka consumer for GitHub repositories on topic: ${kafkaConfig.topic}")
-
-        consumerJob = scope.launch(Dispatchers.IO) {
-            try {
-                consumer = createConsumer()
-                consumer?.subscribe(listOf(kafkaConfig.topic))
-                logger.info("GitHub repository consumer subscribed to topic: ${kafkaConfig.topic}")
-
-                while (isActive) {
-                    try {
-                        val records = consumer?.poll(Duration.ofSeconds(1))
-                        records?.forEach { record ->
-                            processRecord(record)
-                        }
-                        isHealthyFlag = true
-                    } catch (e: Exception) {
-                        logger.error("Error polling Kafka messages", e)
-                        isHealthyFlag = false
-                        delay(5000)
-                    }
-                }
-            } catch (e: Exception) {
-                logger.error("Fatal error in GitHub repository Kafka consumer", e)
-                isHealthyFlag = false
-            } finally {
-                consumer?.close()
-                logger.info("GitHub repository Kafka consumer closed")
-            }
-        }
-    }
-
-    private suspend fun processRecord(record: ConsumerRecord<String, String>) {
+    override suspend fun processRecord(record: ConsumerRecord<String, String>) {
         try {
             when (record.key()) {
                 "dockerfile_features" -> processDockerfileFeatures(record)
                 else -> processRepositoryMessage(record)
+            }
+            
+            messageCount++
+            val now = System.currentTimeMillis()
+            if (now - lastLogTime >= 60000 && messageCount > 0) {
+                logger.info("Processed $messageCount GitHub repository messages in the last minute")
+                messageCount = 0
+                lastLogTime = now
             }
         } catch (e: Exception) {
             logger.error("Error processing message with key ${record.key()}: ${record.value()}", e)

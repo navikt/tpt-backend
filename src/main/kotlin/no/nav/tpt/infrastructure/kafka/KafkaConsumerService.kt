@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.kafka
 
 import kotlinx.coroutines.*
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.slf4j.LoggerFactory
@@ -29,14 +30,10 @@ open class KafkaConsumerService(
                 while (isActive) {
                     try {
                         val records = consumer?.poll(Duration.ofSeconds(1))
-                        records?.forEach { record ->
-                            logger.info(
-                                "Received Kafka message - Topic: ${record.topic()}, " +
-                                "Partition: ${record.partition()}, " +
-                                "Offset: ${record.offset()}, " +
-                                "Key: ${record.key()}, " +
-                                "Value length: ${record.value()?.length ?: 0} bytes"
-                            )
+                        records?.let {
+                            for (record in it) {
+                                processRecord(record)
+                            }
                         }
                         isHealthyFlag = true
                     } catch (e: Exception) {
@@ -53,6 +50,10 @@ open class KafkaConsumerService(
                 logger.info("Kafka consumer closed")
             }
         }
+    }
+
+    protected open suspend fun processRecord(record: ConsumerRecord<String, String>) {
+        // Override in subclass to handle records
     }
 
     open fun stop() {
