@@ -18,6 +18,32 @@ class InternalServerException(val context: String, cause: Throwable) : Exception
 
 fun Application.configureStatusPages() {
     install(StatusPages) {
+        status(HttpStatusCode.Unauthorized) { call, status ->
+            call.respond(
+                status,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Unauthorized",
+                    status = status.value,
+                    detail = "Authentication required. Please provide a valid bearer token.",
+                    instance = call.request.uri
+                )
+            )
+        }
+
+        status(HttpStatusCode.Forbidden) { call, status ->
+            call.respond(
+                status,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Forbidden",
+                    status = status.value,
+                    detail = "Insufficient permissions to access this resource.",
+                    instance = call.request.uri
+                )
+            )
+        }
+
         exception<BadRequestException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,
