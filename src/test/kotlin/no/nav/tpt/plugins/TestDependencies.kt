@@ -184,6 +184,7 @@ fun Application.testModule(
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)
+    configureStatusPages()
 
     routing {
         healthRoutes()

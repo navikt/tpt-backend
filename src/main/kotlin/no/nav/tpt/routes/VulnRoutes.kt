@@ -6,6 +6,8 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.tpt.plugins.BadRequestException
+import no.nav.tpt.plugins.InternalServerException
 import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.dependencies
 
@@ -14,18 +16,14 @@ fun Route.vulnRoutes() {
         get("/vulnerabilities/user") {
             val principal = call.principal<TokenPrincipal>()!!
             val email = principal.preferredUsername
-
-            if (email == null) {
-                call.respondBadRequest("preferred_username claim not found in token")
-                return@get
-            }
+                ?: throw BadRequestException("preferred_username claim not found in token")
 
             try {
                 val vulnService = call.dependencies.vulnService
                 val response = vulnService.fetchVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
-                call.respondInternalServerError("Failed to fetch vulnerabilities", e)
+                throw InternalServerException("Failed to fetch vulnerabilities", e)
             }
         }
 
@@ -33,11 +31,7 @@ fun Route.vulnRoutes() {
             get("/vulnerabilities/refresh") {
                 val principal = call.principal<TokenPrincipal>()!!
                 val email = principal.preferredUsername
-
-                if (email == null) {
-                    call.respondBadRequest("preferred_username claim not found in token")
-                    return@get
-                }
+                    ?: throw BadRequestException("preferred_username claim not found in token")
 
                 try {
                     val vulnerabilityTeamSyncService = call.dependencies.vulnerabilityTeamSyncService
@@ -62,12 +56,11 @@ fun Route.vulnRoutes() {
                                 "teamSlug" to result.teamSlug,
                                 "processed" to result.processed,
                                 "inserted" to result.inserted,
-                                "skipped" to result.skipped
-                            )
+                                "skipped" to result.skipped)
                         }
                     ))
                 } catch (e: Exception) {
-                    call.respondInternalServerError("Failed to refresh vulnerabilities", e)
+                    throw InternalServerException("Failed to refresh vulnerabilities", e)
                 }
             }
         }
@@ -75,18 +68,14 @@ fun Route.vulnRoutes() {
         get("/vulnerabilities/github/user") {
             val principal = call.principal<TokenPrincipal>()!!
             val email = principal.preferredUsername
-
-            if (email == null) {
-                call.respondBadRequest("preferred_username claim not found in token")
-                return@get
-            }
+                ?: throw BadRequestException("preferred_username claim not found in token")
 
             try {
                 val vulnService = call.dependencies.vulnService
                 val response = vulnService.fetchGitHubVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
-                call.respondInternalServerError("Failed to fetch GitHub vulnerabilities", e)
+                throw InternalServerException("Failed to fetch GitHub vulnerabilities", e)
             }
         }
     }
