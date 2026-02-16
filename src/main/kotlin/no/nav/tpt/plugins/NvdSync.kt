@@ -29,7 +29,7 @@ fun Application.configureNvdSync() {
 
             if (lastModified == null) {
                 logger.info("No CVE data found in database. Initial sync is required.")
-                logger.info("Initial sync will take approximately 12-15 hours and will run in the background.")
+                logger.info("Initial sync will take approximately 1-2 hours and will run in the background.")
                 logger.info("The application will start normally, but NVD data won't be available until sync completes.")
                 logger.info("Incremental sync scheduler will wait for initial sync to complete before starting.")
 
