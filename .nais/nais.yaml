@@ -79,5 +79,9 @@ spec:
       value: otlp
     - name: ADMIN_GROUPS
       value: "d633d27b-a470-4b9d-984e-85499f126e18"
+    - name: AI_API_URL
+      value: "https://europe-north1-aiplatform.googleapis.com/v1/projects/appsec-prod-624d/locations/europe-north1/publishers/google/models"
+    - name: AI_MODEL
+      value: "gemini-2.5-flash"
   envFrom:
     - secret: tpt-backend
