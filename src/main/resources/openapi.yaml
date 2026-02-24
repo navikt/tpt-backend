@@ -621,9 +621,13 @@ components:
       type: object
       required:
         - thresholds
+        - aiEnabled
       properties:
         thresholds:
           $ref: '#/components/schemas/RiskThresholds'
+        aiEnabled:
+          type: boolean
+          description: Indicates whether AI-based remediation generation is configured and available
     RiskThresholds:
       type: object
       required:

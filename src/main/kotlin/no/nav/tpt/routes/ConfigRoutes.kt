@@ -14,7 +14,8 @@ fun Route.configRoutes() {
                 high = appConfig.riskThresholdHigh,
                 medium = appConfig.riskThresholdMedium,
                 low = appConfig.riskThresholdLow
-            )
+            ),
+            aiEnabled = call.dependencies.remediationService != null
         )
         call.respond(response)
     }

@@ -4,7 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ConfigResponse(
-    val thresholds: RiskThresholds
+    val thresholds: RiskThresholds,
+    val aiEnabled: Boolean
 )
 
 @Serializable
