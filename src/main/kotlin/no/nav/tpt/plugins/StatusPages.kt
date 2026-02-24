@@ -14,6 +14,7 @@ private val logger = LoggerFactory.getLogger("no.nav.tpt.plugins.StatusPages")
 class BadRequestException(message: String) : Exception(message)
 class UnauthorizedException(message: String) : Exception(message)
 class ForbiddenException(message: String) : Exception(message)
+class ServiceUnavailableException(message: String) : Exception(message)
 class InternalServerException(val context: String, cause: Throwable) : Exception("$context: ${cause.message}", cause)
 
 fun Application.configureStatusPages() {
@@ -77,6 +78,19 @@ fun Application.configureStatusPages() {
                     type = "about:blank",
                     title = "Forbidden",
                     status = HttpStatusCode.Forbidden.value,
+                    detail = cause.message,
+                    instance = call.request.uri
+                )
+            )
+        }
+
+        exception<ServiceUnavailableException> { call, cause ->
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Service Unavailable",
+                    status = HttpStatusCode.ServiceUnavailable.value,
                     detail = cause.message,
                     instance = call.request.uri
                 )

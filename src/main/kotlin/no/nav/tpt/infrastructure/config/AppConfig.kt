@@ -10,6 +10,8 @@ data class AppConfig(
     val epssApiUrl: String,
     val teamkatalogenUrl: String,
     val adminGroups: String?,
+    val aiApiUrl: String?,
+    val aiModel: String = "gemini-2.5-flash",
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
     val riskThresholdLow: Double = DEFAULT_RISK_THRESHOLD_LOW
@@ -42,6 +44,9 @@ data class AppConfig(
 
             val adminGroups = System.getenv("ADMIN_GROUPS")
 
+            val aiApiUrl = System.getenv("AI_API_URL")
+            val aiModel = System.getenv("AI_MODEL") ?: "gemini-2.5-flash"
+
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
@@ -51,7 +56,9 @@ data class AppConfig(
                 nvdApiUrl = nvdApiUrl,
                 epssApiUrl = epssApiUrl,
                 teamkatalogenUrl = teamkatalogenUrl,
-                adminGroups = adminGroups
+                adminGroups = adminGroups,
+                aiApiUrl = aiApiUrl,
+                aiModel = aiModel
             )
         }
     }

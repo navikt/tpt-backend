@@ -8,6 +8,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import no.nav.tpt.domain.admin.AdminService
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
@@ -41,6 +42,10 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
 import no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
+import no.nav.tpt.domain.remediation.RemediationService
+import no.nav.tpt.infrastructure.ai.GeminiVertexAiClient
+import no.nav.tpt.infrastructure.remediation.RemediationCacheRepositoryImpl
+import no.nav.tpt.infrastructure.remediation.RemediationServiceImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
@@ -68,12 +73,14 @@ class Dependencies(
     val gitHubRepository: GitHubRepository,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
-    val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService
+    val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
+    val remediationService: RemediationService?
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
 
 val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
+    val logger = LoggerFactory.getLogger("Dependencies")
     val config = AppConfig.fromEnvironment()
 
     val httpClient = HttpClient(CIO) {
@@ -166,6 +173,20 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityRepository = vulnerabilityRepository
     )
 
+    val remediationService = config.aiApiUrl?.let { apiBaseUrl ->
+        val aiClient = GeminiVertexAiClient(httpClient, apiBaseUrl, config.aiModel)
+        val remediationCacheRepository = RemediationCacheRepositoryImpl(database)
+        RemediationServiceImpl(
+            aiClient = aiClient,
+            cacheRepository = remediationCacheRepository,
+            nvdRepository = nvdRepository,
+            epssService = epssService,
+            kevService = kevService
+        )
+    }.also {
+        if (it == null) logger.warn("AI_API_URL not configured — remediation endpoint will be unavailable")
+    }
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -185,7 +206,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
-        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
+        remediationService = remediationService
     )
 
     application.attributes.put(DependenciesKey, dependencies)

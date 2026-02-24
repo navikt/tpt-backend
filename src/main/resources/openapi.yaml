@@ -276,6 +276,57 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /vulnerabilities/remediation:
+    post:
+      summary: Stream AI-generated remediation guide for a vulnerability
+      description: |
+        Streams an AI-generated remediation guide for the given CVE and workload context using Server-Sent Events (SSE).
+        The guide is enriched with NVD description, CVSS score, CISA KEV status, and EPSS score.
+        Results are cached in PostgreSQL by CVE ID and package ecosystem to avoid redundant AI calls.
+        Requires `AI_API_URL` to be configured — returns 503 if the AI service is unavailable.
+        Use `fetch()` with `response.body.getReader()` to consume the stream on the client side.
+      tags:
+        - Vulnerabilities
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemediationRequest'
+      responses:
+        '200':
+          description: SSE stream of remediation text chunks. Each `data:` event contains a text fragment. A final `event:done` signals completion. Errors are sent as `event:error`.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: |
+                data: ## Risk Summary
+
+                data: This is a critical RCE vulnerability...
+
+                event: done
+                data:
+        '400':
+          description: Bad request - missing or invalid request body
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: AI service not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /sla/overdue:
     get:
       summary: Get SLA overdue report for user's teams
@@ -317,6 +368,30 @@ components:
       bearerFormat: JWT
       description: Bearer token authentication using JWT
   schemas:
+    RemediationRequest:
+      type: object
+      required:
+        - cveId
+        - workloadName
+        - environment
+        - packageName
+        - packageEcosystem
+      properties:
+        cveId:
+          type: string
+          example: CVE-2021-44228
+        workloadName:
+          type: string
+          example: my-api
+        environment:
+          type: string
+          example: production
+        packageName:
+          type: string
+          example: log4j-core
+        packageEcosystem:
+          type: string
+          example: MAVEN
     VulnResponse:
       type: object
       required:

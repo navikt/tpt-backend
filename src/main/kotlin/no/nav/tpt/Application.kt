@@ -23,6 +23,7 @@ import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
+import no.nav.tpt.routes.remediationRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
@@ -77,6 +78,7 @@ fun Application.module() {
         configRoutes()
         vulnRoutes()
         vulnerabilitySearchRoutes()
+        remediationRoutes()
         adminRoutes()
     }
 }

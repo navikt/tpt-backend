@@ -152,7 +152,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
-        adminGroups = null
+        adminGroups = null,
+        aiModel = "",
+        aiApiUrl = null
     )
 
     val dependencies = Dependencies(
@@ -174,7 +176,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
-        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
+        remediationService = null
     )
 
     application.attributes.put(DependenciesKey, dependencies)

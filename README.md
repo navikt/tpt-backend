@@ -16,6 +16,7 @@ src/main/kotlin/no/nav/tpt/
 │   └── vulnerability/                         # Vulnerability domain models and repository interface
 ├── infrastructure/                            # External integrations and technical implementations
 │   ├── admin/                                 # Admin data aggregation and queries
+│   ├── ai/                                    # AI client abstraction (Gemini on Vertex AI)
 │   ├── auth/                                  # Token introspection and authentication
 │   ├── cisa/                                  # CISA KEV catalog integration (PostgreSQL-backed)
 │   ├── config/                                # Application configuration
@@ -25,6 +26,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── kafka/                                 # Kafka consumer for GitHub repository events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── nvd/                                   # NVD database sync service and CVE data management
+│   ├── remediation/                           # AI remediation cache and service implementation
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
 │   ├── vulnerability/                         # Vulnerability data layer implementations
@@ -42,6 +44,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── ResponseHelpers.kt                     # RFC 9457 Problem Details error responses
 │   ├── VulnRoutes.kt                          # Vulnerability query endpoints
+│   ├── RemediationRoutes.kt                   # AI-powered remediation guide endpoint (SSE)
 │   └── VulnerabilitySearchRoutes.kt           # Vulnerability search and SLA endpoints
 └── Application.kt                             # Application entry point
 
@@ -76,6 +79,8 @@ src/test/                                      # Test suite mirroring main struc
 - `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
 - `KAFKA_TOPICS` - Comma-separated list of topics to consume
 - `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by Nais)
+- `AI_API_URL` - Vertex AI base URL for Gemini (e.g. `https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models`). If unset, the remediation endpoint returns 503.
+- `AI_MODEL` - Gemini model name (default: `gemini-2.5-flash`)
 
 Request NVD Api key at [NIST](https://nvd.nist.gov/developers/request-an-api-key) and subscribe to [NVD Technical Updates](https://www.nist.gov/itl/nvd).
 
@@ -102,6 +107,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
 - **Kafka** - Receives JSON data from other applications (optional)
+- **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
 
 Initial NVD sync takes ~1-2 hours on first deployment. Vulnerability data sync takes ~10-15 minutes per run.
 

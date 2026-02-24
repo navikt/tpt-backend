@@ -68,7 +68,9 @@ fun Application.installTestDependencies(
         nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
-        adminGroups = null
+        adminGroups = null,
+        aiModel = "gpt-null",
+        aiApiUrl = null
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
@@ -151,7 +153,8 @@ fun Application.installTestDependencies(
         gitHubRepository = gitHubRepository,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
-        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
+        remediationService = null
     )
 
     attributes.put(DependenciesKey, dependencies)
