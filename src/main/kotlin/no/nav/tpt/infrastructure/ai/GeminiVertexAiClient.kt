@@ -60,7 +60,7 @@ class GeminiVertexAiClient(
                 try {
                     val event = json.decodeFromString<GeminiStreamEvent>(data)
                     event.candidates?.firstOrNull()?.content?.parts?.forEach { part ->
-                        if (part.text.isNotEmpty()) emit(part.text)
+                        if (part.text.isNotEmpty()) send(part.text)
                     }
                 } catch (e: SerializationException) {
                     logger.warn("Failed to parse Gemini SSE event, skipping: $data", e)

@@ -32,8 +32,8 @@ class RemediationServiceImpl(
     override fun streamRemediation(request: RemediationRequest): Flow<String> = channelFlow {
         val cached = cacheRepository.getCached(request.cveId, request.packageEcosystem)
         if (cached != null) {
-            emit(cached.remediationText)
-            return@flow
+            send(cached.remediationText)
+            return@channelFlow
         }
 
         val nvdData = nvdRepository.getCveData(request.cveId)
@@ -47,7 +47,7 @@ class RemediationServiceImpl(
         val accumulated = StringBuilder()
         aiClient.streamCompletion(SYSTEM_PROMPT, userPrompt).collect { chunk ->
             accumulated.append(chunk)
-            emit(chunk)
+            send(chunk)
         }
 
         try {
