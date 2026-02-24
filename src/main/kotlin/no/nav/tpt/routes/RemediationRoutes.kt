@@ -7,9 +7,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import no.nav.tpt.domain.remediation.RemediationRequest
-import no.nav.tpt.plugins.InternalServerException
 import no.nav.tpt.plugins.ServiceUnavailableException
 import no.nav.tpt.plugins.dependencies
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("no.nav.tpt.routes.RemediationRoutes")
 
 fun Route.remediationRoutes() {
     authenticate("auth-bearer") {
@@ -30,7 +32,8 @@ fun Route.remediationRoutes() {
                     writeStringUtf8("event: done\ndata: \n\n")
                     flush()
                 } catch (e: Exception) {
-                    writeStringUtf8("event: error\ndata: ${e.message?.replace("\n", " ")}\n\n")
+                    logger.error("Error streaming remediation for CVE ${request.cveId}", e)
+                    writeStringUtf8("event: error\ndata: Failed to generate remediation\n\n")
                     flush()
                 }
             }

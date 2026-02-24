@@ -8,7 +8,7 @@ import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -33,7 +33,7 @@ class GeminiVertexAiClient(
         credentials.accessToken.tokenValue
     }
 
-    override fun streamCompletion(systemPrompt: String, userPrompt: String): Flow<String> = flow {
+    override fun streamCompletion(systemPrompt: String, userPrompt: String): Flow<String> = channelFlow {
         val token = accessToken()
         val url = "$apiBaseUrl/$model:streamGenerateContent?alt=sse"
 

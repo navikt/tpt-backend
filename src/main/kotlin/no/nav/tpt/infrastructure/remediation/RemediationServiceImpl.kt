@@ -1,7 +1,7 @@
 package no.nav.tpt.infrastructure.remediation
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
 import no.nav.tpt.domain.remediation.RemediationRequest
 import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.infrastructure.ai.AiClient
@@ -29,7 +29,7 @@ class RemediationServiceImpl(
     private val kevService: KevService
 ) : RemediationService {
 
-    override fun streamRemediation(request: RemediationRequest): Flow<String> = flow {
+    override fun streamRemediation(request: RemediationRequest): Flow<String> = channelFlow {
         val cached = cacheRepository.getCached(request.cveId, request.packageEcosystem)
         if (cached != null) {
             emit(cached.remediationText)
