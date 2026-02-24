@@ -42,10 +42,10 @@ spec:
     pool: nav-prod
   leaderElection: true
   liveness:
-    initialDelay: 10
+    initialDelay: 60
     path: isalive
   readiness:
-    initialDelay: 10
+    initialDelay: 60
     path: isready
   replicas:
     max: 2
