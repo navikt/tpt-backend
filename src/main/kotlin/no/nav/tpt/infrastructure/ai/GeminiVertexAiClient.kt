@@ -53,18 +53,24 @@ class GeminiVertexAiClient(
                 throw Exception("Vertex AI returned ${response.status.value}: $errorBody")
             }
             val channel = response.bodyAsChannel()
+            var finishReason: String? = null
             while (!channel.isClosedForRead) {
                 val line = channel.readLine() ?: break
                 if (!line.startsWith("data: ")) continue
                 val data = line.removePrefix("data: ")
                 try {
                     val event = json.decodeFromString<GeminiStreamEvent>(data)
-                    event.candidates?.firstOrNull()?.content?.parts?.forEach { part ->
+                    val candidate = event.candidates?.firstOrNull()
+                    candidate?.content?.parts?.forEach { part ->
                         if (part.text.isNotEmpty()) send(part.text)
                     }
+                    if (candidate?.finishReason != null) finishReason = candidate.finishReason
                 } catch (e: SerializationException) {
                     logger.warn("Failed to parse Gemini SSE event, skipping: $data", e)
                 }
+            }
+            if (finishReason != null && finishReason != "STOP") {
+                throw Exception("Gemini stream ended with finishReason=$finishReason — response may be incomplete")
             }
         }
     }
