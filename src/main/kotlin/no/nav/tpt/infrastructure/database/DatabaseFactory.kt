@@ -27,6 +27,9 @@ object DatabaseFactory {
             // Performance tuning
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_READ_COMMITTED"
+
+            // Rewrite batch inserts into multi-row INSERT statements
+            dataSourceProperties["reWriteBatchedInserts"] = "true"
         }
 
         val dataSource = HikariDataSource(hikariConfig)
