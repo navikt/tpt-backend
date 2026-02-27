@@ -27,9 +27,11 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
+import no.nav.tpt.routes.remediationRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
@@ -42,7 +44,8 @@ fun Application.installTestDependencies(
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
-    httpClient: HttpClient? = null
+    httpClient: HttpClient? = null,
+    remediationService: RemediationService? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -154,7 +157,7 @@ fun Application.installTestDependencies(
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = null
+        remediationService = remediationService
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -195,6 +198,24 @@ fun Application.testModule(
         vulnRoutes()
         vulnerabilitySearchRoutes()
         adminRoutes()
+    }
+}
+
+fun Application.remediationTestModule(
+    tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
+    remediationService: RemediationService? = null
+) {
+    installTestDependencies(tokenIntrospectionService, remediationService = remediationService)
+
+    install(ServerContentNegotiation) {
+        json(Json { prettyPrint = true; isLenient = true })
+    }
+
+    configureAuthentication(dependencies.tokenIntrospectionService)
+    configureStatusPages()
+
+    routing {
+        remediationRoutes()
     }
 }
 

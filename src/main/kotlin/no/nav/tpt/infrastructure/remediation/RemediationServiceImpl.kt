@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.remediation
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import no.nav.tpt.domain.remediation.RemediationException
 import no.nav.tpt.domain.remediation.RemediationRequest
 import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.infrastructure.ai.AiClient
@@ -36,18 +37,34 @@ class RemediationServiceImpl(
             return@channelFlow
         }
 
-        val nvdData = nvdRepository.getCveData(request.cveId)
-        val epssScores = epssService.getEpssScores(listOf(request.cveId))
+        val nvdData = try {
+            nvdRepository.getCveData(request.cveId)
+        } catch (e: Exception) {
+            throw RemediationException.DataFetchException("Failed to fetch NVD data for ${request.cveId}", e)
+        }
+        val epssScores = try {
+            epssService.getEpssScores(listOf(request.cveId))
+        } catch (e: Exception) {
+            throw RemediationException.DataFetchException("Failed to fetch EPSS scores for ${request.cveId}", e)
+        }
+        val kevCatalog = try {
+            kevService.getKevCatalog()
+        } catch (e: Exception) {
+            throw RemediationException.DataFetchException("Failed to fetch KEV catalog", e)
+        }
         val epssScore = epssScores[request.cveId]
-        val kevCatalog = kevService.getKevCatalog()
         val isKev = kevCatalog.vulnerabilities.any { it.cveID == request.cveId }
 
         val userPrompt = buildUserPrompt(request, nvdData, epssScore?.epss, epssScore?.percentile, isKev)
 
         val accumulated = StringBuilder()
-        aiClient.streamCompletion(SYSTEM_PROMPT, userPrompt).collect { chunk ->
-            accumulated.append(chunk)
-            send(chunk)
+        try {
+            aiClient.streamCompletion(SYSTEM_PROMPT, userPrompt).collect { chunk ->
+                accumulated.append(chunk)
+                send(chunk)
+            }
+        } catch (e: Exception) {
+            throw RemediationException.AiServiceException("AI service error for ${request.cveId}", e)
         }
 
         try {

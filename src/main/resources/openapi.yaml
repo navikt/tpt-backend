@@ -297,18 +297,35 @@ paths:
               $ref: '#/components/schemas/RemediationRequest'
       responses:
         '200':
-          description: SSE stream of remediation text chunks. Each `data:` event contains a text fragment. A final `event:done` signals completion. Errors are sent as `event:error`.
+          description: |
+            SSE stream of remediation text chunks. Each `data:` event contains a text fragment.
+            A final `event: done` signals successful completion.
+            On failure, an `event: error` is sent with a JSON payload: `{"code":"<error_code>","detail":"<message>"}`.
+            Possible error codes: `ai_service_error`, `data_fetch_error`, `internal_error`.
           content:
             text/event-stream:
               schema:
                 type: string
-              example: |
-                data: ## Risk Summary
+              examples:
+                success:
+                  summary: Successful stream
+                  value: |
+                    data: ## Risk Summary
 
-                data: This is a critical RCE vulnerability...
+                    data: This is a critical RCE vulnerability...
 
-                event: done
-                data:
+                    event: done
+                    data:
+                ai_error:
+                  summary: AI service failure
+                  value: |
+                    event: error
+                    data: {"code":"ai_service_error","detail":"AI service is temporarily unavailable"}
+                data_error:
+                  summary: Data fetch failure
+                  value: |
+                    event: error
+                    data: {"code":"data_fetch_error","detail":"Failed to fetch vulnerability data"}
         '400':
           description: Bad request - missing or invalid request body
           content:
