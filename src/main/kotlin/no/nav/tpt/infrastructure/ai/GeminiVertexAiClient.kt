@@ -40,7 +40,7 @@ class GeminiVertexAiClient(
         val request = GeminiChatRequest(
             contents = listOf(GeminiContent(role = "user", parts = listOf(GeminiPart(userPrompt)))),
             systemInstruction = GeminiSystemInstruction(parts = listOf(GeminiPart(systemPrompt))),
-            generationConfig = GeminiGenerationConfig(maxOutputTokens = 1024)
+            generationConfig = GeminiGenerationConfig(maxOutputTokens = 2048)
         )
 
         httpClient.preparePost(url) {
@@ -69,7 +69,9 @@ class GeminiVertexAiClient(
                     logger.warn("Failed to parse Gemini SSE event, skipping: $data", e)
                 }
             }
-            if (finishReason != null && finishReason != "STOP") {
+            if (finishReason == "MAX_TOKENS") {
+                logger.warn("Gemini stream hit token limit for request — response may be truncated")
+            } else if (finishReason != null && finishReason != "STOP") {
                 throw Exception("Gemini stream ended with finishReason=$finishReason — response may be incomplete")
             }
         }
