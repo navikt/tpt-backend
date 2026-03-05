@@ -89,6 +89,56 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /vulnerabilities/workload/{workloadId}/{identifier}:
+    get:
+      summary: Get full detail for a single vulnerability
+      description: Returns the complete vulnerability detail including risk score breakdown, CVSS score, and publish date. The workloadId and identifier are available from the GET /vulnerabilities/user response.
+      tags:
+        - Vulnerabilities
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: workloadId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Workload ID from VulnWorkloadDto.id
+          example: "app-1"
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            type: string
+          description: CVE identifier
+          example: "CVE-2024-1234"
+      responses:
+        '200':
+          description: Vulnerability detail found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnVulnerabilityDto'
+        '400':
+          description: Bad request - preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Workload or vulnerability not found for this user
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/github/user:
     get:
       summary: Get GitHub repository vulnerabilities for authenticated user
@@ -481,8 +531,39 @@ components:
         vulnerabilities:
           type: array
           items:
-            $ref: '#/components/schemas/VulnVulnerabilityDto'
+            $ref: '#/components/schemas/VulnVulnerabilitySummaryDto'
+    VulnVulnerabilitySummaryDto:
+      type: object
+      required:
+        - identifier
+        - riskScore
+      properties:
+        identifier:
+          type: string
+          description: Vulnerability identifier (e.g., CVE-2024-1234)
+          example: "CVE-2024-1234"
+        name:
+          type: string
+          nullable: true
+          description: Package name extracted from PURL identifier
+          example: "log4j-core"
+        packageName:
+          type: string
+          nullable: true
+          description: Package name affected by the vulnerability (PURL format)
+          example: "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+        description:
+          type: string
+          nullable: true
+          description: Human-readable description of the vulnerability
+          example: "A buffer overflow vulnerability in the X.509 certificate parser could allow remote code execution"
+        riskScore:
+          type: number
+          format: double
+          description: Calculated risk score. Higher scores indicate higher priority vulnerabilities.
+          example: 300.0
     VulnVulnerabilityDto:
+      description: Full vulnerability detail. Returned by GET /vulnerabilities/workload/{workloadId}/{identifier}.
       type: object
       required:
         - identifier

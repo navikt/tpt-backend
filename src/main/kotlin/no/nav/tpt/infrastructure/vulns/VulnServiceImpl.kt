@@ -3,6 +3,7 @@ package no.nav.tpt.infrastructure.vulns
 import no.nav.tpt.domain.VulnResponse
 import no.nav.tpt.domain.VulnTeamDto
 import no.nav.tpt.domain.VulnVulnerabilityDto
+import no.nav.tpt.domain.VulnVulnerabilitySummaryDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
@@ -99,14 +100,12 @@ class VulnServiceImpl(
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
-                    VulnVulnerabilityDto(
+                    VulnVulnerabilitySummaryDto(
                         identifier = vuln.identifier,
                         name = PurlParser.extractPackageName(vuln.packageName),
                         packageName = vuln.packageName,
                         description = vuln.description,
-                        vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
-                        riskScore = riskResult.score,
-                        riskScoreBreakdown = riskResult.breakdown
+                        riskScore = riskResult.score
                     )
                 }
 
@@ -136,6 +135,52 @@ class VulnServiceImpl(
         }
 
         return VulnResponse(userRole = userContext.role, teams = teams)
+    }
+
+    override suspend fun fetchVulnerabilityDetail(
+        workloadId: String,
+        identifier: String,
+        email: String
+    ): VulnVulnerabilityDto? {
+        val vulnerabilitiesData = vulnerabilityDataService.getVulnerabilitiesForUser(email)
+
+        val workload = vulnerabilitiesData.teams
+            .flatMap { it.workloads }
+            .firstOrNull { it.id == workloadId }
+            ?: return null
+
+        val vuln = workload.vulnerabilities.firstOrNull { it.identifier == identifier }
+            ?: return null
+
+        val enrichmentData = fetchCveEnrichmentData(listOf(identifier))
+        val buildDate = workload.imageTag?.let { tag -> ImageTagParser.extractBuildDate(tag) }
+        val cveData = enrichmentData.nvdData[identifier]
+
+        val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+            severity = vuln.severity,
+            ingressTypes = workload.ingressTypes,
+            hasKevEntry = enrichmentData.kevCveIds.contains(identifier),
+            epssScore = enrichmentData.epssScores[identifier]?.epss,
+            suppressed = vuln.suppressed,
+            environment = workload.environment,
+            buildDate = buildDate,
+            hasExploitReference = cveData?.hasExploitReference ?: false,
+            hasPatchReference = cveData?.hasPatchReference ?: false,
+            cveDaysOld = cveData?.daysOld
+        )
+        val riskResult = riskScorer.calculateRiskScore(riskContext)
+
+        return VulnVulnerabilityDto(
+            identifier = vuln.identifier,
+            name = PurlParser.extractPackageName(vuln.packageName),
+            packageName = vuln.packageName,
+            description = vuln.description,
+            vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
+            riskScore = riskResult.score,
+            riskScoreBreakdown = riskResult.breakdown,
+            cvssScore = cveData?.run { cvssV31Score ?: cvssV30Score ?: cvssV2Score },
+            publishedAt = cveData?.publishedDate?.toString()
+        )
     }
 
     override suspend fun fetchGitHubVulnerabilitiesForUser(email: String, groups: List<String>): no.nav.tpt.domain.GitHubVulnResponse {

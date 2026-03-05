@@ -132,6 +132,9 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`
 
+`GET /vulnerabilities/user` returns a slim summary payload (`identifier, name, packageName, description, riskScore` per vulnerability) for list/bucket views.
+`GET /vulnerabilities/workload/{workloadId}/{identifier}` returns full detail for a single vulnerability including `riskScoreBreakdown`, `cvssScore`, `publishedAt`, and `vulnerabilityDetailsLink`.
+
 ## Authentication
 
 Endpoints require a valid JWT Bearer token with:

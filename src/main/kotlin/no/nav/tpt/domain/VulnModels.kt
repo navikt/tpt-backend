@@ -23,7 +23,16 @@ data class VulnWorkloadDto(
     val environment: String?,
     val repository: String?,
     val lastDeploy: String?,
-    val vulnerabilities: List<VulnVulnerabilityDto>
+    val vulnerabilities: List<VulnVulnerabilitySummaryDto>
+)
+
+@Serializable
+data class VulnVulnerabilitySummaryDto(
+    val identifier: String,
+    val name: String?,
+    val packageName: String?,
+    val description: String?,
+    val riskScore: Double
 )
 
 @Serializable

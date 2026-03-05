@@ -27,6 +27,28 @@ fun Route.vulnRoutes() {
             }
         }
 
+        get("/vulnerabilities/workload/{workloadId}/{identifier}") {
+            val principal = call.principal<TokenPrincipal>()!!
+            val email = principal.preferredUsername
+                ?: throw BadRequestException("preferred_username claim not found in token")
+            val workloadId = call.parameters["workloadId"]
+                ?: throw BadRequestException("workloadId path parameter is required")
+            val identifier = call.parameters["identifier"]
+                ?: throw BadRequestException("identifier path parameter is required")
+
+            try {
+                val vulnService = call.dependencies.vulnService
+                val detail = vulnService.fetchVulnerabilityDetail(workloadId, identifier, email)
+                if (detail == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                } else {
+                    call.respond(HttpStatusCode.OK, detail)
+                }
+            } catch (e: Exception) {
+                throw InternalServerException("Failed to fetch vulnerability detail", e)
+            }
+        }
+
         rateLimit(RateLimitName("vulnerabilities-refresh")) {
             get("/vulnerabilities/refresh") {
                 val principal = call.principal<TokenPrincipal>()!!
