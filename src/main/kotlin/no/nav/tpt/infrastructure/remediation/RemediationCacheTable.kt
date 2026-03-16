@@ -1,7 +1,7 @@
 package no.nav.tpt.infrastructure.remediation
 
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.datetime
 
 object RemediationCacheTable : Table("remediation_cache") {
     val cveId = varchar("cve_id", 50)

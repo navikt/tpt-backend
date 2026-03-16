@@ -1,10 +1,10 @@
 package no.nav.tpt.infrastructure.cisa
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -12,7 +12,7 @@ class KevRepositoryImpl(private val database: Database) : KevRepository {
     private val logger = LoggerFactory.getLogger(KevRepositoryImpl::class.java)
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        suspendTransaction(database) {
             minRetryDelay = 100
             maxRetryDelay = 1000
             maxAttempts = 3

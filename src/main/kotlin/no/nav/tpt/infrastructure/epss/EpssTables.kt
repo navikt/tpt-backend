@@ -1,7 +1,7 @@
 package no.nav.tpt.infrastructure.epss
 
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
 object EpssScores : Table("epss_scores") {

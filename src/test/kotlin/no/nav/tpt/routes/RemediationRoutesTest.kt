@@ -110,4 +110,62 @@ class RemediationRoutesTest {
         assertTrue(body.contains("event: error"), "Expected 'event: error' in SSE body but got: $body")
         assertTrue(body.contains("data_fetch_error"), "Expected 'data_fetch_error' code in SSE error data but got: $body")
     }
+
+    @Test
+    fun `should return 400 when CVE ID format is invalid`() = testApplication {
+        application { remediationTestModule(remediationService = MockRemediationService()) }
+
+        val response = client.post("/vulnerabilities/remediation") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(validRequest.copy(cveId = "NOT-A-CVE")))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("Invalid CVE ID format"))
+    }
+
+    @Test
+    fun `should return 400 when field contains control characters`() = testApplication {
+        application { remediationTestModule(remediationService = MockRemediationService()) }
+
+        val response = client.post("/vulnerabilities/remediation") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(validRequest.copy(workloadName = "app\u0001name")))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("invalid characters"))
+    }
+
+    @Test
+    fun `should return 400 when field exceeds maximum length`() = testApplication {
+        application { remediationTestModule(remediationService = MockRemediationService()) }
+
+        val response = client.post("/vulnerabilities/remediation") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(validRequest.copy(workloadName = "a".repeat(101))))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("exceeds maximum length"))
+    }
+
+    @Test
+    fun `should return 400 with problem details format for validation errors`() = testApplication {
+        application { remediationTestModule(remediationService = MockRemediationService()) }
+
+        val response = client.post("/vulnerabilities/remediation") {
+            header(HttpHeaders.Authorization, "Bearer valid-token")
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(validRequest.copy(cveId = "INVALID")))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = response.bodyAsText()
+        assertTrue(body.contains("\"status\":400") || body.contains("\"status\": 400"))
+        assertTrue(body.contains("\"title\""))
+    }
 }

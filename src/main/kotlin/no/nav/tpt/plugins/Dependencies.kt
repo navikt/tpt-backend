@@ -60,7 +60,7 @@ class Dependencies(
     val naisApiService: NaisApiService,
     val kevService: KevService,
     val epssService: EpssService,
-    val database: org.jetbrains.exposed.sql.Database,
+    val database: org.jetbrains.exposed.v1.jdbc.Database,
     val nvdRepository: NvdRepository,
     val nvdSyncService: NvdSyncService,
     val leaderElection: LeaderElection,
