@@ -7,9 +7,9 @@ import no.nav.tpt.infrastructure.kafka.GitHubIdentifierMessage
 import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
 import no.nav.tpt.infrastructure.kafka.GitHubVulnerabilityMessage
 import org.flywaydb.core.Flyway
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.After
 import org.junit.Before
 import org.junit.Test

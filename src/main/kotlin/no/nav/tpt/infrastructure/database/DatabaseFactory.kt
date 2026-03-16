@@ -4,8 +4,9 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.tpt.infrastructure.config.AppConfig
 import org.flywaydb.core.Flyway
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.v1.core.DatabaseConfig
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 
@@ -44,10 +45,12 @@ object DatabaseFactory {
         val migrationsApplied = flyway.migrate()
         logger.info("Flyway migrations completed: ${migrationsApplied.migrationsExecuted} migrations applied")
 
-        val database = Database.connect(dataSource)
-
-        // Set transaction isolation level
-        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_READ_COMMITTED
+        val database = Database.connect(
+            dataSource,
+            databaseConfig = DatabaseConfig {
+                defaultIsolationLevel = Connection.TRANSACTION_READ_COMMITTED
+            }
+        )
 
         logger.info("Database connection initialized successfully")
 

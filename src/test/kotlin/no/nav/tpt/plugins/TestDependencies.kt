@@ -102,7 +102,7 @@ fun Application.installTestDependencies(
 
     // Stub database for tests - creates a minimal database instance that won't actually be used
     // Real database tests use testcontainers in specific integration tests
-    val stubDatabase = org.jetbrains.exposed.sql.Database.connect(
+    val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
         url = "jdbc:postgresql://stub:5432/stub",
         driver = "org.postgresql.Driver",
         user = "stub",

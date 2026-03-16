@@ -34,7 +34,7 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulns.MockVulnService
 import org.flywaydb.core.Flyway
-import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.containers.wait.strategy.WaitStrategy

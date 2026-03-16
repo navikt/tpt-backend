@@ -1,9 +1,9 @@
 package no.nav.tpt.infrastructure.nvd
 
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
-import org.jetbrains.exposed.sql.javatime.date
-import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
+import org.jetbrains.exposed.v1.javatime.date
+import org.jetbrains.exposed.v1.javatime.timestamp
 
 object NvdCves : Table("nvd_cves") {
     val cveId = varchar("cve_id", 20)

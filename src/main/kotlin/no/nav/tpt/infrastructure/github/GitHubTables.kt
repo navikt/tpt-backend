@@ -1,8 +1,8 @@
 package no.nav.tpt.infrastructure.github
 
-import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
 object GitHubRepositories : Table("github_repositories") {

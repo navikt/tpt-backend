@@ -1,15 +1,14 @@
 package no.nav.tpt.infrastructure.remediation
 
-import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.time.LocalDateTime
 
 class RemediationCacheRepositoryImpl(private val database: Database) : RemediationCacheRepository {
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+        suspendTransaction(database) { block() }
 
     override suspend fun getCached(cveId: String, packageEcosystem: String): CachedRemediation? =
         dbQuery {

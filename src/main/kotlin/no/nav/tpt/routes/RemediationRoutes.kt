@@ -28,6 +28,13 @@ fun Route.remediationRoutes() {
 
             val request = call.receive<RemediationRequest>()
 
+            try {
+                request.validate()
+            } catch (e: RemediationException.ValidationException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("title" to (e.message ?: "Invalid request"), "status" to 400))
+                return@post
+            }
+
             call.response.cacheControl(CacheControl.NoCache(null))
             call.respondBytesWriter(contentType = ContentType.Text.EventStream) {
                 try {

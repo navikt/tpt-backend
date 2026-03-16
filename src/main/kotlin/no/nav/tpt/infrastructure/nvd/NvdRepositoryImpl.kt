@@ -1,9 +1,10 @@
 package no.nav.tpt.infrastructure.nvd
 
-import kotlinx.coroutines.Dispatchers
+
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDateTime
@@ -14,7 +15,7 @@ class NvdRepositoryImpl(private val database: Database) : NvdRepository {
     private val json = Json { ignoreUnknownKeys = true }
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+        suspendTransaction(database) { block() }
 
     private fun LocalDateTime.toInstant(): Instant = this.toInstant(ZoneOffset.UTC)
 

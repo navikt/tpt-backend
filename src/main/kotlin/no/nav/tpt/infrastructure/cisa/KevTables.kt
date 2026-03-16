@@ -1,9 +1,9 @@
 package no.nav.tpt.infrastructure.cisa
 
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.timestamp
-import org.jetbrains.exposed.sql.json.json
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.timestamp
+import org.jetbrains.exposed.v1.json.json
 import java.time.Instant
 
 object KevCatalogMetadata : Table("kev_catalog_metadata") {

@@ -73,6 +73,10 @@ class RemediationServiceImpl(
             logger.warn("Failed to cache remediation for ${request.cveId}: ${e.message}")
         }
     }
+
+    private fun sanitize(value: String, maxLength: Int = 100): String =
+        value.replace(Regex("""[\p{Cntrl}]"""), "").take(maxLength)
+
     private fun buildUserPrompt(
         request: RemediationRequest,
         nvdData: NvdCveData?,
@@ -99,10 +103,10 @@ Vulnerability:
   EPSS Score: $epssLine
 
 Affected workload:
-  Application: ${request.workloadName}
-  Environment: ${request.environment}
-  Package: ${request.packageName}
-  Ecosystem: ${request.packageEcosystem}
+  Application: ${sanitize(request.workloadName)}
+  Environment: ${sanitize(request.environment, 50)}
+  Package: ${sanitize(request.packageName)}
+  Ecosystem: ${sanitize(request.packageEcosystem, 50)}
 
 Provide a structured response with:
 1. Risk summary (2-3 sentences on what is at risk and why it matters)

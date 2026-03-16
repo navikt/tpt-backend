@@ -1,8 +1,8 @@
 package no.nav.tpt.infrastructure.epss
 
-import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -10,7 +10,7 @@ class EpssRepositoryImpl(private val database: Database) : EpssRepository {
     private val logger = LoggerFactory.getLogger(EpssRepositoryImpl::class.java)
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+        suspendTransaction(database) { block() }
 
     override suspend fun getEpssScore(cveId: String): EpssScore? = dbQuery {
         EpssScores.selectAll().where { EpssScores.cveId eq cveId }
