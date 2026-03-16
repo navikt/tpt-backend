@@ -27,7 +27,7 @@ jobs:
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@ae613eff6f44f0323476eda1c3994a7c518761c3
+        uses: nais/docker-build-push@078e460885ed0424b60d45ce9220b4be1748be9d
         id: docker-push
         with:
           team: appsec
@@ -67,7 +67,7 @@ jobs:
         with:
           team: appsec
       - name: Scan docker image for secrets
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           image-ref: '${{ needs.test-build.outputs.image }}'
           format: 'sarif'
