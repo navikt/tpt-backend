@@ -11,6 +11,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.remediation.RemediationException
 import no.nav.tpt.domain.remediation.RemediationRequest
+import no.nav.tpt.plugins.BadRequestException
 import no.nav.tpt.plugins.ServiceUnavailableException
 import no.nav.tpt.plugins.dependencies
 import org.slf4j.LoggerFactory
@@ -31,8 +32,7 @@ fun Route.remediationRoutes() {
             try {
                 request.validate()
             } catch (e: RemediationException.ValidationException) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("title" to (e.message ?: "Invalid request"), "status" to 400))
-                return@post
+                throw BadRequestException(e.message ?: "Invalid request")
             }
 
             call.response.cacheControl(CacheControl.NoCache(null))

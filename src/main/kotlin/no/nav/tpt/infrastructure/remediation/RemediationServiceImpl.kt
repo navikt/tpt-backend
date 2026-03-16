@@ -13,6 +13,7 @@ import no.nav.tpt.infrastructure.nvd.NvdRepository
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger(RemediationServiceImpl::class.java)
+private val CONTROL_CHAR_REGEX = Regex("""[\p{Cntrl}]""")
 
 private val SYSTEM_PROMPT = """
 You are a security engineer. Your task is to generate a clear, actionable remediation guide for a specific software vulnerability affecting a workload.
@@ -75,7 +76,7 @@ class RemediationServiceImpl(
     }
 
     private fun sanitize(value: String, maxLength: Int = 100): String =
-        value.replace(Regex("""[\p{Cntrl}]"""), "").take(maxLength)
+        value.replace(CONTROL_CHAR_REGEX, "").take(maxLength)
 
     private fun buildUserPrompt(
         request: RemediationRequest,

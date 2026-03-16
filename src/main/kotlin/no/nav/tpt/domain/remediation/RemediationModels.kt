@@ -10,6 +10,7 @@ sealed class RemediationException(message: String, cause: Throwable? = null) : E
 
 private val CVE_ID_REGEX = Regex("""^CVE-\d{4}-\d{4,}$""")
 private val CONTROL_CHAR_REGEX = Regex("""[\p{Cntrl}]""")
+private const val CVE_ID_MAX_LENGTH = 50
 
 @Serializable
 data class RemediationRequest(
@@ -20,7 +21,8 @@ data class RemediationRequest(
     val packageEcosystem: String
 ) {
     fun validate() {
-        if (!CVE_ID_REGEX.matches(cveId)) throw RemediationException.ValidationException("Invalid CVE ID format: $cveId")
+        if (cveId.length > CVE_ID_MAX_LENGTH || !CVE_ID_REGEX.matches(cveId))
+            throw RemediationException.ValidationException("Invalid CVE ID format")
         listOf(
             "workloadName" to workloadName,
             "environment" to environment,
