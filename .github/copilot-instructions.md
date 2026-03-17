@@ -205,20 +205,26 @@ class ImageRendererFactory {
 ```
 
 ### Leader Election Pattern
+
+**CRITICAL: Every background sync job MUST call `leaderElection.startLeaderElectionChecks(this)` at startup.**
+Without it, `cachedLeaderStatus` defaults to `false` and leader-gated operations silently never run. The call is idempotent (safe to call from multiple sync jobs).
+
 ```kotlin
-class LeaderElection(private val httpClient: HttpClient) {
-    suspend fun isLeader(): Boolean {
-        val electorUrl = System.getenv("ELECTOR_PATH") ?: return true // Local dev
-        val response = httpClient.get(electorUrl)
-        val leaderInfo: LeaderInfo = response.body()
-        return hostname == leaderInfo.name
-    }
-    
-    suspend fun <T> ifLeader(operation: suspend () -> T): T? {
-        return if (isLeader()) operation() else null
+fun Application.configureMySync() {
+    val leaderElection = dependencies.leaderElection
+    leaderElection.startLeaderElectionChecks(this) // REQUIRED — must be called in every sync job
+
+    launch {
+        while (true) {
+            leaderElection.ifLeader { doWork() } // only runs on the elected leader pod
+            delay(interval)
+        }
     }
 }
 ```
+
+`ifLeader { }` uses a cached status polled every 60s via the Kubernetes elector sidecar (`ELECTOR_GET_URL`). When the env var is absent (local dev), the pod assumes it is the leader.
+
 
 ### Database Transaction Pattern
 ```kotlin

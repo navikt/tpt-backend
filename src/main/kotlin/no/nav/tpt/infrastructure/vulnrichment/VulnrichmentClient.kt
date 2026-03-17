@@ -1,121 +1,92 @@
 package no.nav.tpt.infrastructure.vulnrichment
 
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class VulnrichmentClient(
     private val httpClient: HttpClient,
-    private val baseUrl: String = "https://api.github.com/repos/cisagov/vulnrichment",
-    private val rawBaseUrl: String = "https://raw.githubusercontent.com/cisagov/vulnrichment/main",
+    private val baseUrl: String = "https://cveawg.mitre.org/api",
 ) {
     private val logger = LoggerFactory.getLogger(VulnrichmentClient::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    @Serializable
-    private data class GitHubCommit(
-        val sha: String,
-        val commit: CommitInfo,
-        val files: List<CommitFile>? = null,
-    )
+    private val consecutiveFailures = AtomicInteger(0)
+    private val circuitOpenUntilMs = AtomicLong(0L)
+    private val rateLimitedUntilMs = AtomicLong(0L)
 
-    @Serializable
-    private data class CommitInfo(
-        val author: CommitAuthor,
-    )
-
-    @Serializable
-    private data class CommitAuthor(
-        val date: String,
-    )
-
-    @Serializable
-    private data class CommitFile(
-        val filename: String,
-        val status: String,
-    )
-
-    suspend fun fetchChangedCveData(since: LocalDateTime): List<VulnrichmentData> {
-        val sinceStr = since.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        val result = mutableListOf<VulnrichmentData>()
-        var page = 1
-
-        while (true) {
-            val commits = try {
-                val response = httpClient.get("$baseUrl/commits") {
-                    parameter("since", sinceStr)
-                    parameter("per_page", 100)
-                    parameter("page", page)
-                }
-                if (!response.status.isSuccess()) {
-                    logger.warn("GitHub API returned ${response.status} for commits since $sinceStr")
-                    break
-                }
-                json.decodeFromString<List<GitHubCommit>>(response.bodyAsText())
-            } catch (e: Exception) {
-                logger.error("Failed to fetch Vulnrichment commits: ${e.message}")
-                break
-            }
-
-            if (commits.isEmpty()) break
-
-            val changedCveFiles = mutableSetOf<String>()
-            for (commit in commits) {
-                val commitDetail = fetchCommitDetail(commit.sha) ?: continue
-                commitDetail.files?.forEach { file ->
-                    if (file.filename.matches(Regex(".*/CVE-\\d{4}-\\d+\\.json")) &&
-                        file.status != "removed"
-                    ) {
-                        changedCveFiles.add(file.filename)
-                    }
-                }
-            }
-
-            for (filePath in changedCveFiles) {
-                parseCveFile(filePath)?.let { result.add(it) }
-            }
-
-            if (commits.size < 100) break
-            page++
-        }
-
-        return result
+    companion object {
+        private const val CIRCUIT_OPEN_THRESHOLD = 5
+        private const val CIRCUIT_OPEN_DURATION_MS = 60_000L
+        private const val DEFAULT_RETRY_AFTER_S = 60L
+        // ratelimit-remaining is in cost units (~837/request for a typical CVE record).
+        // Pause when fewer than ~1 request worth of quota remains in the current window.
+        private const val RATE_LIMIT_LOW_WATERMARK = 1000
     }
 
     suspend fun fetchCveData(cveId: String): VulnrichmentData? {
-        val year = cveId.substringAfter("CVE-").substringBefore("-")
-        val filePath = "$year/$cveId.json"
-        return parseCveFile(filePath)
-    }
+        val now = System.currentTimeMillis()
+        if (now < circuitOpenUntilMs.get()) {
+            logger.debug("Circuit open, skipping fetch for $cveId")
+            return null
+        }
+        if (now < rateLimitedUntilMs.get()) {
+            logger.debug("Rate limited, skipping fetch for $cveId")
+            return null
+        }
 
-    private suspend fun fetchCommitDetail(sha: String): GitHubCommit? {
         return try {
-            val response = httpClient.get("$baseUrl/commits/$sha")
-            if (!response.status.isSuccess()) return null
-            json.decodeFromString<GitHubCommit>(response.bodyAsText())
+            val response = httpClient.get("$baseUrl/cve/$cveId")
+            handleRateLimitHeaders(response)
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    consecutiveFailures.set(0)
+                    val cveJson = json.decodeFromString<CveJson5>(response.bodyAsText())
+                    extractSsvcDecisions(cveJson)
+                }
+                HttpStatusCode.NotFound -> null
+                HttpStatusCode.TooManyRequests -> {
+                    val retryAfter = response.headers[HttpHeaders.RetryAfter]?.toLongOrNull() ?: DEFAULT_RETRY_AFTER_S
+                    rateLimitedUntilMs.set(System.currentTimeMillis() + retryAfter * 1000)
+                    logger.warn("Rate limited (429) for $cveId, pausing ${retryAfter}s")
+                    null
+                }
+                else -> {
+                    recordFailure(response.status)
+                    null
+                }
+            }
         } catch (e: Exception) {
-            logger.warn("Failed to fetch commit detail for $sha: ${e.message}")
+            recordFailure(null)
+            logger.warn("Failed to fetch Vulnrichment data for $cveId: ${e.message}")
             null
         }
     }
 
-    private suspend fun parseCveFile(filePath: String): VulnrichmentData? {
-        return try {
-            val response = httpClient.get("$rawBaseUrl/$filePath")
-            if (!response.status.isSuccess()) return null
-            val cveJson = json.decodeFromString<CveJson5>(response.bodyAsText())
-            extractSsvcDecisions(cveJson)
-        } catch (e: Exception) {
-            logger.warn("Failed to parse Vulnrichment file $filePath: ${e.message}")
-            null
+    private fun handleRateLimitHeaders(response: HttpResponse) {
+        val remaining = response.headers["ratelimit-remaining"]?.toIntOrNull() ?: return
+        val limit = response.headers["ratelimit-limit"]?.toIntOrNull()
+        if (limit != null) {
+            logger.debug("CVE API rate limit: $remaining/$limit remaining")
+        }
+        if (remaining <= RATE_LIMIT_LOW_WATERMARK) {
+            val resetInSeconds = response.headers["ratelimit-reset"]?.toLongOrNull() ?: DEFAULT_RETRY_AFTER_S
+            rateLimitedUntilMs.set(System.currentTimeMillis() + resetInSeconds * 1000)
+            logger.warn("CVE API rate limit low ($remaining remaining), pausing for ${resetInSeconds}s")
+        }
+    }
+
+    private fun recordFailure(status: HttpStatusCode?) {
+        val count = consecutiveFailures.incrementAndGet()
+        if (count >= CIRCUIT_OPEN_THRESHOLD) {
+            circuitOpenUntilMs.set(System.currentTimeMillis() + CIRCUIT_OPEN_DURATION_MS)
+            consecutiveFailures.set(0)
+            logger.warn("Circuit breaker opened after $count failures (status=$status), pausing for ${CIRCUIT_OPEN_DURATION_MS / 1000}s")
         }
     }
 

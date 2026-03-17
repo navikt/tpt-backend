@@ -14,5 +14,5 @@ class MockVulnrichmentRepository : VulnrichmentRepository {
         data.forEach { this.data[it.cveId] = it }
     }
 
-    override suspend fun getLastUpdated(): LocalDateTime? = null
+    override suspend fun getStaleVulnrichmentIds(olderThan: LocalDateTime, limit: Int): List<String> = emptyList()
 }

@@ -1,5 +1,7 @@
 package no.nav.tpt.infrastructure.vulns
 
+import io.ktor.client.*
+import io.ktor.client.engine.mock.*
 import kotlinx.coroutines.test.runTest
 import no.nav.tpt.domain.user.MockUserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
@@ -10,7 +12,20 @@ import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.MockGitHubRepository
 import no.nav.tpt.infrastructure.nais.*
 import no.nav.tpt.infrastructure.nvd.MockNvdRepository
+import no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
+import no.nav.tpt.plugins.LeaderElection
 import kotlin.test.*
+
+private fun mockVulnrichmentSyncService(): VulnrichmentSyncService {
+    val mockClient = HttpClient(MockEngine { respondBadRequest() })
+    return VulnrichmentSyncService(
+        client = VulnrichmentClient(mockClient),
+        repository = MockVulnrichmentRepository(),
+        leaderElection = LeaderElection(mockClient),
+    )
+}
 
 // Helper to create a VulnerabilityDataService that delegates to NaisApiService
 private fun mockVulnerabilityDataService(naisApiService: NaisApiService): VulnerabilityDataService {
@@ -103,7 +118,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -163,7 +179,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-beta")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -203,7 +220,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-gamma")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -267,7 +285,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-delta")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -372,7 +391,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-one", "team-two")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -418,7 +438,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = emptyList()),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -478,7 +499,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -565,7 +587,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -629,7 +652,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha", "team-beta")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -712,7 +736,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -750,7 +775,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -825,7 +851,8 @@ class VulnServiceTest {
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")

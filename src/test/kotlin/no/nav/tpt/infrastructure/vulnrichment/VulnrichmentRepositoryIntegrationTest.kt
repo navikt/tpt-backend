@@ -11,9 +11,9 @@ import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @Testcontainers
@@ -164,22 +164,37 @@ class VulnrichmentRepositoryIntegrationTest {
     }
 
     @Test
-    fun `should get last updated timestamp after inserts`() = runTest {
+    fun `should return stale ids older than threshold`() = runTest {
         repository.upsertVulnrichmentData(listOf(
             VulnrichmentData("CVE-2024-TS-1", "active", "yes", "total"),
             VulnrichmentData("CVE-2024-TS-2", "none", "no", "partial"),
         ))
 
-        val lastUpdated = repository.getLastUpdated()
+        val stale = repository.getStaleVulnrichmentIds(LocalDateTime.now().plusDays(1))
 
-        assertNotNull(lastUpdated)
+        assertEquals(2, stale.size)
+        assertTrue(stale.containsAll(listOf("CVE-2024-TS-1", "CVE-2024-TS-2")))
     }
 
     @Test
-    fun `should return null for last updated when database is empty`() = runTest {
-        val lastUpdated = repository.getLastUpdated()
+    fun `should return empty list when no records are stale`() = runTest {
+        repository.upsertVulnrichmentData(listOf(
+            VulnrichmentData("CVE-2024-TS-1", "active", "yes", "total"),
+        ))
 
-        assertNull(lastUpdated)
+        val stale = repository.getStaleVulnrichmentIds(LocalDateTime.now().minusDays(1))
+
+        assertTrue(stale.isEmpty())
+    }
+
+    @Test
+    fun `should respect limit parameter for stale ids`() = runTest {
+        val batch = (1..10).map { i -> VulnrichmentData("CVE-2024-STALE-$i", "none", "no", "partial") }
+        repository.upsertVulnrichmentData(batch)
+
+        val stale = repository.getStaleVulnrichmentIds(LocalDateTime.now().plusDays(1), limit = 5)
+
+        assertEquals(5, stale.size)
     }
 
     @Test
@@ -198,7 +213,7 @@ class VulnrichmentRepositoryIntegrationTest {
     fun `should handle empty upsert gracefully`() = runTest {
         repository.upsertVulnrichmentData(emptyList())
 
-        assertNull(repository.getLastUpdated())
+        assertTrue(repository.getStaleVulnrichmentIds(LocalDateTime.now().plusDays(1)).isEmpty())
     }
 
     @Test

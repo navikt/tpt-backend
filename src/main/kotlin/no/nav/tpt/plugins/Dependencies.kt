@@ -166,6 +166,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         epssService = epssService,
         nvdRepository = nvdRepository,
         vulnrichmentRepository = vulnrichmentRepository,
+        vulnrichmentSyncService = vulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository

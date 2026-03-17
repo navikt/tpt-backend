@@ -14,6 +14,7 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
 import no.nav.tpt.infrastructure.vulns.utils.PurlParser
 import org.slf4j.LoggerFactory
 
@@ -23,6 +24,7 @@ class VulnServiceImpl(
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
     private val vulnrichmentRepository: VulnrichmentRepository,
+    private val vulnrichmentSyncService: VulnrichmentSyncService,
     private val riskScorer: RiskScorer,
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository
@@ -58,6 +60,11 @@ class VulnServiceImpl(
             .toSet()
         val epssScores = epssService.getEpssScores(cveIds)
         val nvdData = nvdRepository.getCveDataBatch(cveIds)
+        try {
+            vulnrichmentSyncService.ensureCached(cveIds)
+        } catch (e: Exception) {
+            logger.warn("Failed to ensure Vulnrichment cache, continuing without it: ${e.message}")
+        }
         val vulnrichmentData = try {
             vulnrichmentRepository.getVulnrichmentDataBatch(cveIds)
         } catch (e: Exception) {

@@ -245,4 +245,215 @@ class VulnrichmentClientTest {
 
         assertEquals("active", result?.exploitationStatus)
     }
+
+    @Test
+    fun `should parse real CVE API response format and extract SSVC decisions`() {
+        val realPayload = """
+            {
+              "dataType": "CVE_RECORD",
+              "dataVersion": "5.2",
+              "cveMetadata": {
+                "cveId": "CVE-2025-59472",
+                "assignerOrgId": "36234546-b8fa-4601-9d6f-f4e334aa8ea1",
+                "state": "PUBLISHED",
+                "assignerShortName": "hackerone",
+                "dateReserved": "2025-09-16T15:00:07.876Z",
+                "datePublished": "2026-01-26T21:43:05.099Z",
+                "dateUpdated": "2026-01-27T14:54:04.986Z"
+              },
+              "containers": {
+                "cna": {
+                  "descriptions": [{"lang": "en", "value": "A denial of service vulnerability..."}],
+                  "providerMetadata": {
+                    "orgId": "36234546-b8fa-4601-9d6f-f4e334aa8ea1",
+                    "shortName": "hackerone",
+                    "dateUpdated": "2026-01-26T21:43:05.099Z"
+                  }
+                },
+                "adp": [
+                  {
+                    "title": "CISA ADP Vulnrichment",
+                    "providerMetadata": {
+                      "orgId": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+                      "shortName": "CISA-ADP",
+                      "dateUpdated": "2026-01-27T14:54:04.986Z"
+                    },
+                    "metrics": [
+                      {
+                        "other": {
+                          "type": "ssvc",
+                          "content": {
+                            "timestamp": "2026-01-27T14:52:42.677682Z",
+                            "id": "CVE-2025-59472",
+                            "options": [
+                              {"Exploitation": "none"},
+                              {"Automatable": "no"},
+                              {"Technical Impact": "partial"}
+                            ],
+                            "role": "CISA Coordinator",
+                            "version": "2.0.3"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+        """.trimIndent()
+
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val cveJson = json.decodeFromString<CveJson5>(realPayload)
+        val result = client.extractSsvcDecisions(cveJson)
+
+        assertEquals("CVE-2025-59472", result?.cveId)
+        assertEquals("none", result?.exploitationStatus)
+        assertEquals("no", result?.automatable)
+        assertEquals("partial", result?.technicalImpact)
+    }
+
+    @Test
+    fun `should return null when real response has no CISA-ADP container`() {
+        val payloadWithoutAdp = """
+            {
+              "dataType": "CVE_RECORD",
+              "dataVersion": "5.2",
+              "cveMetadata": {"cveId": "CVE-2025-11111"},
+              "containers": {
+                "cna": {
+                  "descriptions": [{"lang": "en", "value": "A vulnerability..."}],
+                  "providerMetadata": {"shortName": "vendor"}
+                }
+              }
+            }
+        """.trimIndent()
+
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val cveJson = json.decodeFromString<CveJson5>(payloadWithoutAdp)
+        val result = client.extractSsvcDecisions(cveJson)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `should fetch CVE data via HTTP and parse real API response format`() = kotlinx.coroutines.test.runTest {
+        val realPayload = """
+            {
+              "dataType": "CVE_RECORD",
+              "dataVersion": "5.2",
+              "cveMetadata": {"cveId": "CVE-2025-59472"},
+              "containers": {
+                "adp": [{
+                  "providerMetadata": {"shortName": "CISA-ADP"},
+                  "metrics": [{
+                    "other": {
+                      "type": "ssvc",
+                      "content": {
+                        "options": [
+                          {"Exploitation": "active"},
+                          {"Automatable": "yes"},
+                          {"Technical Impact": "total"}
+                        ]
+                      }
+                    }
+                  }]
+                }]
+              }
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine { request ->
+            if (request.url.encodedPath.contains("CVE-2025-59472")) {
+                respond(
+                    content = realPayload,
+                    headers = io.ktor.http.headersOf(
+                        io.ktor.http.HttpHeaders.ContentType,
+                        io.ktor.http.ContentType.Application.Json.toString()
+                    )
+                )
+            } else {
+                respondBadRequest()
+            }
+        }
+        val fetchClient = VulnrichmentClient(HttpClient(mockEngine))
+
+        val result = fetchClient.fetchCveData("CVE-2025-59472")
+
+        assertEquals("CVE-2025-59472", result?.cveId)
+        assertEquals("active", result?.exploitationStatus)
+        assertEquals("yes", result?.automatable)
+        assertEquals("total", result?.technicalImpact)
+    }
+
+    @Test
+    fun `should return null when CVE API returns non-success status`() = kotlinx.coroutines.test.runTest {
+        val notFoundClient = VulnrichmentClient(HttpClient(MockEngine { respondError(io.ktor.http.HttpStatusCode.NotFound) }))
+
+        val result = notFoundClient.fetchCveData("CVE-2025-99999")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `should open circuit breaker after 5 consecutive server errors and skip subsequent requests`() = kotlinx.coroutines.test.runTest {
+        var callCount = 0
+        val failClient = VulnrichmentClient(HttpClient(MockEngine {
+            callCount++
+            respondError(io.ktor.http.HttpStatusCode.InternalServerError)
+        }))
+
+        repeat(5) { failClient.fetchCveData("CVE-2024-0001") }
+        val countAfterFailures = callCount
+
+        val result = failClient.fetchCveData("CVE-2024-0002")
+
+        assertNull(result)
+        assertEquals(countAfterFailures, callCount)
+    }
+
+    @Test
+    fun `should not call API when rate limited by 429 response with Retry-After header`() = kotlinx.coroutines.test.runTest {
+        var callCount = 0
+        val rateLimitClient = VulnrichmentClient(HttpClient(MockEngine {
+            callCount++
+            respond(
+                content = "",
+                status = io.ktor.http.HttpStatusCode.TooManyRequests,
+                headers = io.ktor.http.headersOf(io.ktor.http.HttpHeaders.RetryAfter, "60"),
+            )
+        }))
+
+        rateLimitClient.fetchCveData("CVE-2024-0001")
+        val countAfterRateLimit = callCount
+
+        val result = rateLimitClient.fetchCveData("CVE-2024-0002")
+
+        assertNull(result)
+        assertEquals(countAfterRateLimit, callCount)
+    }
+
+    @Test
+    fun `should not call API when ratelimit-remaining is at or below low watermark`() = kotlinx.coroutines.test.runTest {
+        var callCount = 0
+        val minimalPayload = """{"cveMetadata":{"cveId":"CVE-2024-0001"},"containers":{}}"""
+        val rateLimitClient = VulnrichmentClient(HttpClient(MockEngine {
+            callCount++
+            respond(
+                content = minimalPayload,
+                headers = io.ktor.http.Headers.build {
+                    append(io.ktor.http.HttpHeaders.ContentType, io.ktor.http.ContentType.Application.Json.toString())
+                    append("ratelimit-remaining", "500") // below 1000 watermark
+                    append("ratelimit-reset", "30")      // seconds until window reset
+                },
+            )
+        }))
+
+        rateLimitClient.fetchCveData("CVE-2024-0001")
+        val countAfterExhausted = callCount
+
+        val result = rateLimitClient.fetchCveData("CVE-2024-0002")
+
+        assertNull(result)
+        assertEquals(countAfterExhausted, callCount)
+    }
 }

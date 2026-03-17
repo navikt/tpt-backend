@@ -62,12 +62,12 @@ class VulnrichmentRepositoryImpl(private val database: Database) : VulnrichmentR
         logger.info("Upserted ${data.size} Vulnrichment records")
     }
 
-    override suspend fun getLastUpdated(): LocalDateTime? = dbQuery {
-        VulnrichmentTable.select(VulnrichmentTable.lastUpdated)
-            .orderBy(VulnrichmentTable.lastUpdated, SortOrder.DESC)
-            .limit(1)
-            .map { it[VulnrichmentTable.lastUpdated].atZone(java.time.ZoneId.of("UTC")).toLocalDateTime() }
-            .singleOrNull()
+    override suspend fun getStaleVulnrichmentIds(olderThan: LocalDateTime, limit: Int): List<String> = dbQuery {
+        val threshold = olderThan.toInstant(java.time.ZoneOffset.UTC)
+        VulnrichmentTable.select(VulnrichmentTable.cveId)
+            .where { VulnrichmentTable.lastUpdated less threshold }
+            .limit(limit)
+            .map { it[VulnrichmentTable.cveId] }
     }
 
     private fun toVulnrichmentData(row: ResultRow): VulnrichmentData? {

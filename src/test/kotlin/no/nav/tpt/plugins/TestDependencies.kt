@@ -92,12 +92,19 @@ fun Application.installTestDependencies(
 
     val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
 
+    val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
+        client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
+        repository = mockVulnrichmentRepository,
+        leaderElection = LeaderElection(client),
+    )
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = MockEpssService(),
         nvdRepository = MockNvdRepository(),
         vulnrichmentRepository = mockVulnrichmentRepository,
+        vulnrichmentSyncService = mockVulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
@@ -162,11 +169,7 @@ fun Application.installTestDependencies(
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         remediationService = remediationService,
         vulnrichmentRepository = mockVulnrichmentRepository,
-        vulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
-            client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
-            repository = mockVulnrichmentRepository,
-            leaderElection = mockLeaderElection,
-        ),
+        vulnrichmentSyncService = mockVulnrichmentSyncService,
     )
 
     attributes.put(DependenciesKey, dependencies)
