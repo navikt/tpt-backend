@@ -1,4 +1,453 @@
 {
   "userRole": "DEVELOPER",
-  "teams": []
+  "teams": [
+    {
+      "team": "team-lokal-utvikler",
+      "workloads": [
+        {
+          "id": "payment-api",
+          "name": "payment-api",
+          "workloadType": "app",
+          "environment": "prod-gcp",
+          "repository": "navikt/payment-api",
+          "lastDeploy": "2024-10-15T08:30:00.000Z",
+          "vulnerabilities": [
+            {
+              "identifier": "CVE-2021-44228",
+              "name": "log4j-core",
+              "packageName": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+              "description": "Apache Log4j2 JNDI features do not protect against attacker-controlled LDAP and other endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code via JNDI.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+              "riskScore": 93.0,
+              "riskScoreBreakdown": {
+                "totalScore": 93.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 30,
+                    "maxPoints": 30,
+                    "explanation": "Active exploitation confirmed (CISA KEV)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "severity",
+                    "points": 25,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: CRITICAL (25/25 points)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 20,
+                    "maxPoints": 25,
+                    "explanation": "Application is externally accessible",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 13,
+                    "maxPoints": 15,
+                    "explanation": "Environment: prod-gcp, build age >90 days (+3)",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 5,
+                    "maxPoints": 10,
+                    "explanation": "Patch is available",
+                    "impact": "MEDIUM"
+                  }
+                ]
+              },
+              "publishedAt": "2021-12-10T10:00:00Z",
+              "cvssScore": 10.0
+            },
+            {
+              "identifier": "CVE-2024-23897",
+              "name": "jenkins",
+              "packageName": "pkg:maven/org.jenkins-ci.main/jenkins-core@2.441",
+              "description": "Jenkins CLI allows unauthenticated attackers to read arbitrary files via the args4j library path traversal.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2024-23897",
+              "riskScore": 82.0,
+              "riskScoreBreakdown": {
+                "totalScore": 82.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 30,
+                    "maxPoints": 30,
+                    "explanation": "Active exploitation confirmed (SSVC/Vulnrichment)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "severity",
+                    "points": 25,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: CRITICAL (25/25 points)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 10,
+                    "maxPoints": 25,
+                    "explanation": "Application is only internally accessible (automatable: exploit chain can be scripted)",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 12,
+                    "maxPoints": 15,
+                    "explanation": "Environment: prod-gcp, CVE age >365 days (+2)",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 5,
+                    "maxPoints": 10,
+                    "explanation": "Linked to known ransomware campaigns",
+                    "impact": "MEDIUM"
+                  }
+                ]
+              },
+              "publishedAt": "2024-01-24T00:00:00Z",
+              "cvssScore": 9.8
+            },
+            {
+              "identifier": "CVE-2024-38816",
+              "name": "spring-webmvc",
+              "packageName": "pkg:maven/org.springframework/spring-webmvc@6.1.10",
+              "description": "Spring Framework allows path traversal attacks via crafted HTTP requests to a web application with static resource handling configured.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2024-38816",
+              "riskScore": 70.0,
+              "riskScoreBreakdown": {
+                "totalScore": 70.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "severity",
+                    "points": 18,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: HIGH (18/25 points)",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 22,
+                    "maxPoints": 30,
+                    "explanation": "Exploit probability: 0.78 (EPSS)",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 20,
+                    "maxPoints": 25,
+                    "explanation": "Application is externally accessible",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 10,
+                    "maxPoints": 15,
+                    "explanation": "Environment: prod-gcp",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 0,
+                    "maxPoints": 10,
+                    "explanation": "No patch or ransomware data",
+                    "impact": "NONE"
+                  }
+                ]
+              },
+              "publishedAt": "2024-09-13T00:00:00Z",
+              "cvssScore": 7.5
+            },
+            {
+              "identifier": "CVE-2023-44487",
+              "name": "netty-codec-http2",
+              "packageName": "pkg:maven/io.netty/netty-codec-http2@4.1.94.Final",
+              "description": "HTTP/2 Rapid Reset Attack can cause denial of service.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487",
+              "riskScore": 17.0,
+              "riskScoreBreakdown": {
+                "totalScore": 17.0,
+                "suppressed": true,
+                "factors": [
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 30,
+                    "maxPoints": 30,
+                    "explanation": "Active exploitation confirmed (CISA KEV)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "severity",
+                    "points": 18,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: HIGH (18/25 points)",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 20,
+                    "maxPoints": 25,
+                    "explanation": "Application is externally accessible",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 10,
+                    "maxPoints": 15,
+                    "explanation": "Environment: prod-gcp",
+                    "impact": "HIGH"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 5,
+                    "maxPoints": 10,
+                    "explanation": "Patch is available",
+                    "impact": "MEDIUM"
+                  }
+                ]
+              },
+              "publishedAt": "2023-10-10T00:00:00Z",
+              "cvssScore": 7.5
+            }
+          ]
+        },
+        {
+          "id": "auth-service",
+          "name": "auth-service",
+          "workloadType": "app",
+          "environment": "staging-gcp",
+          "repository": "navikt/auth-service",
+          "lastDeploy": "2025-12-01T14:00:00.000Z",
+          "vulnerabilities": [
+            {
+              "identifier": "CVE-2024-45337",
+              "name": "golang.org/x/crypto",
+              "packageName": "pkg:golang/golang.org/x/crypto@v0.27.0",
+              "description": "Misuse of ServerConfig.PublicKeyCallback may cause authorization bypass in golang.org/x/crypto.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2024-45337",
+              "riskScore": 39.0,
+              "riskScoreBreakdown": {
+                "totalScore": 39.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "severity",
+                    "points": 12,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: MEDIUM (12/25 points)",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 12,
+                    "maxPoints": 25,
+                    "explanation": "Application requires authentication",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 10,
+                    "maxPoints": 30,
+                    "explanation": "Exploit probability: 0.42 (EPSS)",
+                    "impact": "LOW"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 5,
+                    "maxPoints": 15,
+                    "explanation": "Environment: staging-gcp",
+                    "impact": "LOW"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 0,
+                    "maxPoints": 10,
+                    "explanation": "No patch or ransomware data",
+                    "impact": "NONE"
+                  }
+                ]
+              },
+              "publishedAt": "2024-12-11T00:00:00Z",
+              "cvssScore": 9.1
+            },
+            {
+              "identifier": "CVE-2025-21502",
+              "name": "jdk",
+              "packageName": "pkg:maven/com.oracle.java/jdk@21.0.5",
+              "description": "Vulnerability in the Oracle Java SE component. Difficult to exploit but could allow unauthenticated attacker to compromise Java SE.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2025-21502",
+              "riskScore": 15.0,
+              "riskScoreBreakdown": {
+                "totalScore": 15.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "severity",
+                    "points": 5,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: LOW (5/25 points)",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 5,
+                    "maxPoints": 25,
+                    "explanation": "Application is only internally accessible",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 5,
+                    "maxPoints": 30,
+                    "explanation": "Exploit probability: 0.15 (EPSS)",
+                    "impact": "LOW"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 0,
+                    "maxPoints": 15,
+                    "explanation": "Environment: staging-gcp",
+                    "impact": "NONE"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 0,
+                    "maxPoints": 10,
+                    "explanation": "No patch or ransomware data",
+                    "impact": "NONE"
+                  }
+                ]
+              },
+              "publishedAt": "2025-01-21T00:00:00Z",
+              "cvssScore": 3.7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "team": "team-b",
+      "workloads": [
+        {
+          "id": "data-processor",
+          "name": "data-processor",
+          "workloadType": "job",
+          "environment": "dev-gcp",
+          "repository": "navikt/data-processor",
+          "lastDeploy": "2026-01-28T09:00:00.000Z",
+          "vulnerabilities": [
+            {
+              "identifier": "CVE-2024-47561",
+              "name": "avro",
+              "packageName": "pkg:maven/org.apache.avro/avro@1.11.3",
+              "description": "Schema parsing in the Java SDK of Apache Avro allows bad actors to execute arbitrary code.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2024-47561",
+              "riskScore": 65.0,
+              "riskScoreBreakdown": {
+                "totalScore": 65.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "severity",
+                    "points": 25,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: CRITICAL (25/25 points)",
+                    "impact": "CRITICAL"
+                  },
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 18,
+                    "maxPoints": 30,
+                    "explanation": "Exploit PoC confirmed (SSVC/Vulnrichment)",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 12,
+                    "maxPoints": 25,
+                    "explanation": "Application requires authentication",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 5,
+                    "maxPoints": 15,
+                    "explanation": "Environment: dev-gcp, build age >90 days (+3)",
+                    "impact": "LOW"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 5,
+                    "maxPoints": 10,
+                    "explanation": "Patch is available",
+                    "impact": "MEDIUM"
+                  }
+                ]
+              },
+              "publishedAt": "2024-10-03T00:00:00Z",
+              "cvssScore": 9.8
+            },
+            {
+              "identifier": "CVE-2024-29025",
+              "name": "netty-codec-http",
+              "packageName": "pkg:maven/io.netty/netty-codec-http@4.1.107.Final",
+              "description": "Netty's HttpPostRequestDecoder can OOM on large multipart form data when memory allocation exceeds the limit.",
+              "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-2024-29025",
+              "riskScore": 12.0,
+              "riskScoreBreakdown": {
+                "totalScore": 12.0,
+                "suppressed": false,
+                "factors": [
+                  {
+                    "name": "severity",
+                    "points": 12,
+                    "maxPoints": 25,
+                    "explanation": "Base severity: MEDIUM (12/25 points)",
+                    "impact": "MEDIUM"
+                  },
+                  {
+                    "name": "exploitation_evidence",
+                    "points": 0,
+                    "maxPoints": 30,
+                    "explanation": "No exploitation evidence found",
+                    "impact": "NONE"
+                  },
+                  {
+                    "name": "exposure",
+                    "points": 0,
+                    "maxPoints": 25,
+                    "explanation": "Application has no ingress",
+                    "impact": "NONE"
+                  },
+                  {
+                    "name": "environment",
+                    "points": 0,
+                    "maxPoints": 15,
+                    "explanation": "Environment: dev-gcp",
+                    "impact": "NONE"
+                  },
+                  {
+                    "name": "actionability",
+                    "points": 0,
+                    "maxPoints": 10,
+                    "explanation": "No patch or ransomware data",
+                    "impact": "NONE"
+                  }
+                ]
+              },
+              "publishedAt": "2024-03-25T00:00:00Z",
+              "cvssScore": 5.3
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
