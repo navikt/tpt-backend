@@ -17,7 +17,13 @@ fun Application.configureVulnrichmentSync() {
         delay(1.hours)
         while (true) {
             try {
-                syncService.refreshStale()
+                if (leaderElection.isLeader()) {
+                    logger.info("This pod is the leader - starting scheduled Vulnrichment stale refresh")
+                    syncService.refreshStale()
+                    logger.info("Scheduled Vulnrichment stale refresh completed")
+                } else {
+                    logger.debug("This pod is not the leader - skipping Vulnrichment stale refresh")
+                }
             } catch (e: Exception) {
                 logger.error("Vulnrichment stale refresh failed: ${e.message}", e)
             }

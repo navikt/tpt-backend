@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import no.nav.tpt.plugins.LeaderElection
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
@@ -12,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap
 class VulnrichmentSyncService(
     private val client: VulnrichmentClient,
     private val repository: VulnrichmentRepository,
-    private val leaderElection: LeaderElection,
     private val backgroundScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
 ) {
     private val logger = LoggerFactory.getLogger(VulnrichmentSyncService::class.java)
@@ -38,14 +36,12 @@ class VulnrichmentSyncService(
     }
 
     suspend fun refreshStale(olderThan: LocalDateTime = LocalDateTime.now().minusDays(30)) {
-        leaderElection.ifLeader {
-            val stale = repository.getStaleVulnrichmentIds(olderThan)
-            if (stale.isEmpty()) return@ifLeader
+        val stale = repository.getStaleVulnrichmentIds(olderThan)
+        if (stale.isEmpty()) return
 
-            logger.info("Refreshing ${stale.size} stale Vulnrichment records")
-            val refreshed = stale.mapNotNull { client.fetchCveData(it) }
-            if (refreshed.isNotEmpty()) repository.upsertVulnrichmentData(refreshed)
-        }
+        logger.info("Refreshing ${stale.size} stale Vulnrichment records")
+        val refreshed = stale.mapNotNull { client.fetchCveData(it) }
+        if (refreshed.isNotEmpty()) repository.upsertVulnrichmentData(refreshed)
     }
 }
 

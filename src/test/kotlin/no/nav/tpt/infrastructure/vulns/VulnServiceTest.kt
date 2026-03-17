@@ -19,11 +19,9 @@ import no.nav.tpt.plugins.LeaderElection
 import kotlin.test.*
 
 private fun mockVulnrichmentSyncService(): VulnrichmentSyncService {
-    val mockClient = HttpClient(MockEngine { respondBadRequest() })
     return VulnrichmentSyncService(
-        client = VulnrichmentClient(mockClient),
+        client = VulnrichmentClient(HttpClient(MockEngine { respondBadRequest() })),
         repository = MockVulnrichmentRepository(),
-        leaderElection = LeaderElection(mockClient),
     )
 }
 

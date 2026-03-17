@@ -124,7 +124,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
         client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(httpClient),
         repository = mockVulnrichmentRepository,
-        leaderElection = leaderElection,
     )
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     

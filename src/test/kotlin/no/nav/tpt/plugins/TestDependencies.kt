@@ -95,7 +95,6 @@ fun Application.installTestDependencies(
     val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
         client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
         repository = mockVulnrichmentRepository,
-        leaderElection = LeaderElection(client),
     )
 
     val vulnService = VulnServiceImpl(

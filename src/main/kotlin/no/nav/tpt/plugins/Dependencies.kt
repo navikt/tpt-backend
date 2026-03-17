@@ -158,7 +158,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
     val vulnrichmentClient = VulnrichmentClient(httpClient)
-    val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository, leaderElection)
+    val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
 
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
