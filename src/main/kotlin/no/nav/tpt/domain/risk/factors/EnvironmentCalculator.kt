@@ -36,7 +36,9 @@ class EnvironmentCalculator(private val config: RiskScoringConfig) : FactorCalcu
     private fun getBaseEnvironmentPoints(environment: String?): Int {
         if (environment == null) return config.environmentDevelopmentPoints
         return when {
-            environment.startsWith("prod-", ignoreCase = true) -> config.environmentProductionPoints
+            environment.equals("prod", ignoreCase = true) ||
+                    environment.equals("production", ignoreCase = true) ||
+                    environment.startsWith("prod-", ignoreCase = true) -> config.environmentProductionPoints
             environment.startsWith("staging", ignoreCase = true) ||
                     environment.startsWith("pre-prod", ignoreCase = true) -> config.environmentStagingPoints
             else -> config.environmentDevelopmentPoints

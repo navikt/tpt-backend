@@ -30,8 +30,13 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             val hasKev = factor.metadata["hasKevEntry"] as? Boolean ?: false
             val epss = factor.metadata["epssScore"] as? String
             val hasPoc = factor.metadata["hasExploitReference"] as? Boolean ?: false
+            val ssvc = factor.metadata["ssvcExploitation"] as? String
             when {
+                ssvc?.equals("active", ignoreCase = true) == true ->
+                    "Active exploitation confirmed (SSVC/Vulnrichment)"
                 hasKev -> "Active exploitation confirmed (CISA KEV)"
+                ssvc?.equals("poc", ignoreCase = true) == true ->
+                    "Exploit PoC confirmed (SSVC/Vulnrichment)"
                 hasPoc && epss != null && epss != "unknown" ->
                     "Exploit PoC available, EPSS: $epss"
                 hasPoc -> "Exploit PoC available"
@@ -41,10 +46,13 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
         }
         "exposure" -> {
             val exposureType = factor.metadata["exposureType"] as? String ?: "unknown"
+            val automatable = factor.metadata["automatable"] as? String
+            val automatableSuffix = if (automatable?.equals("yes", ignoreCase = true) == true)
+                " (automatable: exploit chain can be scripted)" else ""
             when (exposureType) {
-                "external" -> "Application is externally accessible"
-                "authenticated" -> "Application requires authentication"
-                "internal" -> "Application is only internally accessible"
+                "external" -> "Application is externally accessible$automatableSuffix"
+                "authenticated" -> "Application requires authentication$automatableSuffix"
+                "internal" -> "Application is only internally accessible$automatableSuffix"
                 "none" -> "Application has no ingress"
                 else -> "Unknown exposure type"
             }

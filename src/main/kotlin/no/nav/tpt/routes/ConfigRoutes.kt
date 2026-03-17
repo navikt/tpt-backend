@@ -22,7 +22,8 @@ fun Route.configRoutes() {
             scoring = RiskScoringCategories(
                 severityMax = defaultScoringConfig.severityCriticalPoints,
                 exploitationMax = defaultScoringConfig.exploitationActivePoints,
-                exposureMax = defaultScoringConfig.exposureExternalPoints,
+                exposureMax = defaultScoringConfig.exposureExternalPoints +
+                        defaultScoringConfig.exposureAutomatableBonus,
                 environmentMax = defaultScoringConfig.environmentProductionPoints +
                         defaultScoringConfig.environmentOldBuildBonus +
                         defaultScoringConfig.environmentChronicCveBonus,

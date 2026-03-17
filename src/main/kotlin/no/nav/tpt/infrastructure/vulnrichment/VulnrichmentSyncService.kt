@@ -11,6 +11,16 @@ class VulnrichmentSyncService(
 ) {
     private val logger = LoggerFactory.getLogger(VulnrichmentSyncService::class.java)
 
+    suspend fun needsInitialSync(): Boolean = repository.getLastUpdated() == null
+
+    suspend fun performInitialSync() {
+        leaderElection.ifLeader {
+            logger.info("Performing Vulnrichment initial sync (fetching from 2023-01-01)")
+            val initialSince = LocalDateTime.of(2023, 1, 1, 0, 0)
+            fetchAndStore(initialSince)
+        }
+    }
+
     suspend fun sync() {
         leaderElection.ifLeader { performSync() }
     }
@@ -20,11 +30,14 @@ class VulnrichmentSyncService(
             ?: LocalDateTime.now().minusDays(30)
 
         logger.info("Starting Vulnrichment sync since $since")
+        fetchAndStore(since)
+    }
 
+    private suspend fun fetchAndStore(since: LocalDateTime) {
         val changed = try {
             client.fetchChangedCveData(since)
         } catch (e: Exception) {
-            logger.error("Failed to fetch Vulnrichment data: ${e.message}")
+            logger.error("Failed to fetch Vulnrichment data since $since: ${e.message}")
             return
         }
 

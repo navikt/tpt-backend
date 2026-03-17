@@ -32,7 +32,7 @@ class ConfigRoutesTest {
         assertEquals(false, config.aiEnabled)
         assertEquals(25, config.scoring.severityMax)
         assertEquals(30, config.scoring.exploitationMax)
-        assertEquals(20, config.scoring.exposureMax)
+        assertEquals(25, config.scoring.exposureMax) // 20 external + 5 automatable bonus
         assertEquals(15, config.scoring.environmentMax)
         assertEquals(10, config.scoring.actionabilityMax)
     }

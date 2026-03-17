@@ -35,6 +35,16 @@ class EnvironmentCalculatorTest {
     }
 
     @Test
+    fun `should return 10 points for prod environment without suffix`() {
+        assertEquals(config.environmentProductionPoints, calculator.calculate(context("prod")).points)
+    }
+
+    @Test
+    fun `should return 10 points for production environment name`() {
+        assertEquals(config.environmentProductionPoints, calculator.calculate(context("production")).points)
+    }
+
+    @Test
     fun `should return 5 points for staging environment`() {
         val result = calculator.calculate(context(environment = "staging-gcp"))
         assertEquals(config.environmentStagingPoints, result.points)
