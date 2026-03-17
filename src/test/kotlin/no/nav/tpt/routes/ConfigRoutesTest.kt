@@ -30,6 +30,11 @@ class ConfigRoutesTest {
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM, config.thresholds.medium)
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_LOW, config.thresholds.low)
         assertEquals(false, config.aiEnabled)
+        assertEquals(25, config.scoring.severityMax)
+        assertEquals(30, config.scoring.exploitationMax)
+        assertEquals(20, config.scoring.exposureMax)
+        assertEquals(15, config.scoring.environmentMax)
+        assertEquals(10, config.scoring.actionabilityMax)
     }
 
     @Test

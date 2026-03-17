@@ -39,28 +39,27 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-12345",
                                     riskScore = 245.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 140.0,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "kev",
-                                                contribution = 245.0,
+                                                points = 30,
+                                                maxPoints = 30,
                                                 explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 245.0
@@ -74,21 +73,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-23456",
                                     riskScore = 180.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 180.0
@@ -112,28 +110,27 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-11111",
                                     riskScore = 315.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "kev",
-                                                contribution = 315.0,
+                                                points = 30,
+                                                maxPoints = 30,
                                                 explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 315.0
@@ -147,28 +144,27 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-22222",
                                     riskScore = 252.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "epss",
-                                                contribution = 252.0,
+                                                points = 22,
+                                                maxPoints = 30,
                                                 explanation = "High exploitation probability (85%)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.4
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 252.0
@@ -182,21 +178,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-34567",
                                     riskScore = 52.5,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 52.5,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is only internally accessible",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 0.75
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
                                         totalScore = 52.5
@@ -220,21 +215,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2023-98765",
                                     riskScore = 122.5,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 122.5,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 122.5
@@ -248,21 +242,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2023-87654",
                                     riskScore = 42.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 60.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 60.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (6.0)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 42.0,
+                                                points = 20,
+                                                maxPoints = 20,
                                                 explanation = "Application is only internally accessible",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 0.7
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
                                         totalScore = 42.0
@@ -291,21 +284,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-99999",
                                     riskScore = 45.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "workload",
-                                                contribution = 45.0,
+                                                points = 0,
+                                                maxPoints = 0,
                                                 explanation = "Naisjob has reduced attack surface",
-                                                impact = ImpactLevel.LOW,
-                                                multiplier = 0.5
+                                                impact = ImpactLevel.LOW
                                             )
                                         ),
                                         totalScore = 45.0
@@ -319,21 +311,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-45678",
                                     riskScore = 30.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 60.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 60.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (6.0)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             ),
                                             RiskFactorExplanation(
                                                 name = "workload",
-                                                contribution = 30.0,
+                                                points = 0,
+                                                maxPoints = 0,
                                                 explanation = "Naisjob has reduced attack surface",
-                                                impact = ImpactLevel.LOW,
-                                                multiplier = 0.5
+                                                impact = ImpactLevel.LOW
                                             )
                                         ),
                                         totalScore = 30.0
@@ -389,21 +380,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-98765",
                                     riskScore = 140.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "kev",
-                                                contribution = 140.0,
+                                                points = 30,
+                                                maxPoints = 30,
                                                 explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 140.0
@@ -422,14 +412,13 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-87654",
                                     riskScore = 45.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 45.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 45.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (4.5)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
                                         totalScore = 45.0
@@ -453,28 +442,27 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
                                     riskScore = 210.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 84.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 84.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (8.4)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "epss",
-                                                contribution = 126.0,
+                                                points = 22,
+                                                maxPoints = 30,
                                                 explanation = "High exploitation probability (75%)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.5
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "kev",
-                                                contribution = 210.0,
+                                                points = 30,
+                                                maxPoints = 30,
                                                 explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.67
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 210.0
@@ -503,28 +491,27 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
                                     riskScore = 210.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 84.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 84.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (8.4)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "epss",
-                                                contribution = 126.0,
+                                                points = 22,
+                                                maxPoints = 30,
                                                 explanation = "High exploitation probability (75%)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.5
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "kev",
-                                                contribution = 210.0,
+                                                points = 30,
+                                                maxPoints = 30,
                                                 explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.67
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
                                         totalScore = 210.0

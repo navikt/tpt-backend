@@ -177,7 +177,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = null
+        remediationService = null,
+        vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+        vulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
+            client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(httpClient),
+            repository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            leaderElection = leaderElection,
+        ),
     )
 
     application.attributes.put(DependenciesKey, dependencies)

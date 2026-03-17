@@ -515,8 +515,8 @@ components:
         riskScore:
           type: number
           format: double
-          description: Calculated risk score using multiplier-based system. Base severity score multiplied by exposure (ingress type), KEV presence, EPSS probability, suppression status, environment, and build age. Higher scores indicate higher priority vulnerabilities.
-          example: 300.0
+          description: Calculated risk score (0–100 point additive model). Sum of five weighted categories — severity, exploitation evidence, exposure, environment context, and actionability. Suppressed vulnerabilities receive 20% of their calculated score. Higher scores indicate higher priority.
+          example: 68.0
         riskScoreBreakdown:
           allOf:
             - $ref: '#/components/schemas/RiskScoreBreakdown'
@@ -556,43 +556,40 @@ components:
     RiskScoreBreakdown:
       type: object
       required:
-        - baseScore
-        - factors
         - totalScore
+        - factors
       properties:
-        baseScore:
-          type: number
-          format: double
-          description: Base severity score before multipliers
-          example: 70.0
         factors:
           type: array
           items:
             $ref: '#/components/schemas/RiskFactorExplanation'
-          description: List of factors that contributed to the risk score, including the base severity score as a factor.
+          description: List of scored factors contributing to the total risk score
         totalScore:
           type: number
           format: double
-          description: Final calculated risk score
-          example: 184.8
+          description: Final calculated risk score (0–100)
+          example: 68.0
     RiskFactorExplanation:
       type: object
       required:
         - name
-        - contribution
+        - points
+        - maxPoints
         - explanation
         - impact
-        - multiplier
       properties:
         name:
           type: string
-          description: Factor name (e.g., severity, exposure, kev, epss). The severity factor represents the base score.
-          example: "kev"
-        contribution:
-          type: number
-          format: double
-          description: Numeric contribution of this factor to the total score
-          example: 140.0
+          description: Factor category name (severity, exploitation_evidence, exposure, environment, actionability)
+          example: "exploitation_evidence"
+        points:
+          type: integer
+          description: Points scored for this factor
+          example: 30
+        maxPoints:
+          type: integer
+          description: Maximum points possible for this factor
+          example: 30
         explanation:
           type: string
           description: Human-readable explanation of the factor
@@ -602,11 +599,6 @@ components:
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
           description: Impact level of this factor
           example: "CRITICAL"
-        multiplier:
-          type: number
-          format: double
-          description: The multiplier value applied for this factor. Values >1.0 increase risk, <1.0 decrease risk, =1.0 no effect (base severity).
-          example: 2.0
     ProblemDetail:
       type: object
       required:
@@ -638,10 +630,13 @@ components:
       type: object
       required:
         - thresholds
+        - scoring
         - aiEnabled
       properties:
         thresholds:
           $ref: '#/components/schemas/RiskThresholds'
+        scoring:
+          $ref: '#/components/schemas/RiskScoringCategories'
         aiEnabled:
           type: boolean
           description: Indicates whether AI-based remediation generation is configured and available
@@ -655,18 +650,47 @@ components:
         high:
           type: number
           format: double
-          description: Risk score threshold for high-priority vulnerabilities. Scores >= this value should be treated as high priority
-          example: 150.0
+          description: Risk score threshold for CRITICAL-priority vulnerabilities. Scores >= this value are treated as critical priority (act immediately)
+          example: 75.0
         medium:
           type: number
           format: double
-          description: Risk score threshold for medium-priority vulnerabilities. Scores >= this value and < high should be treated as medium priority
-          example: 75.0
+          description: Risk score threshold for HIGH-priority vulnerabilities. Scores >= this value and < high are treated as high priority
+          example: 50.0
         low:
           type: number
           format: double
-          description: Risk score threshold for low-priority vulnerabilities. Scores >= this value and < medium should be treated as low priority
-          example: 30.0
+          description: Risk score threshold for MEDIUM-priority vulnerabilities. Scores >= this value and < medium are treated as medium priority
+          example: 25.0
+    RiskScoringCategories:
+      type: object
+      required:
+        - severityMax
+        - exploitationMax
+        - exposureMax
+        - environmentMax
+        - actionabilityMax
+      properties:
+        severityMax:
+          type: integer
+          description: Maximum points for the severity category
+          example: 25
+        exploitationMax:
+          type: integer
+          description: Maximum points for the exploitation evidence category (KEV, SSVC, EPSS, PoC)
+          example: 30
+        exposureMax:
+          type: integer
+          description: Maximum points for the exposure category (ingress type + automatable bonus)
+          example: 25
+        environmentMax:
+          type: integer
+          description: Maximum points for the environment context category (env tier + age bonuses)
+          example: 15
+        actionabilityMax:
+          type: integer
+          description: Maximum points for the actionability category (patch available + ransomware use)
+          example: 10
     GitHubVulnResponse:
       type: object
       required:
@@ -761,8 +785,8 @@ components:
         riskScore:
           type: number
           format: double
-          description: Calculated risk score. Higher scores indicate higher priority vulnerabilities.
-          example: 140.0
+          description: Calculated risk score (0–100 point additive model). Higher scores indicate higher priority vulnerabilities.
+          example: 68.0
         riskScoreBreakdown:
           allOf:
             - $ref: '#/components/schemas/RiskScoreBreakdown'

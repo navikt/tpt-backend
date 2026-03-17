@@ -95,6 +95,7 @@ fun Application.installTestDependencies(
         kevService = kevService,
         epssService = MockEpssService(),
         nvdRepository = MockNvdRepository(),
+        vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
@@ -157,7 +158,13 @@ fun Application.installTestDependencies(
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = remediationService
+        remediationService = remediationService,
+        vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+        vulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
+            client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
+            repository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            leaderElection = mockLeaderElection,
+        ),
     )
 
     attributes.put(DependenciesKey, dependencies)

@@ -393,8 +393,8 @@ class VulnRoutesTest {
         assertEquals("CVE-2023-99999", vuln.identifier)
         assertNotNull(vuln.riskScoreBreakdown)
 
-        val hasKevFactor = vuln.riskScoreBreakdown?.factors?.any { it.name.contains("KEV", ignoreCase = true) } ?: false
-        assertTrue(hasKevFactor, "Expected KEV factor in risk score breakdown")
+        val hasKevFactor = vuln.riskScoreBreakdown?.factors?.any { it.name == "exploitation_evidence" } ?: false
+        assertTrue(hasKevFactor, "Expected exploitation_evidence factor in risk score breakdown")
     }
 
     @Test
