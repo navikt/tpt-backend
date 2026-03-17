@@ -412,6 +412,51 @@ class VulnrichmentClientTest {
     }
 
     @Test
+    fun `should reset circuit breaker counter after 404 so only true consecutive 5xx failures open circuit`() = kotlinx.coroutines.test.runTest {
+        var requestCount = 0
+        val responses = mutableListOf(
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.NotFound,           // resets counter
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.InternalServerError,
+        )
+        val mixedClient = VulnrichmentClient(HttpClient(MockEngine {
+            val status = responses[requestCount++]
+            respondError(status)
+        }))
+
+        repeat(6) { mixedClient.fetchCveData("CVE-2024-000$it") }
+
+        // Circuit should NOT be open — only 2 consecutive 5xx after the counter reset
+        val resultAfter = mixedClient.fetchCveData("CVE-2024-0099")
+        assertEquals(7, requestCount) // 6 + 1 more was actually sent, circuit is not open
+    }
+
+    @Test
+    fun `should reset circuit breaker counter after 429 so only true consecutive 5xx failures open circuit`() = kotlinx.coroutines.test.runTest {
+        var requestCount = 0
+        val responses = mutableListOf(
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.InternalServerError,
+            io.ktor.http.HttpStatusCode.TooManyRequests,    // resets counter, rate-limits
+        )
+        val mixedClient = VulnrichmentClient(HttpClient(MockEngine {
+            val status = responses.getOrElse(requestCount++) { io.ktor.http.HttpStatusCode.InternalServerError }
+            if (status == io.ktor.http.HttpStatusCode.TooManyRequests) {
+                respond("", status, io.ktor.http.headersOf(io.ktor.http.HttpHeaders.RetryAfter, "0"))
+            } else {
+                respondError(status)
+            }
+        }))
+
+        repeat(3) { mixedClient.fetchCveData("CVE-2024-000$it") }
+        // After 429 with RetryAfter=0, rate limit expires immediately; counter was reset
+        assertEquals(3, requestCount)
+    }
+
+    @Test
     fun `should not call API when rate limited by 429 response with Retry-After header`() = kotlinx.coroutines.test.runTest {
         var callCount = 0
         val rateLimitClient = VulnrichmentClient(HttpClient(MockEngine {

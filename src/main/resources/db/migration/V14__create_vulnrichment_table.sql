@@ -8,3 +8,4 @@ CREATE TABLE vulnrichment_data (
 );
 
 CREATE INDEX idx_vulnrichment_exploitation ON vulnrichment_data(exploitation_status);
+CREATE INDEX idx_vulnrichment_last_updated ON vulnrichment_data(last_updated);

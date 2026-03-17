@@ -1,7 +1,7 @@
 package no.nav.tpt.plugins
 
 import io.ktor.server.application.*
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -15,13 +15,13 @@ fun Application.configureNvdSync() {
     val nvdRepository = dependencies.nvdRepository
     val leaderElection = dependencies.leaderElection
 
-    // Start leader election checks
     leaderElection.startLeaderElectionChecks(this)
 
-    // Track the initial sync job so incremental sync can wait for it
-    var initialSyncJob: Job? = null
+    // Signals whether an initial sync was needed and when it finishes.
+    // null  = DB already had data, no initial sync needed
+    // deferred = initial sync was launched; await it before starting incremental
+    val initialSyncNeeded = CompletableDeferred<Boolean>()
 
-    // Check if we need initial sync
     launch {
         try {
             delay(30.seconds)
@@ -33,55 +33,55 @@ fun Application.configureNvdSync() {
                 logger.info("The application will start normally, but NVD data won't be available until sync completes.")
                 logger.info("Incremental sync scheduler will wait for initial sync to complete before starting.")
 
-                // Run initial sync in background with leader election
-                // Keep retrying until a leader is elected and sync completes
-                initialSyncJob = launch {
-                    while (nvdRepository.getLastModifiedDate() == null) {
-                        try {
-                            val result = leaderElection.ifLeader {
-                                logger.info("This pod is the leader - performing initial NVD sync")
-                                nvdSyncService.performInitialSync()
-                            }
+                initialSyncNeeded.complete(true)
 
-                            if (result != null) {
-                                logger.info("Initial NVD sync completed successfully!")
-                            } else {
-                                logger.info("This pod is not the leader - waiting 5 minutes before checking if data is available")
-                                delay(5.minutes)
-                            }
-                        } catch (e: Exception) {
-                            logger.error("Initial NVD sync failed, will retry in 1 hour", e)
-                            delay(1.hours)
+                while (nvdRepository.getLastModifiedDate() == null) {
+                    try {
+                        val result = leaderElection.ifLeader {
+                            logger.info("This pod is the leader - performing initial NVD sync")
+                            nvdSyncService.performInitialSync()
                         }
+
+                        if (result != null) {
+                            logger.info("Initial NVD sync completed successfully!")
+                        } else {
+                            logger.info("This pod is not the leader - waiting 5 minutes before checking if data is available")
+                            delay(5.minutes)
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Initial NVD sync failed, will retry in 1 hour", e)
+                        delay(1.hours)
                     }
-                    logger.info("NVD data is now available (lastModified: ${nvdRepository.getLastModifiedDate()})")
                 }
+                logger.info("NVD data is now available (lastModified: ${nvdRepository.getLastModifiedDate()})")
             } else {
                 logger.info("NVD data found. Last modified: $lastModified")
                 logger.info("Incremental sync scheduler will start in 2 hours and then run every 2 hours")
+                initialSyncNeeded.complete(false)
             }
         } catch (e: Exception) {
             logger.error("Failed to check NVD sync status", e)
+            initialSyncNeeded.complete(false)
         }
     }
 
-    // Schedule incremental sync every 2 hours with leader election
     launch {
-        // If initial sync is running, wait for it to complete
-        if (initialSyncJob != null) {
+        val needed = initialSyncNeeded.await()
+        if (needed) {
             logger.info("Waiting for initial sync to complete before starting incremental sync scheduler...")
-            initialSyncJob.join()
+            // Wait until DB has data — the loop above will have populated it
+            while (nvdRepository.getLastModifiedDate() == null) {
+                delay(1.minutes)
+            }
             logger.info("Initial sync completed. Starting incremental sync scheduler.")
         } else {
-            // Database has data - wait standard 2 hours to avoid deployment traffic
             logger.info("Incremental sync scheduler will start in 2 hours")
             delay(2.hours)
         }
 
         while (true) {
             try {
-                val isLeader = leaderElection.isLeader()
-                if (isLeader) {
+                if (leaderElection.isLeader()) {
                     logger.info("This pod is the leader - starting scheduled incremental NVD sync")
                     nvdSyncService.performIncrementalSync()
                     logger.info("Scheduled incremental NVD sync completed")
@@ -92,7 +92,6 @@ fun Application.configureNvdSync() {
                 logger.error("Scheduled incremental NVD sync failed", e)
             }
 
-            // Wait 2 hours before next sync
             delay(2.hours)
         }
     }

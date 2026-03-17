@@ -49,8 +49,12 @@ class VulnrichmentClient(
                     val cveJson = json.decodeFromString<CveJson5>(response.bodyAsText())
                     extractSsvcDecisions(cveJson)
                 }
-                HttpStatusCode.NotFound -> null
+                HttpStatusCode.NotFound -> {
+                    consecutiveFailures.set(0)
+                    null
+                }
                 HttpStatusCode.TooManyRequests -> {
+                    consecutiveFailures.set(0)
                     val retryAfter = response.headers[HttpHeaders.RetryAfter]?.toLongOrNull() ?: DEFAULT_RETRY_AFTER_S
                     rateLimitedUntilMs.set(System.currentTimeMillis() + retryAfter * 1000)
                     logger.warn("Rate limited (429) for $cveId, pausing ${retryAfter}s")
