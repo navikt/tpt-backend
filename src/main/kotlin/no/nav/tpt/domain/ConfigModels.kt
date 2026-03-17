@@ -11,9 +11,9 @@ data class ConfigResponse(
 
 @Serializable
 data class RiskThresholds(
+    val critical: Double,
     val high: Double,
     val medium: Double,
-    val low: Double
 )
 
 @Serializable

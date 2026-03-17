@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class RiskExplanationGeneratorTest {
 
@@ -27,14 +28,14 @@ class RiskExplanationGeneratorTest {
     private fun exposureFactor(points: Int) = RiskFactor(
         name = "exposure",
         points = points,
-        maxPoints = config.exposureExternalPoints,
+        maxPoints = config.exposureExternalPoints + config.exposureAutomatableBonus,
         metadata = mapOf("exposureType" to "external")
     )
 
     private fun environmentFactor(points: Int) = RiskFactor(
         name = "environment",
         points = points,
-        maxPoints = config.environmentProductionPoints,
+        maxPoints = config.environmentProductionPoints + config.environmentOldBuildBonus + config.environmentChronicCveBonus,
         metadata = mapOf("environment" to "prod", "buildAgeBonus" to 0, "cveAgeBonus" to 0)
     )
 
@@ -95,7 +96,7 @@ class RiskExplanationGeneratorTest {
         val exposureExplanation = breakdown.factors.find { it.name == "exposure" }
         assertNotNull(exposureExplanation)
         assertEquals(20, exposureExplanation.points)
-        assertEquals(config.exposureExternalPoints, exposureExplanation.maxPoints)
+        assertEquals(config.exposureExternalPoints + config.exposureAutomatableBonus, exposureExplanation.maxPoints)
     }
 
     @Test
@@ -126,9 +127,9 @@ class RiskExplanationGeneratorTest {
         )
         val breakdown = generator.generateBreakdown(listOf(factor), 30.0)
         val explanation = breakdown.factors.first().explanation
-        assert(explanation.contains("SSVC") || explanation.contains("active")) {
+        assertTrue(explanation.contains("SSVC") || explanation.contains("active"),
             "Expected explanation to mention SSVC/active exploitation, got: $explanation"
-        }
+        )
     }
 
     @Test
@@ -146,9 +147,9 @@ class RiskExplanationGeneratorTest {
         )
         val breakdown = generator.generateBreakdown(listOf(factor), 18.0)
         val explanation = breakdown.factors.first().explanation
-        assert(explanation.contains("PoC") || explanation.contains("poc") || explanation.contains("SSVC")) {
+        assertTrue(explanation.contains("PoC") || explanation.contains("poc") || explanation.contains("SSVC"),
             "Expected explanation to mention PoC/SSVC, got: $explanation"
-        }
+        )
     }
 
     @Test
@@ -164,9 +165,9 @@ class RiskExplanationGeneratorTest {
         )
         val breakdown = generator.generateBreakdown(listOf(factor), 25.0)
         val explanation = breakdown.factors.first().explanation
-        assert(explanation.contains("automatable") || explanation.contains("Automatable")) {
+        assertTrue(explanation.contains("automatable") || explanation.contains("Automatable"),
             "Expected explanation to mention automatable bonus, got: $explanation"
-        }
+        )
     }
 
     @Test
@@ -182,9 +183,9 @@ class RiskExplanationGeneratorTest {
         )
         val breakdown = generator.generateBreakdown(listOf(factor), 20.0)
         val explanation = breakdown.factors.first().explanation
-        assert(!explanation.contains("automatable") && !explanation.contains("Automatable")) {
+        assertTrue(!explanation.contains("automatable") && !explanation.contains("Automatable"),
             "Expected explanation NOT to mention automatable when no bonus, got: $explanation"
-        }
+        )
     }
 }
 

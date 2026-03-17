@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS vulnrichment_data (
+CREATE TABLE vulnrichment_data (
     cve_id VARCHAR(20) PRIMARY KEY,
     exploitation_status VARCHAR(20),
     automatable VARCHAR(10),
@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS vulnrichment_data (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_vulnrichment_exploitation ON vulnrichment_data(exploitation_status);
+CREATE INDEX idx_vulnrichment_exploitation ON vulnrichment_data(exploitation_status);

@@ -29,19 +29,18 @@ class VulnrichmentRepositoryIntegrationTest {
 
         private lateinit var database: Database
         private lateinit var repository: VulnrichmentRepositoryImpl
+        private lateinit var dataSource: HikariDataSource
 
         @JvmStatic
         @BeforeAll
         fun setUp() {
-            postgresContainer.start()
-
             val hikariConfig = HikariConfig().apply {
                 jdbcUrl = postgresContainer.jdbcUrl
                 username = postgresContainer.username
                 password = postgresContainer.password
                 driverClassName = "org.postgresql.Driver"
             }
-            val dataSource = HikariDataSource(hikariConfig)
+            dataSource = HikariDataSource(hikariConfig)
 
             Flyway.configure()
                 .dataSource(dataSource)
@@ -56,7 +55,7 @@ class VulnrichmentRepositoryIntegrationTest {
         @JvmStatic
         @AfterAll
         fun tearDown() {
-            postgresContainer.stop()
+            dataSource.close()
         }
     }
 

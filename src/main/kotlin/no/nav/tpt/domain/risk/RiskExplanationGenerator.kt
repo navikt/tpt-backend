@@ -2,7 +2,7 @@ package no.nav.tpt.domain.risk
 
 class RiskExplanationGenerator(private val config: RiskScoringConfig) {
 
-    fun generateBreakdown(factors: List<RiskFactor>, totalScore: Double): RiskScoreBreakdown {
+    fun generateBreakdown(factors: List<RiskFactor>, totalScore: Double, suppressed: Boolean = false): RiskScoreBreakdown {
         val explanations = factors
             .sortedByDescending { it.points }
             .map { factor ->
@@ -18,6 +18,7 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
         return RiskScoreBreakdown(
             totalScore = totalScore,
             factors = explanations,
+            suppressed = suppressed,
         )
     }
 
@@ -63,8 +64,8 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             val cveAgeBonus = factor.metadata["cveAgeBonus"] as? Int ?: 0
             buildString {
                 append("Environment: $env")
-                if (buildAgeBonus > 0) append(", build age >90 days (+$buildAgeBonus)")
-                if (cveAgeBonus > 0) append(", CVE age >365 days (+$cveAgeBonus)")
+                if (buildAgeBonus > 0) append(", build age >${config.environmentOldBuildThresholdDays} days (+$buildAgeBonus)")
+                if (cveAgeBonus > 0) append(", CVE age >${config.environmentChronicCveThresholdDays} days (+$cveAgeBonus)")
             }
         }
         "actionability" -> {

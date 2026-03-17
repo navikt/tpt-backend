@@ -6,24 +6,23 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Regression baseline for the risk scoring model.
+ * Regression baseline for the risk scoring point-based model (0-100 additive).
  *
- * These tests capture the CURRENT scoring behavior before the model is redesigned.
- * When moving to the point-based model, each test that changes bucket should be
+ * Tests capture expected scoring behavior for key scenarios.
+ * When calculator logic changes, tests that change bucket should be
  * reviewed deliberately and updated with the expected new behavior.
  *
- * Current thresholds (AppConfig): HIGH=220, MEDIUM=150, LOW=100
- * New thresholds (point-based):   CRITICAL>=75, HIGH>=50, MEDIUM>=25, LOW<25
+ * Thresholds (AppConfig): CRITICAL>=75, HIGH>=50, MEDIUM>=25, LOW<25
  */
 class RiskScoringRegressionTest {
 
     private val scorer = DefaultRiskScorer(RiskScoringConfig())
 
     // Helpers for current model buckets
-    private fun Double.isAboveHigh() = this > AppConfig.DEFAULT_RISK_THRESHOLD_HIGH
-    private fun Double.isHigh() = this >= AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM && this <= AppConfig.DEFAULT_RISK_THRESHOLD_HIGH
-    private fun Double.isMedium() = this >= AppConfig.DEFAULT_RISK_THRESHOLD_LOW && this < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM
-    private fun Double.isBelowLow() = this < AppConfig.DEFAULT_RISK_THRESHOLD_LOW
+    private fun Double.isAboveHigh() = this > AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL
+    private fun Double.isHigh() = this >= AppConfig.DEFAULT_RISK_THRESHOLD_HIGH && this <= AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL
+    private fun Double.isMedium() = this >= AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM && this < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH
+    private fun Double.isBelowLow() = this < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM
 
     // -----------------------------------------------------------------------
     // Scenario 1: Worst-case — all amplifying factors active
@@ -47,7 +46,7 @@ class RiskScoringRegressionTest {
             )
         )
         assertTrue(result.score.isAboveHigh(),
-            "Scenario 1: worst-case should score above HIGH threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
+            "Scenario 1: worst-case should score above HIGH threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -70,10 +69,10 @@ class RiskScoringRegressionTest {
         )
         // Current model: 100 * 1.0 (internal) = 100 — right at LOW threshold
         // New model will put this in MEDIUM due to explicit severity weighting
-        assertTrue(result.score >= AppConfig.DEFAULT_RISK_THRESHOLD_LOW,
-            "Scenario 2: critical internal dev should be at or above LOW threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}), got ${result.score}")
-        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
-            "Scenario 2: critical internal dev should be below MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+        assertTrue(result.score >= AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+            "Scenario 2: critical internal dev should be at or above LOW threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
+            "Scenario 2: critical internal dev should be below MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -97,8 +96,8 @@ class RiskScoringRegressionTest {
         // Current model: 50 * 2.0 (external) * 2.0 (kev) * 1.1 (prod) = 220
         // 220 == HIGH threshold — in current model just barely HIGH
         // New model: 12 + 30 + 20 + 10 = 72 → CRITICAL (this is a deliberate improvement)
-        assertTrue(result.score >= AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
-            "Scenario 3: medium+KEV+external+prod should be at least MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+        assertTrue(result.score >= AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
+            "Scenario 3: medium+KEV+external+prod should be at least MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -121,7 +120,7 @@ class RiskScoringRegressionTest {
         )
         // New model: 18 (HIGH) + 22 (EPSS≥0.7) + 20 (external) + 10 (prod) = 70 → HIGH (50–74)
         assertTrue(result.score.isHigh(),
-            "Scenario 4: high+EPSS≥0.7+external+prod should score in HIGH bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}–${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
+            "Scenario 4: high+EPSS≥0.7+external+prod should score in HIGH bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}–${AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -144,7 +143,7 @@ class RiskScoringRegressionTest {
         )
         // Current: 20 * 0.5 (noIngress) = 10
         assertTrue(result.score.isBelowLow(),
-            "Scenario 5: low+no exploitation+no ingress+dev should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}), got ${result.score}")
+            "Scenario 5: low+no exploitation+no ingress+dev should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -168,7 +167,7 @@ class RiskScoringRegressionTest {
         )
         // New model: 18 (HIGH) + 18 (PoC) + 5 (internal) + 5 (staging) = 46 → MEDIUM (improvement over old model)
         assertTrue(result.score.isMedium(),
-            "Scenario 6: high+exploit+internal+staging should be in MEDIUM bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}–${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+            "Scenario 6: high+exploit+internal+staging should be in MEDIUM bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}–${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -192,7 +191,7 @@ class RiskScoringRegressionTest {
         // Current: 100 * 2.0 * 2.0 * 0.2 * 1.1 = 88 — below LOW, suppression dominates
         // New model: (25+30+20+10) * 0.2 = 17 → LOW
         assertTrue(result.score.isBelowLow(),
-            "Scenario 7: suppressed critical+KEV+external+prod should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}), got ${result.score}")
+            "Scenario 7: suppressed critical+KEV+external+prod should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
         assertTrue(result.score > 0.0, "Suppressed score should still be positive")
     }
 
@@ -216,7 +215,7 @@ class RiskScoringRegressionTest {
         )
         // New model: 12 (MEDIUM) + 10 (EPSS 0.3-0.5) + 12 (authenticated) + 10 (prod) = 44 → MEDIUM (improvement)
         assertTrue(result.score.isMedium(),
-            "Scenario 8: medium+EPSS0.4+auth+prod should be in MEDIUM bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}–${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+            "Scenario 8: medium+EPSS0.4+auth+prod should be in MEDIUM bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}–${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -239,7 +238,7 @@ class RiskScoringRegressionTest {
         )
         // New model: 18 (HIGH) + 30 (KEV) + 0 (no ingress) + 10 (prod) = 58 → HIGH (KEV not buried by no-ingress)
         assertTrue(result.score.isHigh(),
-            "Scenario 9: high+KEV+noIngress+prod should be in HIGH bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}–${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
+            "Scenario 9: high+KEV+noIngress+prod should be in HIGH bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}–${AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------
@@ -262,7 +261,7 @@ class RiskScoringRegressionTest {
         )
         // Current: 10 * 2.0 (external) = 20 — below LOW
         assertTrue(result.score.isBelowLow(),
-            "Scenario 10: unknown+external+dev should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}), got ${result.score}")
+            "Scenario 10: unknown+external+dev should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------

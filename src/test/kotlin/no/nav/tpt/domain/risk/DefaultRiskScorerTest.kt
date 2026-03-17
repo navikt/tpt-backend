@@ -489,8 +489,8 @@ class DefaultRiskScorerTest {
         )
 
         assertTrue(
-            result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
-            "Critical vulnerability with external ingress in production should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}, but got ${result.score}"
+            result.score > AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
+            "Critical vulnerability with external ingress in production should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}, but got ${result.score}"
         )
     }
 
@@ -508,8 +508,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
-            "High vulnerability with external ingress and KEV in dev should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}, but got ${result.score}"
+        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
+            "High vulnerability with external ingress and KEV in dev should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}, but got ${result.score}"
         )
     }
 
@@ -527,8 +527,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
-            "Critical vulnerability with no ingress and KEV should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}, but got ${result.score}"
+        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL,
+            "Critical vulnerability with no ingress and KEV should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL}, but got ${result.score}"
         )
     }
 
@@ -546,8 +546,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_LOW,
-            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}, but got ${result.score}"
+        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}, but got ${result.score}"
         )
     }
 
@@ -565,8 +565,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_LOW,
-            "Suppressed critical vulnerability should score below low threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}), but got ${result.score}"
+        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+            "Suppressed critical vulnerability should score below low threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), but got ${result.score}"
         )
     }
 }

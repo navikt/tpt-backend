@@ -21,7 +21,7 @@ class DefaultRiskScorer(
         val rawScore = factors.sumOf { it.points }.toDouble()
         val finalScore = if (context.suppressed) rawScore * config.suppressedMultiplier else rawScore
 
-        val breakdown = explanationGenerator.generateBreakdown(factors, finalScore)
+        val breakdown = explanationGenerator.generateBreakdown(factors, finalScore, context.suppressed)
 
         return RiskScoreResult(score = finalScore, breakdown = breakdown)
     }

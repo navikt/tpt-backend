@@ -558,6 +558,7 @@ components:
       required:
         - totalScore
         - factors
+        - suppressed
       properties:
         factors:
           type: array
@@ -567,8 +568,12 @@ components:
         totalScore:
           type: number
           format: double
-          description: Final calculated risk score (0–100)
+          description: Final calculated risk score (0–100, reduced to 20% if suppressed)
           example: 68.0
+        suppressed:
+          type: boolean
+          description: Whether the score was reduced by the suppression multiplier (0.2x). When true, totalScore = sum(factor.points) * 0.2
+          example: false
     RiskFactorExplanation:
       type: object
       required:
@@ -643,24 +648,24 @@ components:
     RiskThresholds:
       type: object
       required:
+        - critical
         - high
         - medium
-        - low
       properties:
-        high:
+        critical:
           type: number
           format: double
           description: Risk score threshold for CRITICAL-priority vulnerabilities. Scores >= this value are treated as critical priority (act immediately)
           example: 75.0
+        high:
+          type: number
+          format: double
+          description: Risk score threshold for HIGH-priority vulnerabilities. Scores >= this value and < critical are treated as high priority
+          example: 50.0
         medium:
           type: number
           format: double
-          description: Risk score threshold for HIGH-priority vulnerabilities. Scores >= this value and < high are treated as high priority
-          example: 50.0
-        low:
-          type: number
-          format: double
-          description: Risk score threshold for MEDIUM-priority vulnerabilities. Scores >= this value and < medium are treated as medium priority
+          description: Risk score threshold for MEDIUM-priority vulnerabilities. Scores >= this value and < high are treated as medium priority
           example: 25.0
     RiskScoringCategories:
       type: object

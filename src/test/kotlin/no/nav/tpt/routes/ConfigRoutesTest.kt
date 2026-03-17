@@ -26,9 +26,9 @@ class ConfigRoutesTest {
         val responseBody = response.bodyAsText()
         val config = json.decodeFromString<ConfigResponse>(responseBody)
 
+        assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL, config.thresholds.critical)
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_HIGH, config.thresholds.high)
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM, config.thresholds.medium)
-        assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_LOW, config.thresholds.low)
         assertEquals(false, config.aiEnabled)
         assertEquals(25, config.scoring.severityMax)
         assertEquals(30, config.scoring.exploitationMax)

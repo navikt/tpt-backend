@@ -15,9 +15,9 @@ fun Route.configRoutes() {
         val appConfig = call.dependencies.appConfig
         val response = ConfigResponse(
             thresholds = RiskThresholds(
+                critical = appConfig.riskThresholdCritical,
                 high = appConfig.riskThresholdHigh,
                 medium = appConfig.riskThresholdMedium,
-                low = appConfig.riskThresholdLow
             ),
             scoring = RiskScoringCategories(
                 severityMax = defaultScoringConfig.severityCriticalPoints,
