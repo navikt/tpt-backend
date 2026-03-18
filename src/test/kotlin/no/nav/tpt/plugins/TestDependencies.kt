@@ -89,12 +89,21 @@ fun Application.installTestDependencies(
         override suspend fun getVulnerabilitiesForUser(email: String) = 
             naisApiService.getVulnerabilitiesForUser(email)
     }
-    
+
+    val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+
+    val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
+        client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
+        repository = mockVulnrichmentRepository,
+    )
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = MockEpssService(),
         nvdRepository = MockNvdRepository(),
+        vulnrichmentRepository = mockVulnrichmentRepository,
+        vulnrichmentSyncService = mockVulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
@@ -157,7 +166,9 @@ fun Application.installTestDependencies(
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = remediationService
+        remediationService = remediationService,
+        vulnrichmentRepository = mockVulnrichmentRepository,
+        vulnrichmentSyncService = mockVulnrichmentSyncService,
     )
 
     attributes.put(DependenciesKey, dependencies)

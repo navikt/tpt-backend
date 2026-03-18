@@ -391,10 +391,10 @@ class VulnRoutesTest {
         val vulnResponse = Json.decodeFromString<VulnResponse>(response.bodyAsText())
         val vuln = vulnResponse.teams[0].workloads[0].vulnerabilities[0]
         assertEquals("CVE-2023-99999", vuln.identifier)
-        assertNotNull(vuln.riskScoreBreakdown)
+        val breakdown = assertNotNull(vuln.riskScoreBreakdown)
 
-        val hasKevFactor = vuln.riskScoreBreakdown?.factors?.any { it.name.contains("KEV", ignoreCase = true) } ?: false
-        assertTrue(hasKevFactor, "Expected KEV factor in risk score breakdown")
+        val hasKevFactor = breakdown.factors.any { it.name == "exploitation_evidence" }
+        assertTrue(hasKevFactor, "Expected exploitation_evidence factor in risk score breakdown")
     }
 
     @Test

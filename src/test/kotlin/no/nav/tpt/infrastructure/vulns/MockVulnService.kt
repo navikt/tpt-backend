@@ -37,33 +37,32 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/org.springframework.boot/spring-boot-starter@2.7.0",
                                     description = "Spring Boot vulnerability allowing remote code execution through crafted requests",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-12345",
-                                    riskScore = 245.0,
+                                    riskScore = 68.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 140.0,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
-                                                name = "kev",
-                                                contribution = 245.0,
-                                                explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                name = "exploitation_evidence",
+                                                points = 30,
+                                                maxPoints = 30,
+                                                explanation = "Active exploitation confirmed (CISA KEV)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 245.0
+                                        totalScore = 68.0
                                     )
                                 ),
                                 VulnVulnerabilityDto(
@@ -72,26 +71,25 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
                                     description = "Apache Log4j2 remote code execution vulnerability",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-23456",
-                                    riskScore = 180.0,
+                                    riskScore = 38.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 180.0
+                                        totalScore = 38.0
                                     )
                                 )
                             )
@@ -110,33 +108,32 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/io.netty/netty-codec-http@4.1.90",
                                     description = "Critical HTTP request smuggling vulnerability in Netty discovered last week",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-11111",
-                                    riskScore = 315.0,
+                                    riskScore = 68.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
-                                                name = "kev",
-                                                contribution = 315.0,
-                                                explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                name = "exploitation_evidence",
+                                                points = 30,
+                                                maxPoints = 30,
+                                                explanation = "Active exploitation confirmed (CISA KEV)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 315.0
+                                        totalScore = 68.0
                                     )
                                 ),
                                 VulnVulnerabilityDto(
@@ -145,33 +142,32 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/org.springframework.security/spring-security-core@5.7.0",
                                     description = "Critical authentication bypass in Spring Security from 3 days ago",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-22222",
-                                    riskScore = 252.0,
+                                    riskScore = 60.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 180.0,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
-                                                name = "epss",
-                                                contribution = 252.0,
-                                                explanation = "High exploitation probability (85%)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.4
+                                                name = "exploitation_evidence",
+                                                points = 22,
+                                                maxPoints = 30,
+                                                explanation = "Exploit probability: 0.85 (EPSS)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 252.0
+                                        totalScore = 60.0
                                     )
                                 ),
                                 VulnVulnerabilityDto(
@@ -180,26 +176,25 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/org.postgresql/postgresql@42.3.1",
                                     description = "PostgreSQL JDBC driver SQL injection vulnerability",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-34567",
-                                    riskScore = 52.5,
+                                    riskScore = 23.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 52.5,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is only internally accessible",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 0.75
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
-                                        totalScore = 52.5
+                                        totalScore = 23.0
                                     )
                                 )
                             )
@@ -218,26 +213,25 @@ class MockVulnService : VulnService {
                                     packageName = "pkg:maven/commons-collections/commons-collections@3.2.1",
                                     description = "High severity deserialization vulnerability in old Commons Collections library",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2023-98765",
-                                    riskScore = 122.5,
+                                    riskScore = 38.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 122.5,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is externally accessible",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.75
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 122.5
+                                        totalScore = 38.0
                                     )
                                 ),
                                 VulnVulnerabilityDto(
@@ -248,24 +242,23 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2023-87654",
                                     riskScore = 42.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 60.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 60.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (6.0)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             ),
                                             RiskFactorExplanation(
                                                 name = "exposure",
-                                                contribution = 42.0,
+                                                points = 20,
+                                                maxPoints = 25,
                                                 explanation = "Application is only internally accessible",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 0.7
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
-                                        totalScore = 42.0
+                                        totalScore = 38.0
                                     )
                                 )
                             )
@@ -291,21 +284,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2025-99999",
                                     riskScore = 45.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 90.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 90.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (9.0)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
                                                 name = "workload",
-                                                contribution = 45.0,
+                                                points = 0,
+                                                maxPoints = 0,
                                                 explanation = "Naisjob has reduced attack surface",
-                                                impact = ImpactLevel.LOW,
-                                                multiplier = 0.5
+                                                impact = ImpactLevel.LOW
                                             )
                                         ),
                                         totalScore = 45.0
@@ -319,21 +311,20 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-45678",
                                     riskScore = 30.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 60.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 60.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (6.0)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             ),
                                             RiskFactorExplanation(
                                                 name = "workload",
-                                                contribution = 30.0,
+                                                points = 0,
+                                                maxPoints = 0,
                                                 explanation = "Naisjob has reduced attack surface",
-                                                impact = ImpactLevel.LOW,
-                                                multiplier = 0.5
+                                                impact = ImpactLevel.LOW
                                             )
                                         ),
                                         totalScore = 30.0
@@ -387,26 +378,25 @@ class MockVulnService : VulnService {
                                     description = "GitHub-detected vulnerability in Node.js dependencies allowing prototype pollution",
                                     summary = "Prototype pollution vulnerability in lodash",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-98765",
-                                    riskScore = 140.0,
+                                    riskScore = 48.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 70.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 70.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: HIGH (7.0)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
-                                                name = "kev",
-                                                contribution = 140.0,
-                                                explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 2.0
+                                                name = "exploitation_evidence",
+                                                points = 30,
+                                                maxPoints = 30,
+                                                explanation = "Active exploitation confirmed (CISA KEV)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 140.0
+                                        totalScore = 48.0
                                     ),
                                     dependencyScope = "RUNTIME",
                                     dependabotUpdatePullRequestUrl = "https://github.com/navikt/tpt-backend/pull/123",
@@ -422,14 +412,13 @@ class MockVulnService : VulnService {
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-87654",
                                     riskScore = 45.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 45.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 45.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: MEDIUM (4.5)",
-                                                impact = ImpactLevel.MEDIUM,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.MEDIUM
                                             )
                                         ),
                                         totalScore = 45.0
@@ -451,33 +440,32 @@ class MockVulnService : VulnService {
                                     description = "Dependency confusion vulnerability allowing malicious package injection",
                                     summary = "Dependency confusion in Maven package",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
-                                    riskScore = 210.0,
+                                    riskScore = 70.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 84.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 84.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (8.4)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
-                                                name = "epss",
-                                                contribution = 126.0,
-                                                explanation = "High exploitation probability (75%)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.5
+                                                name = "exploitation_evidence",
+                                                points = 22,
+                                                maxPoints = 30,
+                                                explanation = "Exploit probability: 0.75 (EPSS)",
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
-                                                name = "kev",
-                                                contribution = 210.0,
-                                                explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.67
+                                                name = "exploitation_evidence",
+                                                points = 30,
+                                                maxPoints = 30,
+                                                explanation = "Active exploitation confirmed (CISA KEV)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 210.0
+                                        totalScore = 70.0
                                     ),
                                     dependencyScope = "RUNTIME",
                                     dependabotUpdatePullRequestUrl = "https://github.com/navikt/security-tools/pull/456",
@@ -501,33 +489,32 @@ class MockVulnService : VulnService {
                                     description = "Dependency confusion vulnerability allowing malicious package injection",
                                     summary = "Dependency confusion in Maven package",
                                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/CVE-2024-76543",
-                                    riskScore = 210.0,
+                                    riskScore = 70.0,
                                     riskScoreBreakdown = RiskScoreBreakdown(
-                                        baseScore = 84.0,
                                         factors = listOf(
                                             RiskFactorExplanation(
                                                 name = "severity",
-                                                contribution = 84.0,
+                                                points = 18,
+                                                maxPoints = 25,
                                                 explanation = "Base CVSS score: CRITICAL (8.4)",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.0
+                                                impact = ImpactLevel.CRITICAL
                                             ),
                                             RiskFactorExplanation(
-                                                name = "epss",
-                                                contribution = 126.0,
-                                                explanation = "High exploitation probability (75%)",
-                                                impact = ImpactLevel.HIGH,
-                                                multiplier = 1.5
+                                                name = "exploitation_evidence",
+                                                points = 22,
+                                                maxPoints = 30,
+                                                explanation = "Exploit probability: 0.75 (EPSS)",
+                                                impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
-                                                name = "kev",
-                                                contribution = 210.0,
-                                                explanation = "Listed in CISA KEV catalog",
-                                                impact = ImpactLevel.CRITICAL,
-                                                multiplier = 1.67
+                                                name = "exploitation_evidence",
+                                                points = 30,
+                                                maxPoints = 30,
+                                                explanation = "Active exploitation confirmed (CISA KEV)",
+                                                impact = ImpactLevel.CRITICAL
                                             )
                                         ),
-                                        totalScore = 210.0
+                                        totalScore = 70.0
                                     ),
                                     dependencyScope = "RUNTIME",
                                     dependabotUpdatePullRequestUrl = "https://github.com/navikt/security-tools/pull/456",

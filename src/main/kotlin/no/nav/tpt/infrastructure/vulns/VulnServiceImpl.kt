@@ -13,6 +13,8 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nvd.NvdRepository
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
 import no.nav.tpt.infrastructure.vulns.utils.PurlParser
 import org.slf4j.LoggerFactory
 
@@ -21,6 +23,8 @@ class VulnServiceImpl(
     private val kevService: KevService,
     private val epssService: EpssService,
     private val nvdRepository: NvdRepository,
+    private val vulnrichmentRepository: VulnrichmentRepository,
+    private val vulnrichmentSyncService: VulnrichmentSyncService,
     private val riskScorer: RiskScorer,
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository
@@ -29,8 +33,10 @@ class VulnServiceImpl(
 
     private data class CveEnrichmentData(
         val kevCveIds: Set<String>,
+        val kevRansomwareCveIds: Set<String>,
         val epssScores: Map<String, no.nav.tpt.infrastructure.epss.EpssScore>,
-        val nvdData: Map<String, no.nav.tpt.infrastructure.nvd.NvdCveData>
+        val nvdData: Map<String, no.nav.tpt.infrastructure.nvd.NvdCveData>,
+        val vulnrichmentData: Map<String, no.nav.tpt.infrastructure.vulnrichment.VulnrichmentData>
     )
 
     private suspend fun fetchCveEnrichmentData(cveIds: List<String>): CveEnrichmentData {
@@ -48,10 +54,25 @@ class VulnServiceImpl(
             )
         }
         val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
+        val kevRansomwareCveIds = kevCatalog.vulnerabilities
+            .filter { it.knownRansomwareCampaignUse.equals("Known", ignoreCase = true) }
+            .map { it.cveID }
+            .toSet()
         val epssScores = epssService.getEpssScores(cveIds)
         val nvdData = nvdRepository.getCveDataBatch(cveIds)
+        try {
+            vulnrichmentSyncService.ensureCached(cveIds)
+        } catch (e: Exception) {
+            logger.warn("Failed to ensure Vulnrichment cache, continuing without it: ${e.message}")
+        }
+        val vulnrichmentData = try {
+            vulnrichmentRepository.getVulnrichmentDataBatch(cveIds)
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch Vulnrichment data, continuing without it: ${e.message}")
+            emptyMap()
+        }
 
-        return CveEnrichmentData(kevCveIds, epssScores, nvdData)
+        return CveEnrichmentData(kevCveIds, kevRansomwareCveIds, epssScores, nvdData, vulnrichmentData)
     }
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, groups: List<String>): VulnResponse {
@@ -83,7 +104,9 @@ class VulnServiceImpl(
                 val vulnerabilities = workload.vulnerabilities.map { vuln ->
                     val epssScore = enrichmentData.epssScores[vuln.identifier]
                     val hasKevEntry = enrichmentData.kevCveIds.contains(vuln.identifier)
+                    val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(vuln.identifier)
                     val cveData = enrichmentData.nvdData[vuln.identifier]
+                    val vulnrichmentEntry = enrichmentData.vulnrichmentData[vuln.identifier]
 
                     val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
                         severity = vuln.severity,
@@ -95,7 +118,11 @@ class VulnServiceImpl(
                         buildDate = buildDate,
                         hasExploitReference = cveData?.hasExploitReference ?: false,
                         hasPatchReference = cveData?.hasPatchReference ?: false,
-                        cveDaysOld = cveData?.daysOld
+                        cveDaysOld = cveData?.daysOld,
+                        hasRansomwareCampaignUse = hasRansomwareCampaignUse,
+                        ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
+                        ssvcAutomatable = vulnrichmentEntry?.automatable,
+                        ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -170,7 +197,9 @@ class VulnServiceImpl(
 
                 val epssScore = enrichmentData.epssScores[cveIdentifier]
                 val hasKevEntry = enrichmentData.kevCveIds.contains(cveIdentifier)
+                val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(cveIdentifier)
                 val cveData = enrichmentData.nvdData[cveIdentifier]
+                val vulnrichmentEntry = enrichmentData.vulnrichmentData[cveIdentifier]
 
                 val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
                     severity = vuln.severity,
@@ -182,7 +211,11 @@ class VulnServiceImpl(
                     buildDate = null,
                     hasExploitReference = cveData?.hasExploitReference ?: false,
                     hasPatchReference = cveData?.hasPatchReference ?: false,
-                    cveDaysOld = cveData?.daysOld
+                    cveDaysOld = cveData?.daysOld,
+                    hasRansomwareCampaignUse = hasRansomwareCampaignUse,
+                    ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
+                    ssvcAutomatable = vulnrichmentEntry?.automatable,
+                    ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
 

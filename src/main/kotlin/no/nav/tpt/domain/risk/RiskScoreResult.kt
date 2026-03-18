@@ -10,18 +10,18 @@ data class RiskScoreResult(
 
 @Serializable
 data class RiskScoreBreakdown(
-    val baseScore: Double,
+    val totalScore: Double,
     val factors: List<RiskFactorExplanation>,
-    val totalScore: Double
+    val suppressed: Boolean = false,
 )
 
 @Serializable
 data class RiskFactorExplanation(
     val name: String,
-    val contribution: Double,
+    val points: Int,
+    val maxPoints: Int,
     val explanation: String,
     val impact: ImpactLevel,
-    val multiplier: Double
 )
 
 enum class ImpactLevel {

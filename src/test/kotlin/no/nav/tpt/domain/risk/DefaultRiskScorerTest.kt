@@ -382,11 +382,11 @@ class DefaultRiskScorerTest {
         assertNotNull(breakdown)
 
         val factorNames = breakdown?.factors?.map { it.name }?.toSet()
+        assertEquals(factorNames?.contains("severity"), true)
+        assertEquals(factorNames?.contains("exploitation_evidence"), true)
         assertEquals(factorNames?.contains("exposure"), true)
-        assertEquals(factorNames?.contains("kev"), true)
-        assertEquals(factorNames?.contains("epss"), true)
         assertEquals(factorNames?.contains("environment"), true)
-        assertEquals(factorNames?.contains("build_age"), true)
+        assertEquals(factorNames?.contains("actionability"), true)
     }
 
     @Test
@@ -405,7 +405,7 @@ class DefaultRiskScorerTest {
 
         val exposureFactor = result.breakdown?.factors?.find { it.name == "exposure" }
         assertNotNull(exposureFactor)
-        assertEquals(config.externalExposureMultiplier, exposureFactor?.multiplier)
+        assertEquals(config.exposureExternalPoints, exposureFactor?.points)
     }
 
     @Test
@@ -422,14 +422,14 @@ class DefaultRiskScorerTest {
             )
         )
 
-        val kevFactor = result.breakdown?.factors?.find { it.name == "kev" }
+        val kevFactor = result.breakdown?.factors?.find { it.name == "exploitation_evidence" }
         assertNotNull(kevFactor)
-        assertEquals(config.kevListedMultiplier, kevFactor?.multiplier)
+        assertEquals(config.exploitationActivePoints, kevFactor?.points)
     }
 
     @Test
     fun `should correctly report suppression factor in breakdown`() {
-        val result = riskScorer.calculateRiskScore(
+        val suppressedResult = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "HIGH",
                 ingressTypes = listOf("EXTERNAL"),
@@ -440,10 +440,19 @@ class DefaultRiskScorerTest {
                 buildDate = null
             )
         )
+        val unsuppressedResult = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = false,
+                environment = null,
+                buildDate = null
+            )
+        )
 
-        val suppressionFactor = result.breakdown?.factors?.find { it.name == "suppression" }
-        assertNotNull(suppressionFactor)
-        assertEquals(config.suppressedMultiplier, suppressionFactor?.multiplier)
+        assertTrue(suppressedResult.score < unsuppressedResult.score)
     }
 
     @Test
@@ -462,11 +471,11 @@ class DefaultRiskScorerTest {
 
         val envFactor = result.breakdown?.factors?.find { it.name == "environment" }
         assertNotNull(envFactor)
-        assertEquals(config.productionEnvironmentMultiplier, envFactor?.multiplier)
+        assertEquals(config.environmentProductionPoints, envFactor?.points)
     }
 
     @Test
-    fun `should score critical vulnerability with external ingress in production above highest threshold`() {
+    fun `should score critical vulnerability with external ingress in production above medium threshold`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "CRITICAL",
@@ -486,7 +495,7 @@ class DefaultRiskScorerTest {
     }
 
     @Test
-    fun `should score high vulnerability with external ingress and kev above highest threshold`() {
+    fun `should score high vulnerability with external ingress and kev above medium threshold`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "HIGH",
@@ -518,8 +527,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
-            "Critical vulnerability with no ingress and KEV should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}, but got ${result.score}"
+        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL,
+            "Critical vulnerability with no ingress and KEV should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL}, but got ${result.score}"
         )
     }
 
@@ -537,13 +546,13 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_LOW,
-            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_LOW}, but got ${result.score}"
+        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+            "Medium vulnerability with external ingress in production and old build should score above ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}, but got ${result.score}"
         )
     }
 
     @Test
-    fun `should score suppressed critical vulnerability with all risk factors between medium and high threshold`() {
+    fun `should score suppressed critical vulnerability with all risk factors below low threshold`() {
         val result = riskScorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "CRITICAL",
@@ -556,8 +565,8 @@ class DefaultRiskScorerTest {
             )
         )
 
-        assertTrue(result.score > AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM && result.score < AppConfig.DEFAULT_RISK_THRESHOLD_HIGH,
-            "Suppressed critical vulnerability should score below ${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM} regardless of other factors, but got ${result.score}"
+        assertTrue(result.score < AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM,
+            "Suppressed critical vulnerability should score below low threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), but got ${result.score}"
         )
     }
 }

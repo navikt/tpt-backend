@@ -52,6 +52,10 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 import no.nav.tpt.infrastructure.vulns.VulnService
 import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepositoryImpl
+import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
 
 @Suppress("unused")
 class Dependencies(
@@ -74,7 +78,9 @@ class Dependencies(
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
-    val remediationService: RemediationService?
+    val remediationService: RemediationService?,
+    val vulnrichmentRepository: VulnrichmentRepository,
+    val vulnrichmentSyncService: VulnrichmentSyncService,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -150,11 +156,17 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService
     )
 
+    val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
+    val vulnrichmentClient = VulnrichmentClient(httpClient)
+    val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = epssService,
         nvdRepository = nvdRepository,
+        vulnrichmentRepository = vulnrichmentRepository,
+        vulnrichmentSyncService = vulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository
@@ -207,7 +219,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
-        remediationService = remediationService
+        remediationService = remediationService,
+        vulnrichmentRepository = vulnrichmentRepository,
+        vulnrichmentSyncService = vulnrichmentSyncService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

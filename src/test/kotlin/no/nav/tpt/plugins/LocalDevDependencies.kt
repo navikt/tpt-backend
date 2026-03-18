@@ -119,7 +119,12 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
     val vulnService = MockVulnService()
-    
+
+    val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
+    val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
+        client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(httpClient),
+        repository = mockVulnrichmentRepository,
+    )
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
@@ -177,7 +182,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = null
+        remediationService = null,
+        vulnrichmentRepository = mockVulnrichmentRepository,
+        vulnrichmentSyncService = mockVulnrichmentSyncService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

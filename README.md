@@ -10,8 +10,8 @@ User Role is set depending on how the user is linked to one or more namespaces.
 src/main/kotlin/no/nav/tpt/
 ├── domain/                                    # Core business logic and interfaces
 │   ├── admin/                                 # Admin overview and reporting interfaces
-│   ├── risk/                                  # Risk scoring algorithms and factor calculations
-│   │   └── factors/                           # Individual risk factor calculators (EPSS, KEV, build age, etc.)
+│   ├── risk/                                  # Risk scoring — additive point model (0–100), 5 factor calculators
+│   │   └── factors/                           # SeverityCalculator, ExploitationEvidenceCalculator, ExposureCalculator, EnvironmentCalculator, ActionabilityCalculator
 │   ├── user/                                  # User context and role management interfaces
 │   └── vulnerability/                         # Vulnerability domain models and repository interface
 ├── infrastructure/                            # External integrations and technical implementations
@@ -26,6 +26,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── kafka/                                 # Kafka consumer for GitHub repository events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── nvd/                                   # NVD database sync service and CVE data management
+│   ├── vulnrichment/                          # CISA Vulnrichment sync (SSVC decisions from cisagov/vulnrichment)
 │   ├── remediation/                           # AI remediation cache and service implementation
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
@@ -37,6 +38,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── Kafka.kt                               # Kafka consumer lifecycle management
 │   ├── LeaderElection.kt                      # Kubernetes leader election for distributed tasks
 │   ├── NvdSync.kt                             # Scheduled NVD synchronization orchestration
+│   ├── VulnrichmentSync.kt                    # Scheduled Vulnrichment sync (initial + daily incremental, leader-elected)
 │   └── VulnerabilityDataSync.kt               # Scheduled vulnerability data sync (leader-elected)
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
@@ -106,6 +108,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 - **NVD** - National Vulnerability Database (PostgreSQL-backed, syncs every 2 hours)
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
+- **CISA Vulnrichment** - SSVC decisions from `cisagov/vulnrichment` (PostgreSQL-backed, daily incremental sync)
 - **Kafka** - Receives JSON data from other applications (optional)
 - **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
 
@@ -128,6 +131,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
 - **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
+- **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`

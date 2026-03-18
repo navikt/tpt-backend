@@ -17,7 +17,9 @@ of the initial request.
 
 AppSec Guide is an api used to help developers prioritize which security issues to fix first. 
 The project automatically identifies the user and available resources using OIDC and fetches available metadata
-from a wide range of sources. We then use this data to calculate a risk score for each vulnerability and return a prioritized list to the user.
+from a wide range of sources. We then use this data to calculate a risk score (0–100 additive point model) for each vulnerability and return a prioritized list to the user.
+
+Risk scoring uses 5 weighted categories: Severity (0–25), Exploitation Evidence (0–30), Exposure (0–25), Environment (0–15), Actionability (0–10). Suppressed vulnerabilities score ×0.2. Priority buckets: CRITICAL ≥75, HIGH ≥50, MEDIUM ≥25, LOW <25.
 
 The project must be able to run locally for development and testing, as well as in a serverless environment (gcp) for production use.
 The docker images will use distroless images. For testing we will avoid mocking as much as possible and use testcontainers or similar solutions.
@@ -28,6 +30,7 @@ The docker images will use distroless images. For testing we will avoid mocking 
 - **NVD (National Vulnerability Database)**: Complete CVE dataset with CISA KEV data embedded
 - **EPSS (Exploit Prediction Scoring System)**: Probability scores for exploit likelihood
 - **CISA KEV**: Embedded in NVD data (no separate integration needed)
+- **CISA Vulnrichment** (`cisagov/vulnrichment`): SSVC decisions (exploitation, automatable, technical impact) — daily sync, leader-elected
 
 ### Key Architectural Principles
 - **Clean Architecture**: Dependencies point inward (infrastructure → usecase → domain)
@@ -202,20 +205,26 @@ class ImageRendererFactory {
 ```
 
 ### Leader Election Pattern
+
+**CRITICAL: Every background sync job MUST call `leaderElection.startLeaderElectionChecks(this)` at startup.**
+Without it, `cachedLeaderStatus` defaults to `false` and leader-gated operations silently never run. The call is idempotent (safe to call from multiple sync jobs).
+
 ```kotlin
-class LeaderElection(private val httpClient: HttpClient) {
-    suspend fun isLeader(): Boolean {
-        val electorUrl = System.getenv("ELECTOR_PATH") ?: return true // Local dev
-        val response = httpClient.get(electorUrl)
-        val leaderInfo: LeaderInfo = response.body()
-        return hostname == leaderInfo.name
-    }
-    
-    suspend fun <T> ifLeader(operation: suspend () -> T): T? {
-        return if (isLeader()) operation() else null
+fun Application.configureMySync() {
+    val leaderElection = dependencies.leaderElection
+    leaderElection.startLeaderElectionChecks(this) // REQUIRED — must be called in every sync job
+
+    launch {
+        while (true) {
+            leaderElection.ifLeader { doWork() } // only runs on the elected leader pod
+            delay(interval)
+        }
     }
 }
 ```
+
+`ifLeader { }` uses a cached status polled every 60s via the Kubernetes elector sidecar (`ELECTOR_GET_URL`). When the env var is absent (local dev), the pod assumes it is the leader.
+
 
 ### Database Transaction Pattern
 ```kotlin
@@ -264,6 +273,11 @@ interface NvdRepository {
 - **Leader Election**: Kubernetes native leader election prevents duplicate syncs
 - **Date Format**: ISO 8601 with UTC timezone (`2024-01-01T00:00:00.000Z`)
 - **Error Handling**: HTTP status checking before response deserialization
+
+### Vulnrichment Sync Strategy
+- **Initial Sync**: Fetches from 2023-01-01 on empty database (leader-only), triggered 30s after startup
+- **Incremental Sync**: Every 24 hours using `lastUpdated` tracking (leader-only)
+- Same leader-election pattern as NVD sync
 
 ## Security Considerations
 

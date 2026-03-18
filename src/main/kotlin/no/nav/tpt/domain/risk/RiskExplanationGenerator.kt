@@ -2,137 +2,96 @@ package no.nav.tpt.domain.risk
 
 class RiskExplanationGenerator(private val config: RiskScoringConfig) {
 
-    fun generateBreakdown(
-        severity: String,
-        baseScore: Double,
-        factors: List<RiskFactor>,
-        finalScore: Double
-    ): RiskScoreBreakdown {
-        val allExplanations = mutableListOf<RiskFactorExplanation>()
-        val sortedFactors = factors.sortedByDescending { it.value }
-
-        allExplanations.add(
-            RiskFactorExplanation(
-                name = "severity",
-                contribution = baseScore,
-                explanation = generateSeverityExplanation(severity, baseScore),
-                impact = determineBaseSeverityImpact(baseScore),
-                multiplier = 1.0
-            )
-        )
-
-        // Add other factors
-        allExplanations.addAll(
-            sortedFactors
-                .filter { factor -> factor.value != 1.0 }
-                .map { factor ->
-                    val contribution = calculateContribution(baseScore, factor, sortedFactors)
-
-                    RiskFactorExplanation(
-                        name = factor.name,
-                        contribution = contribution,
-                        explanation = generateExplanation(factor),
-                        impact = determineImpact(factor.value, factor.name),
-                        multiplier = factor.value
-                    )
-                }
-        )
+    fun generateBreakdown(factors: List<RiskFactor>, totalScore: Double, suppressed: Boolean = false): RiskScoreBreakdown {
+        val explanations = factors
+            .sortedByDescending { it.points }
+            .map { factor ->
+                RiskFactorExplanation(
+                    name = factor.name,
+                    points = factor.points,
+                    maxPoints = factor.maxPoints,
+                    explanation = generateExplanation(factor),
+                    impact = determineImpact(factor.points, factor.maxPoints),
+                )
+            }
 
         return RiskScoreBreakdown(
-            baseScore = baseScore,
-            factors = allExplanations,
-            totalScore = finalScore
+            totalScore = totalScore,
+            factors = explanations,
+            suppressed = suppressed,
         )
-    }
-
-    private fun calculateContribution(baseScore: Double, factor: RiskFactor, allFactors: List<RiskFactor>): Double {
-        var calcValue = baseScore
-        allFactors.forEach {
-            if(factor.name == it.name) {
-                return calcValue * it.value - calcValue
-            }
-            calcValue *= it.value
-        }
-        throw IllegalStateException("Could not find risc factor ${factor.name} in allFactors ${allFactors.joinToString { it.name }}")
     }
 
     private fun generateExplanation(factor: RiskFactor): String = when (factor.name) {
+        "severity" -> {
+            val severity = factor.metadata["severity"] as? String ?: "unknown"
+            "Base severity: $severity (${factor.points}/${factor.maxPoints} points)"
+        }
+        "exploitation_evidence" -> {
+            val hasKev = factor.metadata["hasKevEntry"] as? Boolean ?: false
+            val epss = factor.metadata["epssScore"] as? String
+            val hasPoc = factor.metadata["hasExploitReference"] as? Boolean ?: false
+            val ssvc = factor.metadata["ssvcExploitation"] as? String
+            when {
+                ssvc?.equals("active", ignoreCase = true) == true ->
+                    "Active exploitation confirmed (SSVC/Vulnrichment)"
+                hasKev -> "Active exploitation confirmed (CISA KEV)"
+                ssvc?.equals("poc", ignoreCase = true) == true ->
+                    "Exploit PoC confirmed (SSVC/Vulnrichment)"
+                hasPoc && epss != null && epss != "unknown" ->
+                    "Exploit PoC available, EPSS: $epss"
+                hasPoc -> "Exploit PoC available"
+                epss != null && epss != "unknown" -> "Exploit probability: $epss (EPSS)"
+                else -> "No exploitation evidence found"
+            }
+        }
         "exposure" -> {
             val exposureType = factor.metadata["exposureType"] as? String ?: "unknown"
+            val automatable = factor.metadata["automatable"] as? String
+            val automatableSuffix = if (automatable?.equals("yes", ignoreCase = true) == true)
+                " (automatable: exploit chain can be scripted)" else ""
             when (exposureType) {
-                "external" -> "Application is externally accessible"
-                "authenticated" -> "Application requires authentication"
-                "internal" -> "Application is only internally accessible"
-                "none" -> "Application has no ingress (reduced exposure)"
+                "external" -> "Application is externally accessible$automatableSuffix"
+                "authenticated" -> "Application requires authentication$automatableSuffix"
+                "internal" -> "Application is only internally accessible$automatableSuffix"
+                "none" -> "Application has no ingress"
                 else -> "Unknown exposure type"
             }
         }
-        "kev" -> {
-            val listed = factor.metadata["listed"] as? Boolean ?: false
-            if (listed) "Known exploited vulnerability (CISA KEV)" else "Not in CISA KEV database"
-        }
-        "epss" -> {
-            val score = factor.metadata["score"] as? Double
-            if (score != null) {
-                val percentage = (score * 100).toInt()
-                "Exploit probability: $percentage% (EPSS)"
-            } else {
-                "EPSS score unavailable"
-            }
-        }
-        "suppression" -> {
-            val suppressed = factor.metadata["suppressed"] as? Boolean ?: false
-            if (suppressed) "Vulnerability marked as suppressed" else "Vulnerability is active"
-        }
         "environment" -> {
-            val isProduction = factor.metadata["isProduction"] as? Boolean ?: false
-            if (isProduction) "Running in production environment" else "Running in non-production environment"
-        }
-        "build_age" -> {
-            val daysOld = factor.metadata["daysOld"] as? Long
-            if (daysOld != null && daysOld > config.oldBuildThresholdDays) {
-                "Build is $daysOld days old (over ${config.oldBuildThresholdDays} day threshold)"
-            } else {
-                "Build is recent"
+            val env = factor.metadata["environment"] as? String ?: "unknown"
+            val buildAgeBonus = factor.metadata["buildAgeBonus"] as? Int ?: 0
+            val cveAgeBonus = factor.metadata["cveAgeBonus"] as? Int ?: 0
+            buildString {
+                append("Environment: $env")
+                if (buildAgeBonus > 0) append(", build age >${config.environmentOldBuildThresholdDays} days (+$buildAgeBonus)")
+                if (cveAgeBonus > 0) append(", CVE age >${config.environmentChronicCveThresholdDays} days (+$cveAgeBonus)")
             }
         }
-        "exploit_reference" -> {
-            val hasExploit = factor.metadata["hasExploit"] as? Boolean ?: false
-            if (hasExploit) "Exploit code publicly available" else "No known exploit code"
-        }
-        "patch_available" -> {
+        "actionability" -> {
             val hasPatch = factor.metadata["hasPatch"] as? Boolean ?: false
-            if (hasPatch) "Patch is available" else "No patch information"
+            val hasRansomware = factor.metadata["hasRansomwareCampaignUse"] as? Boolean ?: false
+            when {
+                hasPatch && hasRansomware -> "Patch available; linked to ransomware campaigns"
+                hasPatch -> "Patch is available"
+                hasRansomware -> "Linked to known ransomware campaigns"
+                else -> "No patch or ransomware data"
+            }
         }
         else -> factor.name
     }
 
-    private fun generateSeverityExplanation(severity: String, baseScore: Double): String {
-        return "Base severity score (${severity.uppercase()})"
-    }
-
-    private fun determineBaseSeverityImpact(baseScore: Double): ImpactLevel {
+    private fun determineImpact(points: Int, maxPoints: Int): ImpactLevel {
+        if (maxPoints == 0) return ImpactLevel.NONE
+        val ratio = points.toDouble() / maxPoints
         return when {
-            baseScore >= 100.0 -> ImpactLevel.CRITICAL
-            baseScore >= 70.0 -> ImpactLevel.HIGH
-            baseScore >= 40.0 -> ImpactLevel.MEDIUM
-            baseScore >= 20.0 -> ImpactLevel.LOW
-            else -> ImpactLevel.NONE
-        }
-    }
-
-    // Values >1.0 increase risk, <1.0 mitigate risk (both significant for scoring)
-    private fun determineImpact(value: Double, name: String): ImpactLevel {
-        if (name == "suppression" && value < 1.0) return ImpactLevel.HIGH
-
-        return when {
-            value >= 2.0 -> ImpactLevel.CRITICAL
-            value >= 1.5 -> ImpactLevel.HIGH
-            value >= 1.2 -> ImpactLevel.MEDIUM
-            value > 1.0 -> ImpactLevel.LOW
-            value < 1.0 -> ImpactLevel.MEDIUM
+            ratio >= 0.9 -> ImpactLevel.CRITICAL
+            ratio >= 0.6 -> ImpactLevel.HIGH
+            ratio >= 0.3 -> ImpactLevel.MEDIUM
+            ratio > 0.0 -> ImpactLevel.LOW
             else -> ImpactLevel.NONE
         }
     }
 }
+
 

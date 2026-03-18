@@ -12,14 +12,14 @@ data class AppConfig(
     val adminGroups: String?,
     val aiApiUrl: String?,
     val aiModel: String = "gemini-2.5-flash",
+    val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
-    val riskThresholdLow: Double = DEFAULT_RISK_THRESHOLD_LOW
 ) {
     companion object {
-        const val DEFAULT_RISK_THRESHOLD_HIGH = 220.0
-        const val DEFAULT_RISK_THRESHOLD_MEDIUM = 150.0
-        const val DEFAULT_RISK_THRESHOLD_LOW = 100.0
+        const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
+        const val DEFAULT_RISK_THRESHOLD_HIGH = 50.0
+        const val DEFAULT_RISK_THRESHOLD_MEDIUM = 25.0
 
         fun fromEnvironment(): AppConfig {
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
