@@ -1,6 +1,8 @@
 package no.nav.tpt.infrastructure.epss
 
 import org.slf4j.LoggerFactory
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 class EpssServiceImpl(
     private val epssClient: EpssClient,
@@ -9,6 +11,10 @@ class EpssServiceImpl(
     private val staleThresholdHours: Int = 24
 ) : EpssService {
     private val logger = LoggerFactory.getLogger(EpssServiceImpl::class.java)
+
+    // CVEs confirmed absent from the EPSS dataset, keyed by CVE ID to time of last check.
+    // Avoids re-fetching on every request for CVEs that simply have no EPSS entry.
+    private val notInEpssCache = ConcurrentHashMap<String, Instant>()
 
     companion object {
         private const val MAX_PARAMETER_LENGTH = 2000
@@ -35,16 +41,27 @@ class EpssServiceImpl(
             return dbScores
         }
 
-        if (circuitBreaker.isOpen()) {
-            logger.warn("Circuit breaker is OPEN - skipping EPSS API calls. Returning ${dbScores.size} database scores (${staleCveIds.size} are stale).")
+        // Filter out CVEs recently confirmed as absent from EPSS (expires after staleThresholdHours)
+        val staleThresholdSeconds = staleThresholdHours * 3600L
+        val cacheExpiry = Instant.now().minusSeconds(staleThresholdSeconds)
+        notInEpssCache.entries.removeIf { it.value < cacheExpiry }
+        val cveIdsToFetch = staleCveIds.filter { !notInEpssCache.containsKey(it) }
+
+        if (cveIdsToFetch.isEmpty()) {
+            logger.debug("All ${staleCveIds.size} stale/missing CVEs are known not in EPSS dataset, skipping API call")
             return dbScores
         }
 
-        logger.info("Fetching ${staleCveIds.size} stale/missing CVEs from EPSS API (${dbScores.size} found fresh in database)")
+        if (circuitBreaker.isOpen()) {
+            logger.warn("Circuit breaker is OPEN - skipping EPSS API calls. Returning ${dbScores.size} database scores (${cveIdsToFetch.size} are stale).")
+            return dbScores
+        }
+
+        logger.info("Fetching ${cveIdsToFetch.size} stale/missing CVEs from EPSS API (${dbScores.size} found fresh in database)")
 
         return try {
-            val batches = createBatches(staleCveIds)
-            logger.debug("Split ${staleCveIds.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
+            val batches = createBatches(cveIdsToFetch)
+            logger.debug("Split ${cveIdsToFetch.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
 
             val fetchedScores = batches.flatMap { batch ->
                 val response = epssClient.getEpssScores(batch)
@@ -53,6 +70,13 @@ class EpssServiceImpl(
 
             circuitBreaker.recordSuccess()
             epssRepository.upsertEpssScores(fetchedScores.values.toList())
+
+            // Cache CVEs the API confirmed have no EPSS entry so we don't re-fetch every request
+            val now = Instant.now()
+            cveIdsToFetch.filter { it !in fetchedScores }.forEach { notInEpssCache[it] = now }
+            if (cveIdsToFetch.size != fetchedScores.size) {
+                logger.debug("${cveIdsToFetch.size - fetchedScores.size} CVEs have no EPSS entry — cached for ${staleThresholdHours}h")
+            }
 
             val allScores = dbScores + fetchedScores
 

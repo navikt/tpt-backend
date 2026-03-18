@@ -387,6 +387,66 @@ class EpssServiceImplTest {
     }
 
     @Test
+    fun `should not re-fetch CVEs that are absent from EPSS dataset`() = runTest {
+        var requestCount = 0
+        val mockEngine = MockEngine { _ ->
+            requestCount++
+            respond(
+                content = """{"status": "OK", "total": 0, "data": []}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val httpClient = HttpClient(mockEngine) { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+        val service = EpssServiceImpl(EpssClient(httpClient, testBaseUrl), InMemoryEpssRepository(), InMemoryCircuitBreaker())
+
+        service.getEpssScores(listOf("CVE-2024-99999"))
+        assertEquals(1, requestCount)
+
+        // Second call on same instance — should be skipped (cached as not-in-EPSS)
+        service.getEpssScores(listOf("CVE-2024-99999"))
+        assertEquals(1, requestCount, "Should not re-fetch a CVE confirmed absent from the EPSS dataset")
+    }
+
+    @Test
+    fun `should only include non-cached absent CVEs in API request`() = runTest {
+        var callCount = 0
+        val mockEngine = MockEngine { request ->
+            callCount++
+            val cveParam = request.url.parameters["cve"] ?: ""
+            when (callCount) {
+                1 -> respond(
+                    content = """{"status": "OK", "total": 0, "data": []}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+                2 -> {
+                    assertFalse(cveParam.contains("CVE-2024-99999"), "Absent CVE should not be re-fetched")
+                    assertTrue(cveParam.contains("CVE-2021-44228"))
+                    respond(
+                        content = """{"status": "OK", "total": 1, "data": [{"cve": "CVE-2021-44228", "epss": "0.942510000", "percentile": "0.999630000", "date": "2026-01-20"}]}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    )
+                }
+                else -> fail("Unexpected API call $callCount")
+            }
+        }
+        val httpClient = HttpClient(mockEngine) { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+        val service = EpssServiceImpl(EpssClient(httpClient, testBaseUrl), InMemoryEpssRepository(), InMemoryCircuitBreaker())
+
+        // Warm: CVE-2024-99999 is confirmed absent
+        service.getEpssScores(listOf("CVE-2024-99999"))
+        assertEquals(1, callCount)
+
+        // Second request includes both — API should only receive CVE-2021-44228
+        val result = service.getEpssScores(listOf("CVE-2024-99999", "CVE-2021-44228"))
+        assertEquals(2, callCount)
+        assertEquals(1, result.size)
+        assertEquals("0.942510000", result["CVE-2021-44228"]?.epss)
+    }
+
+    @Test
     fun `should return empty map for empty CVE list`() = runTest {
         val mockEngine = MockEngine { _ ->
             fail("Should not make HTTP request for empty CVE list")
