@@ -16,8 +16,9 @@ class EnvironmentCalculatorTest {
         environment: String? = null,
         buildDate: LocalDate? = null,
         cveDaysOld: Long? = null,
+        ingressTypes: List<String> = emptyList(),
     ) = VulnerabilityRiskContext(
-        severity = "HIGH", ingressTypes = emptyList(),
+        severity = "HIGH", ingressTypes = ingressTypes,
         hasKevEntry = false, epssScore = null, suppressed = false,
         environment = environment, buildDate = buildDate, cveDaysOld = cveDaysOld,
     )
@@ -63,10 +64,17 @@ class EnvironmentCalculatorTest {
     }
 
     @Test
-    fun `should add 3 bonus points for build older than threshold`() {
+    fun `should add 3 bonus points for build older than threshold when app has ingress`() {
+        val oldBuildDate = LocalDate.now().minusDays(config.environmentOldBuildThresholdDays + 10)
+        val result = calculator.calculate(context(environment = "prod-gcp", buildDate = oldBuildDate, ingressTypes = listOf("INTERNAL")))
+        assertEquals(config.environmentProductionPoints + config.environmentOldBuildBonus, result.points)
+    }
+
+    @Test
+    fun `should not add build age bonus when app has no ingress`() {
         val oldBuildDate = LocalDate.now().minusDays(config.environmentOldBuildThresholdDays + 10)
         val result = calculator.calculate(context(environment = "prod-gcp", buildDate = oldBuildDate))
-        assertEquals(config.environmentProductionPoints + config.environmentOldBuildBonus, result.points)
+        assertEquals(config.environmentProductionPoints, result.points)
     }
 
     @Test
@@ -83,12 +91,22 @@ class EnvironmentCalculatorTest {
     }
 
     @Test
-    fun `should add 2 bonus points for CVE older than 365 days`() {
+    fun `should add 2 bonus points for CVE older than 365 days when app has ingress`() {
         val result = calculator.calculate(context(
             environment = "prod-gcp",
-            cveDaysOld = config.environmentChronicCveThresholdDays + 10
+            cveDaysOld = config.environmentChronicCveThresholdDays + 10,
+            ingressTypes = listOf("INTERNAL"),
         ))
         assertEquals(config.environmentProductionPoints + config.environmentChronicCveBonus, result.points)
+    }
+
+    @Test
+    fun `should not add CVE age bonus when app has no ingress`() {
+        val result = calculator.calculate(context(
+            environment = "prod-gcp",
+            cveDaysOld = config.environmentChronicCveThresholdDays + 10,
+        ))
+        assertEquals(config.environmentProductionPoints, result.points)
     }
 
     @Test
@@ -98,17 +116,29 @@ class EnvironmentCalculatorTest {
     }
 
     @Test
-    fun `should accumulate both build age and CVE age bonuses`() {
+    fun `should accumulate both build age and CVE age bonuses when app has ingress`() {
         val oldBuildDate = LocalDate.now().minusDays(config.environmentOldBuildThresholdDays + 10)
         val result = calculator.calculate(context(
             environment = "prod-gcp",
             buildDate = oldBuildDate,
-            cveDaysOld = config.environmentChronicCveThresholdDays + 10
+            cveDaysOld = config.environmentChronicCveThresholdDays + 10,
+            ingressTypes = listOf("INTERNAL"),
         ))
         assertEquals(
             config.environmentProductionPoints + config.environmentOldBuildBonus + config.environmentChronicCveBonus,
             result.points
         )
+    }
+
+    @Test
+    fun `should skip all age bonuses when app has no ingress`() {
+        val oldBuildDate = LocalDate.now().minusDays(config.environmentOldBuildThresholdDays + 10)
+        val result = calculator.calculate(context(
+            environment = "prod-gcp",
+            buildDate = oldBuildDate,
+            cveDaysOld = config.environmentChronicCveThresholdDays + 10,
+        ))
+        assertEquals(config.environmentProductionPoints, result.points)
     }
 
     @Test

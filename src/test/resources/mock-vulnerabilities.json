@@ -136,7 +136,7 @@
                     "name": "exploitation_evidence",
                     "points": 22,
                     "maxPoints": 30,
-                    "explanation": "Exploit probability: 0.78 (EPSS)",
+                    "explanation": "EPSS 78.0% — very high likelihood of exploitation",
                     "impact": "HIGH"
                   },
                   {
@@ -255,7 +255,7 @@
                     "name": "exploitation_evidence",
                     "points": 10,
                     "maxPoints": 30,
-                    "explanation": "Exploit probability: 0.42 (EPSS)",
+                    "explanation": "EPSS 42.0% — moderate likelihood of exploitation",
                     "impact": "LOW"
                   },
                   {
@@ -306,7 +306,7 @@
                     "name": "exploitation_evidence",
                     "points": 5,
                     "maxPoints": 30,
-                    "explanation": "Exploit probability: 0.15 (EPSS)",
+                    "explanation": "EPSS 15.0% — low likelihood of exploitation",
                     "impact": "LOW"
                   },
                   {

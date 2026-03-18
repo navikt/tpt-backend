@@ -17,6 +17,7 @@ data class RiskScoringConfig(
     val exploitationEpssHighPoints: Int = 15,        // EPSS 0.5–0.7, no PoC
     val exploitationEpssMediumPoints: Int = 10,      // EPSS 0.3–0.5
     val exploitationEpssLowPoints: Int = 5,          // EPSS 0.1–0.3
+    val exploitationPocLowEpssPoints: Int = 10,      // exploit PoC + EPSS < epssLowThreshold (PoC exists but nobody is exploiting it)
 
     // EPSS thresholds for exploitation category
     val epssVeryHighThreshold: Double = 0.7,
@@ -43,6 +44,7 @@ data class RiskScoringConfig(
     // Category 5: Actionability & urgency points (max 10)
     val actionabilityPatchAvailablePoints: Int = 5,
     val actionabilityRansomwarePoints: Int = 5,
+    val actionabilityNoPatchPenalty: Int = -3,       // applied when no patch and no ransomware association
 
     // Suppression: multiplier applied to total score after all categories
     val suppressedMultiplier: Double = 0.2,

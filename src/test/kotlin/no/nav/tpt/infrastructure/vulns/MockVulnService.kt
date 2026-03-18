@@ -163,7 +163,7 @@ class MockVulnService : VulnService {
                                                 name = "exploitation_evidence",
                                                 points = 22,
                                                 maxPoints = 30,
-                                                explanation = "Exploit probability: 0.85 (EPSS)",
+                                                explanation = "EPSS 85.0% — very high likelihood of exploitation",
                                                 impact = ImpactLevel.CRITICAL
                                             )
                                         ),
@@ -454,7 +454,7 @@ class MockVulnService : VulnService {
                                                 name = "exploitation_evidence",
                                                 points = 22,
                                                 maxPoints = 30,
-                                                explanation = "Exploit probability: 0.75 (EPSS)",
+                                                explanation = "EPSS 75.0% — very high likelihood of exploitation",
                                                 impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
@@ -503,7 +503,7 @@ class MockVulnService : VulnService {
                                                 name = "exploitation_evidence",
                                                 points = 22,
                                                 maxPoints = 30,
-                                                explanation = "Exploit probability: 0.75 (EPSS)",
+                                                explanation = "EPSS 75.0% — very high likelihood of exploitation",
                                                 impact = ImpactLevel.HIGH
                                             ),
                                             RiskFactorExplanation(
