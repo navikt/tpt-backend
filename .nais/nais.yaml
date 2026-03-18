@@ -30,6 +30,7 @@ spec:
         - host: www.cisa.gov
         - host: api.first.org
         - host: services.nvd.nist.gov
+        - host: cveawg.mitre.org
   gcp:
     sqlInstances:
       - type: POSTGRES_17

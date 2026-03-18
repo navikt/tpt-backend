@@ -56,7 +56,6 @@ fun Application.configureNvdSync() {
                 logger.info("NVD data is now available (lastModified: ${nvdRepository.getLastModifiedDate()})")
             } else {
                 logger.info("NVD data found. Last modified: $lastModified")
-                logger.info("Incremental sync scheduler will start in 2 hours and then run every 2 hours")
                 initialSyncNeeded.complete(false)
             }
         } catch (e: Exception) {
@@ -75,7 +74,7 @@ fun Application.configureNvdSync() {
             }
             logger.info("Initial sync completed. Starting incremental sync scheduler.")
         } else {
-            logger.info("Incremental sync scheduler will start in 2 hours")
+            logger.info("Incremental NVD sync scheduler will start in 2 hours")
             delay(2.hours)
         }
 
