@@ -25,7 +25,7 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
     private fun generateExplanation(factor: RiskFactor): String = when (factor.name) {
         "severity" -> {
             val severity = factor.metadata["severity"] as? String ?: "unknown"
-            "Base severity: $severity (${factor.points}/${factor.maxPoints} points)"
+            "Base severity: $severity"
         }
         "exploitation_evidence" -> {
             val hasKev = factor.metadata["hasKevEntry"] as? Boolean ?: false

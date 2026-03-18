@@ -61,7 +61,12 @@ class VulnrichmentClient(
                     null
                 }
                 else -> {
-                    recordFailure(response.status)
+                    if (response.status.value >= 500) {
+                        recordFailure(response.status)
+                    } else {
+                        consecutiveFailures.set(0)
+                        logger.debug("CVE Services API returned ${response.status} for $cveId")
+                    }
                     null
                 }
             }

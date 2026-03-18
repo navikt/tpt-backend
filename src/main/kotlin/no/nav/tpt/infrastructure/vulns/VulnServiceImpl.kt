@@ -88,6 +88,7 @@ class VulnServiceImpl(
             .flatMap { it.workloads }
             .flatMap { it.vulnerabilities }
             .map { it.identifier }
+            .filter { it.startsWith("CVE-", ignoreCase = true) }
             .distinct()
 
         val enrichmentData = fetchCveEnrichmentData(allCveIds)

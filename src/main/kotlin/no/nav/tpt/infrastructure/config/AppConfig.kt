@@ -19,7 +19,7 @@ data class AppConfig(
     companion object {
         const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
         const val DEFAULT_RISK_THRESHOLD_HIGH = 50.0
-        const val DEFAULT_RISK_THRESHOLD_MEDIUM = 25.0
+        const val DEFAULT_RISK_THRESHOLD_MEDIUM = 30.0
 
         fun fromEnvironment(): AppConfig {
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
