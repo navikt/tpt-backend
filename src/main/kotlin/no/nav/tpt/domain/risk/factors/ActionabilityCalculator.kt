@@ -13,7 +13,9 @@ class ActionabilityCalculator(private val config: RiskScoringConfig) : FactorCal
     override fun calculate(context: VulnerabilityRiskContext): RiskFactor {
         val patchPoints = if (context.hasPatchReference) config.actionabilityPatchAvailablePoints else 0
         val ransomwarePoints = if (context.hasRansomwareCampaignUse) config.actionabilityRansomwarePoints else 0
-        val total = patchPoints + ransomwarePoints
+        val noPatchPenalty = if (!context.hasPatchReference && !context.hasRansomwareCampaignUse)
+            config.actionabilityNoPatchPenalty else 0
+        val total = patchPoints + ransomwarePoints + noPatchPenalty
 
         return RiskFactor(
             name = categoryName,
@@ -22,6 +24,7 @@ class ActionabilityCalculator(private val config: RiskScoringConfig) : FactorCal
             metadata = mapOf(
                 "hasPatch" to context.hasPatchReference,
                 "hasRansomwareCampaignUse" to context.hasRansomwareCampaignUse,
+                "noPatchPenalty" to noPatchPenalty,
             )
         )
     }

@@ -16,8 +16,9 @@ class EnvironmentCalculator(private val config: RiskScoringConfig) : FactorCalcu
 
     override fun calculate(context: VulnerabilityRiskContext): RiskFactor {
         val basePoints = getBaseEnvironmentPoints(context.environment)
-        val buildAgeBonus = getBuildAgeBonus(context.buildDate)
-        val cveAgeBonus = getCveAgeBonus(context.cveDaysOld)
+        val hasIngress = context.ingressTypes.isNotEmpty()
+        val buildAgeBonus = if (hasIngress) getBuildAgeBonus(context.buildDate) else 0
+        val cveAgeBonus = if (hasIngress) getCveAgeBonus(context.cveDaysOld) else 0
         val total = basePoints + buildAgeBonus + cveAgeBonus
 
         return RiskFactor(
@@ -29,6 +30,7 @@ class EnvironmentCalculator(private val config: RiskScoringConfig) : FactorCalcu
                 "basePoints" to basePoints,
                 "buildAgeBonus" to buildAgeBonus,
                 "cveAgeBonus" to cveAgeBonus,
+                "ageBonusesSkipped" to (!hasIngress && (context.buildDate != null || context.cveDaysOld != null)),
             )
         )
     }

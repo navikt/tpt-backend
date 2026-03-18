@@ -29,19 +29,20 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
         }
         "exploitation_evidence" -> {
             val hasKev = factor.metadata["hasKevEntry"] as? Boolean ?: false
-            val epss = factor.metadata["epssScore"] as? String
+            val epssRaw = factor.metadata["epssScore"] as? String
             val hasPoc = factor.metadata["hasExploitReference"] as? Boolean ?: false
             val ssvc = factor.metadata["ssvcExploitation"] as? String
+            val epssExplanation = formatEpssExplanation(epssRaw)
             when {
                 ssvc?.equals("active", ignoreCase = true) == true ->
                     "Active exploitation confirmed (SSVC/Vulnrichment)"
                 hasKev -> "Active exploitation confirmed (CISA KEV)"
                 ssvc?.equals("poc", ignoreCase = true) == true ->
                     "Exploit PoC confirmed (SSVC/Vulnrichment)"
-                hasPoc && epss != null && epss != "unknown" ->
-                    "Exploit PoC available, EPSS: $epss"
+                hasPoc && epssExplanation != null ->
+                    "Exploit PoC available — $epssExplanation"
                 hasPoc -> "Exploit PoC available"
-                epss != null && epss != "unknown" -> "Exploit probability: $epss (EPSS)"
+                epssExplanation != null -> epssExplanation
                 else -> "No exploitation evidence found"
             }
         }
@@ -62,20 +63,24 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             val env = factor.metadata["environment"] as? String ?: "unknown"
             val buildAgeBonus = factor.metadata["buildAgeBonus"] as? Int ?: 0
             val cveAgeBonus = factor.metadata["cveAgeBonus"] as? Int ?: 0
+            val ageBonusesSkipped = factor.metadata["ageBonusesSkipped"] as? Boolean ?: false
             buildString {
                 append("Environment: $env")
                 if (buildAgeBonus > 0) append(", build age >${config.environmentOldBuildThresholdDays} days (+$buildAgeBonus)")
                 if (cveAgeBonus > 0) append(", CVE age >${config.environmentChronicCveThresholdDays} days (+$cveAgeBonus)")
+                if (ageBonusesSkipped) append(" (age bonuses skipped — no network exposure)")
             }
         }
         "actionability" -> {
             val hasPatch = factor.metadata["hasPatch"] as? Boolean ?: false
             val hasRansomware = factor.metadata["hasRansomwareCampaignUse"] as? Boolean ?: false
+            val penalty = factor.metadata["noPatchPenalty"] as? Int ?: 0
+            val penaltySuffix = if (penalty < 0) " (no fix available — deprioritized)" else ""
             when {
                 hasPatch && hasRansomware -> "Patch available; linked to ransomware campaigns"
                 hasPatch -> "Patch is available"
                 hasRansomware -> "Linked to known ransomware campaigns"
-                else -> "No patch or ransomware data"
+                else -> "No patch or ransomware data$penaltySuffix"
             }
         }
         else -> factor.name
@@ -91,6 +96,25 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             ratio > 0.0 -> ImpactLevel.LOW
             else -> ImpactLevel.NONE
         }
+    }
+
+    private fun formatEpssExplanation(epssRaw: String?): String? {
+        if (epssRaw == null || epssRaw == "unknown") return null
+        val score = epssRaw.toDoubleOrNull() ?: return null
+        val percentage = score * 100
+        val formatted = if (percentage >= 1.0) {
+            "%.1f%%".format(percentage)
+        } else {
+            "%.2f%%".format(percentage)
+        }
+        val label = when {
+            score >= config.epssVeryHighThreshold -> "very high likelihood of exploitation"
+            score >= config.epssHighThreshold -> "high likelihood of exploitation"
+            score >= config.epssMediumThreshold -> "moderate likelihood of exploitation"
+            score >= config.epssLowThreshold -> "low likelihood of exploitation"
+            else -> "minimal likelihood of exploitation"
+        }
+        return "EPSS $formatted — $label"
     }
 }
 

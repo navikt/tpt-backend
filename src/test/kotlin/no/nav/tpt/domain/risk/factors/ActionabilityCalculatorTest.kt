@@ -43,9 +43,9 @@ class ActionabilityCalculatorTest {
     }
 
     @Test
-    fun `should return 0 points when neither patch nor ransomware`() {
+    fun `should return penalty points when neither patch nor ransomware`() {
         val result = calculator.calculate(context())
-        assertEquals(0, result.points)
+        assertEquals(config.actionabilityNoPatchPenalty, result.points)
     }
 
     @Test
