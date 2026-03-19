@@ -551,8 +551,22 @@ components:
         packageEcosystem:
           type: string
           nullable: true
-          description: Package ecosystem (NPM, MAVEN, PIP, etc.) - GitHub vulnerabilities only
-          example: "NPM"
+          description: >
+            Raw PURL type identifying the package ecosystem (e.g., npm, maven, pypi, deb, rpm, apk, cargo, golang).
+            Populated for both Nais and GitHub vulnerabilities. Use this for fine-grained filtering or grouping by ecosystem.
+            For a coarser three-way split, use dependencyCategory instead.
+          example: "npm"
+        dependencyCategory:
+          type: string
+          nullable: true
+          description: >
+            Category of the dependency derived from the PURL type.
+            OS_PACKAGE — base image OS packages (deb, rpm, apk) fixable by updating the base image.
+            APPLICATION — application-level dependencies (npm, maven, pypi, cargo, golang, etc.).
+            CONTAINER — container image references (docker, oci).
+            UNKNOWN — type could not be determined.
+          enum: [OS_PACKAGE, APPLICATION, CONTAINER, UNKNOWN]
+          example: "OS_PACKAGE"
     RiskScoreBreakdown:
       type: object
       required:

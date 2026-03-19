@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.vulns
 
+import no.nav.tpt.domain.DependencyCategory
 import no.nav.tpt.domain.VulnResponse
 import no.nav.tpt.domain.VulnTeamDto
 import no.nav.tpt.domain.VulnVulnerabilityDto
@@ -131,10 +132,12 @@ class VulnServiceImpl(
                         identifier = vuln.identifier,
                         name = PurlParser.extractPackageName(vuln.packageName),
                         packageName = vuln.packageName,
+                        packageEcosystem = vuln.packageType,
                         description = vuln.description,
                         vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
                         riskScore = riskResult.score,
-                        riskScoreBreakdown = riskResult.breakdown
+                        riskScoreBreakdown = riskResult.breakdown,
+                        dependencyCategory = DependencyCategory.fromPurlType(vuln.packageType).name
                     )
                 }
 

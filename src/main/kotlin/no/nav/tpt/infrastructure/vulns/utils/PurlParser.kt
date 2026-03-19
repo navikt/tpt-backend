@@ -41,6 +41,15 @@ object PurlParser {
         return percentDecode(nameOnly).takeIf { it.isNotBlank() }
     }
 
+    fun extractPackageType(purl: String?): String? {
+        if (purl.isNullOrBlank()) return null
+        if (!purl.startsWith("pkg:")) return null
+
+        val withoutScheme = purl.substringAfter("pkg:").trimStart('/')
+        val type = withoutScheme.substringBefore('/').substringBefore('?').substringBefore('#')
+        return type.lowercase().takeIf { it.isNotBlank() }
+    }
+
     private fun percentDecode(value: String): String {
         return try {
             URLDecoder.decode(value, StandardCharsets.UTF_8.name())

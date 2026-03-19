@@ -128,5 +128,63 @@ class PurlParserTest {
         val purl = "pkg:golang/github.com/gorilla/mux@1.8.0"
         assertEquals("mux", PurlParser.extractPackageName(purl))
     }
+
+    // extractPackageType tests
+
+    @Test
+    fun `should extract type from npm PURL`() {
+        assertEquals("npm", PurlParser.extractPackageType("pkg:npm/foobar@1.0.0"))
+    }
+
+    @Test
+    fun `should extract type from maven PURL`() {
+        assertEquals("maven", PurlParser.extractPackageType("pkg:maven/org.apache/log4j@2.0"))
+    }
+
+    @Test
+    fun `should extract type from deb PURL`() {
+        assertEquals("deb", PurlParser.extractPackageType("pkg:deb/debian/curl@7.50.3"))
+    }
+
+    @Test
+    fun `should extract type from rpm PURL`() {
+        assertEquals("rpm", PurlParser.extractPackageType("pkg:rpm/redhat/bash@5.1"))
+    }
+
+    @Test
+    fun `should extract type from apk PURL`() {
+        assertEquals("apk", PurlParser.extractPackageType("pkg:apk/alpine/busybox@1.35"))
+    }
+
+    @Test
+    fun `should extract type from docker PURL`() {
+        assertEquals("docker", PurlParser.extractPackageType("pkg:docker/cassandra@sha256:abc123"))
+    }
+
+    @Test
+    fun `should extract type from pypi PURL`() {
+        assertEquals("pypi", PurlParser.extractPackageType("pkg:pypi/django@3.0"))
+    }
+
+    @Test
+    fun `should normalize type to lowercase`() {
+        assertEquals("npm", PurlParser.extractPackageType("pkg:NPM/foobar@1.0.0"))
+    }
+
+    @Test
+    fun `should return null for null PURL in extractPackageType`() {
+        assertNull(PurlParser.extractPackageType(null))
+    }
+
+    @Test
+    fun `should return null for blank PURL in extractPackageType`() {
+        assertNull(PurlParser.extractPackageType(""))
+        assertNull(PurlParser.extractPackageType("   "))
+    }
+
+    @Test
+    fun `should return null for non-PURL string in extractPackageType`() {
+        assertNull(PurlParser.extractPackageType("https://example.com/package"))
+    }
 }
 

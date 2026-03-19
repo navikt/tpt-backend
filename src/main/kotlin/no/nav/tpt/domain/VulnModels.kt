@@ -40,7 +40,8 @@ data class VulnVulnerabilityDto(
     val publishedAt: String? = null,
     val cvssScore: Double? = null,
     val summary: String? = null,
-    val packageEcosystem: String? = null
+    val packageEcosystem: String? = null,
+    val dependencyCategory: String? = null
 )
 
 @Serializable

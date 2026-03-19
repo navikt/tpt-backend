@@ -1,5 +1,7 @@
 package no.nav.tpt.infrastructure.nais
 
+import no.nav.tpt.infrastructure.vulns.utils.PurlParser
+
 internal fun WorkloadVulnerabilitiesResponse.toData(): UserVulnerabilitiesData {
     val teams = data?.user?.teams?.nodes?.map { teamNode ->
         val appWorkloads = (teamNode.team.applications?.nodes ?: emptyList()).map { workloadNode ->
@@ -30,6 +32,7 @@ private fun mapWorkloadNode(
             identifier = vuln.identifier,
             severity = vuln.severity,
             packageName = vuln.packageName,
+            packageType = PurlParser.extractPackageType(vuln.packageName),
             description = vuln.description,
             vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
             suppressed = vuln.suppression?.state == "SUPPRESSED"
