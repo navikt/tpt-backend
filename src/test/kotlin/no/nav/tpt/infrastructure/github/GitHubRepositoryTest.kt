@@ -226,5 +226,52 @@ class GitHubRepositoryTest {
         assertEquals("com.example:test-lib", moderate.packageName)
         assertNotNull(moderate.publishedAt)
     }
+
+    @Test
+    fun `should return vulnerabilities batched by repos in a single query`() = runBlocking {
+        val repo1 = "navikt/batch-test-repo1-${System.currentTimeMillis()}"
+        val repo2 = "navikt/batch-test-repo2-${System.currentTimeMillis()}"
+        val otherRepo = "navikt/other-repo-${System.currentTimeMillis()}"
+
+        repository.upsertRepositoryData(GitHubRepositoryMessage(
+            nameWithOwner = repo1, naisTeams = listOf("team-a"),
+            vulnerabilities = listOf(
+                GitHubVulnerabilityMessage("HIGH", listOf(GitHubIdentifierMessage("CVE-2024-1001", "CVE")))
+            )
+        ))
+        repository.upsertRepositoryData(GitHubRepositoryMessage(
+            nameWithOwner = repo2, naisTeams = listOf("team-a"),
+            vulnerabilities = listOf(
+                GitHubVulnerabilityMessage("CRITICAL", listOf(GitHubIdentifierMessage("CVE-2024-1002", "CVE"))),
+                GitHubVulnerabilityMessage("LOW", listOf(GitHubIdentifierMessage("CVE-2024-1003", "CVE")))
+            )
+        ))
+        repository.upsertRepositoryData(GitHubRepositoryMessage(
+            nameWithOwner = otherRepo, naisTeams = listOf("team-b"),
+            vulnerabilities = listOf(
+                GitHubVulnerabilityMessage("MEDIUM", listOf(GitHubIdentifierMessage("CVE-2024-1004", "CVE")))
+            )
+        ))
+
+        val result = repository.getVulnerabilitiesByRepos(listOf(repo1, repo2))
+
+        assertEquals(2, result.size)
+        assertEquals(1, result[repo1]?.size)
+        assertEquals("HIGH", result[repo1]?.first()?.severity)
+        assertEquals(1, result[repo1]?.first()?.identifiers?.size)
+        assertEquals("CVE-2024-1001", result[repo1]?.first()?.identifiers?.first()?.value)
+
+        assertEquals(2, result[repo2]?.size)
+        assertTrue(result[repo2]?.any { it.severity == "CRITICAL" } == true)
+        assertTrue(result[repo2]?.any { it.severity == "LOW" } == true)
+
+        assertTrue(otherRepo !in result)
+    }
+
+    @Test
+    fun `should return empty map when no repos requested`() = runBlocking {
+        val result = repository.getVulnerabilitiesByRepos(emptyList())
+        assertTrue(result.isEmpty())
+    }
 }
 
