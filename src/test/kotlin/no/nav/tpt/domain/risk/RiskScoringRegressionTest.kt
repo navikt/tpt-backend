@@ -51,11 +51,12 @@ class RiskScoringRegressionTest {
 
     // -----------------------------------------------------------------------
     // Scenario 2: Critical severity, no exploitation, internal only, dev env
-    // New model: 25 (CRITICAL) + 0 (no exploit) + 5 (internal) + 0 (dev) - 3 (no patch penalty) = 27 → LOW
-    // LOW is correct here: critical severity but never exploited, only internal, not production
+    // New model: 25 (CRITICAL) + 0 (no exploit) + 5 (internal) + 0 (dev) = 30
+    // No penalty applied — NVD status is null (unknown), so patch status is uncertain.
+    // Scores at the MEDIUM boundary: deprioritizing based on unknown patch data is wrong.
     // -----------------------------------------------------------------------
     @Test
-    fun `regression - scenario 2 critical no exploitation internal dev should score below MEDIUM threshold`() {
+    fun `regression - scenario 2 critical no exploitation internal dev should score at MEDIUM threshold`() {
         val result = scorer.calculateRiskScore(
             VulnerabilityRiskContext(
                 severity = "CRITICAL",
@@ -67,9 +68,9 @@ class RiskScoringRegressionTest {
                 buildDate = null,
             )
         )
-        // 25 + 0 + 5 + 0 - 3 = 27 → LOW
-        assertTrue(result.score.isBelowLow(),
-            "Scenario 2: critical internal dev should be below MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
+        // 25 + 0 + 5 + 0 = 30 → at MEDIUM boundary (no penalty when NVD status is unknown)
+        assertTrue(result.score.isMedium(),
+            "Scenario 2: critical internal dev should be at MEDIUM threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
     }
 
     // -----------------------------------------------------------------------

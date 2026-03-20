@@ -125,6 +125,7 @@ class VulnServiceImpl(
                         ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
                         ssvcAutomatable = vulnrichmentEntry?.automatable,
                         ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
+                        nvdVulnStatus = cveData?.vulnStatus,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -220,6 +221,7 @@ class VulnServiceImpl(
                     ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
                     ssvcAutomatable = vulnrichmentEntry?.automatable,
                     ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
+                    nvdVulnStatus = cveData?.vulnStatus,
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
 
