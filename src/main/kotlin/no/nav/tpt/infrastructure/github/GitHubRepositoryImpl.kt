@@ -7,7 +7,6 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.slf4j.LoggerFactory
 import java.time.Instant
-
 class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
     private val logger = LoggerFactory.getLogger(GitHubRepositoryImpl::class.java)
 
@@ -116,6 +115,50 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
     }
 
+    override suspend fun getVulnerabilitiesByRepos(nameWithOwners: List<String>): Map<String, List<GitHubVulnerabilityData>> = dbQuery {
+        if (nameWithOwners.isEmpty()) return@dbQuery emptyMap()
+
+        val rows = (GitHubVulnerabilities leftJoin GitHubVulnerabilityIdentifiers)
+            .selectAll()
+            .where { GitHubVulnerabilities.nameWithOwner inList nameWithOwners }
+            .toList()
+
+        val vulnRowsById = LinkedHashMap<Int, Pair<ResultRow, MutableList<GitHubIdentifierData>>>()
+        for (row in rows) {
+            val vulnId = row[GitHubVulnerabilities.id]
+            val entry = vulnRowsById.getOrPut(vulnId) { row to mutableListOf() }
+            val identValue = row.getOrNull(GitHubVulnerabilityIdentifiers.identifierValue)
+            if (identValue != null) {
+                entry.second.add(
+                    GitHubIdentifierData(
+                        value = identValue,
+                        type = row[GitHubVulnerabilityIdentifiers.identifierType]
+                    )
+                )
+            }
+        }
+
+        vulnRowsById.values
+            .map { (row, identifiers) ->
+                GitHubVulnerabilityData(
+                    id = row[GitHubVulnerabilities.id],
+                    nameWithOwner = row[GitHubVulnerabilities.nameWithOwner],
+                    severity = row[GitHubVulnerabilities.severity],
+                    identifiers = identifiers,
+                    dependencyScope = row[GitHubVulnerabilities.dependencyScope],
+                    dependabotUpdatePullRequestUrl = row[GitHubVulnerabilities.dependabotUpdatePullRequestUrl],
+                    publishedAt = row[GitHubVulnerabilities.publishedAt],
+                    cvssScore = row[GitHubVulnerabilities.cvssScore]?.toDouble(),
+                    summary = row[GitHubVulnerabilities.summary],
+                    packageEcosystem = row[GitHubVulnerabilities.packageEcosystem],
+                    packageName = row[GitHubVulnerabilities.packageName],
+                    createdAt = row[GitHubVulnerabilities.createdAt],
+                    updatedAt = row[GitHubVulnerabilities.updatedAt]
+                )
+            }
+            .groupBy { it.nameWithOwner }
+    }
+
     override suspend fun getAllRepositories(): List<GitHubRepositoryData> = dbQuery {
         GitHubRepositories.selectAll()
             .map { toGitHubRepositoryData(it) }
@@ -127,8 +170,20 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
 
         GitHubRepositories.selectAll()
+            .where {
+                object : Op<Boolean>() {
+                    override fun toQueryBuilder(queryBuilder: QueryBuilder): Unit = queryBuilder {
+                        append(GitHubRepositories.naisTeams)
+                        append(" && ARRAY[")
+                        teamSlugs.forEachIndexed { i, team ->
+                            if (i > 0) append(", ")
+                            append(stringParam(team))
+                        }
+                        append("]::text[]")
+                    }
+                }
+            }
             .map { toGitHubRepositoryData(it) }
-            .filter { repo -> repo.naisTeams.any { it in teamSlugs } }
     }
 
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
