@@ -1,0 +1,21 @@
+name: Automerge Dependabot PRs
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      statuses: read
+    steps:
+      - name: Automerge Dependabot PRs
+        uses: navikt/automerge-dependabot@v1.4
+        with:
+          token: ${{ github.token }}
+          merge-method: squash
