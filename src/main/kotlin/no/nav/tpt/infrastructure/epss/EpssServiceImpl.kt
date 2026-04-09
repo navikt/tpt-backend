@@ -1,5 +1,8 @@
 package no.nav.tpt.infrastructure.epss
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -63,9 +66,10 @@ class EpssServiceImpl(
             val batches = createBatches(cveIdsToFetch)
             logger.debug("Split ${cveIdsToFetch.size} CVEs into ${batches.size} batch(es) to respect 2000 character limit")
 
-            val fetchedScores = batches.flatMap { batch ->
-                val response = epssClient.getEpssScores(batch)
-                response.data
+            val fetchedScores = coroutineScope {
+                batches.map { batch -> async { epssClient.getEpssScores(batch).data } }
+                    .awaitAll()
+                    .flatten()
             }.associateBy { it.cve }
 
             circuitBreaker.recordSuccess()

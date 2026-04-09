@@ -102,6 +102,10 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         return mockVulnerabilities[nameWithOwner] ?: emptyList()
     }
 
+    override suspend fun getVulnerabilitiesByRepos(nameWithOwners: List<String>): Map<String, List<GitHubVulnerabilityData>> {
+        return nameWithOwners.associateWith { mockVulnerabilities[it] ?: emptyList() }
+    }
+
     override suspend fun getAllRepositories(): List<GitHubRepositoryData> {
         return mockRepositories
     }
