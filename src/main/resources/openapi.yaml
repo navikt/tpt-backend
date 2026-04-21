@@ -276,6 +276,55 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /admin/vulnerabilities/team/{teamSlug}:
+    get:
+      summary: Get vulnerabilities for a specific team
+      description: |
+        Fetches fresh vulnerability data for a given team slug, bypassing user context resolution.
+        Syncs the team data from the NAIS API before returning results.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teamSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The NAIS team slug to fetch vulnerabilities for
+      responses:
+        '200':
+          description: Successfully retrieved vulnerabilities for the team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnResponse'
+        '400':
+          description: Bad request - missing teamSlug parameter
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/remediation:
     post:
       summary: Stream AI-generated remediation guide for a vulnerability

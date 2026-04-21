@@ -361,6 +361,10 @@ class MockVulnService : VulnService {
         }
     }
 
+    override suspend fun fetchVulnerabilitiesForTeam(teamSlug: String): VulnResponse {
+        return VulnResponse(userRole = UserRole.ADMIN, teams = emptyList())
+    }
+
     override suspend fun fetchGitHubVulnerabilitiesForUser(email: String, groups: List<String>): GitHubVulnResponse {
         return GitHubVulnResponse(
             userRole = UserRole.DEVELOPER,

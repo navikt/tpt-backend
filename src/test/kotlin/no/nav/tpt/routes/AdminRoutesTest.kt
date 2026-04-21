@@ -79,4 +79,44 @@ class AdminRoutesTest {
         
         assertEquals(HttpStatusCode.Forbidden, response.status)
     }
+
+    @Test
+    fun `should return vulnerabilities for team when admin token is provided`() = testApplication {
+        application {
+            testModule(
+                tokenIntrospectionService = AdminMockTokenIntrospectionService(),
+                adminAuthorizationService = no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl("admin-group-1")
+            )
+        }
+
+        val response = client.get("/admin/vulnerabilities/team/team-appsec") {
+            header(HttpHeaders.Authorization, "Bearer valid_admin_token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `should return 403 for non-admin user on team vulnerabilities endpoint`() = testApplication {
+        application {
+            testModule(tokenIntrospectionService = AdminMockTokenIntrospectionService())
+        }
+
+        val response = client.get("/admin/vulnerabilities/team/team-appsec") {
+            header(HttpHeaders.Authorization, "Bearer valid_non_admin_token")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `should return 401 for missing token on team vulnerabilities endpoint`() = testApplication {
+        application {
+            testModule()
+        }
+
+        val response = client.get("/admin/vulnerabilities/team/team-appsec")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }

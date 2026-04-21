@@ -7,6 +7,7 @@ import no.nav.tpt.domain.VulnVulnerabilityDto
 import no.nav.tpt.domain.VulnWorkloadDto
 import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.user.UserRole
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.infrastructure.cisa.KevCatalog
 import no.nav.tpt.infrastructure.cisa.KevService
@@ -168,6 +169,92 @@ class VulnServiceImpl(
         }
 
         return VulnResponse(userRole = userContext.role, teams = teams)
+    }
+
+    override suspend fun fetchVulnerabilitiesForTeam(teamSlug: String): VulnResponse {
+        val vulnerabilitiesData = vulnerabilityDataService.getVulnerabilitiesForTeam(teamSlug)
+
+        val allCveIds = vulnerabilitiesData.teams
+            .flatMap { it.workloads }
+            .flatMap { it.vulnerabilities }
+            .map { it.identifier }
+            .filter { it.startsWith("CVE-", ignoreCase = true) }
+            .distinct()
+
+        val enrichmentData = fetchCveEnrichmentData(allCveIds)
+
+        val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
+            val workloads = teamVulns.workloads.mapNotNull { workload ->
+                val ingressTypes = workload.ingressTypes
+                val buildDate = workload.imageTag?.let { tag ->
+                    ImageTagParser.extractBuildDate(tag)
+                }
+
+                val vulnerabilities = workload.vulnerabilities.map { vuln ->
+                    val epssScore = enrichmentData.epssScores[vuln.identifier]
+                    val hasKevEntry = enrichmentData.kevCveIds.contains(vuln.identifier)
+                    val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(vuln.identifier)
+                    val cveData = enrichmentData.nvdData[vuln.identifier]
+                    val vulnrichmentEntry = enrichmentData.vulnrichmentData[vuln.identifier]
+
+                    val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                        severity = vuln.severity,
+                        ingressTypes = ingressTypes,
+                        hasKevEntry = hasKevEntry,
+                        epssScore = epssScore?.epss,
+                        suppressed = vuln.suppressed,
+                        environment = workload.environment,
+                        buildDate = buildDate,
+                        hasExploitReference = cveData?.hasExploitReference ?: false,
+                        hasPatchReference = cveData?.hasPatchReference ?: false,
+                        cveDaysOld = cveData?.daysOld,
+                        hasRansomwareCampaignUse = hasRansomwareCampaignUse,
+                        ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
+                        ssvcAutomatable = vulnrichmentEntry?.automatable,
+                        ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
+                        nvdVulnStatus = cveData?.vulnStatus,
+                    )
+                    val riskResult = riskScorer.calculateRiskScore(riskContext)
+
+                    VulnVulnerabilityDto(
+                        identifier = vuln.identifier,
+                        name = PurlParser.extractPackageName(vuln.packageName),
+                        packageName = vuln.packageName,
+                        packageEcosystem = vuln.packageType,
+                        description = vuln.description,
+                        vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
+                        riskScore = riskResult.score,
+                        riskScoreBreakdown = riskResult.breakdown,
+                        dependencyCategory = DependencyCategory.fromPurlType(vuln.packageType).name
+                    )
+                }
+
+                if (vulnerabilities.isNotEmpty()) {
+                    VulnWorkloadDto(
+                        id = workload.id,
+                        name = workload.name,
+                        workloadType = workload.workloadType,
+                        environment = workload.environment,
+                        repository = workload.repository,
+                        lastDeploy = workload.createdAt,
+                        vulnerabilities = vulnerabilities
+                    )
+                } else {
+                    null
+                }
+            }
+
+            if (workloads.isNotEmpty()) {
+                VulnTeamDto(
+                    team = teamVulns.teamSlug,
+                    workloads = workloads
+                )
+            } else {
+                null
+            }
+        }
+
+        return VulnResponse(userRole = UserRole.ADMIN, teams = teams)
     }
 
     override suspend fun fetchGitHubVulnerabilitiesForUser(email: String, groups: List<String>): no.nav.tpt.domain.GitHubVulnResponse {
