@@ -28,8 +28,10 @@ private fun mockVulnrichmentSyncService(): VulnrichmentSyncService {
 // Helper to create a VulnerabilityDataService that delegates to NaisApiService
 private fun mockVulnerabilityDataService(naisApiService: NaisApiService): VulnerabilityDataService {
     return object : VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForUser(email: String) = 
+        override suspend fun getVulnerabilitiesForUser(email: String) =
             naisApiService.getVulnerabilitiesForUser(email)
+        override suspend fun getVulnerabilitiesForTeam(teamSlug: String) =
+            naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }
 }
 
@@ -860,5 +862,152 @@ class VulnServiceTest {
         val vuln = result.teams[0].repositories[0].vulnerabilities[0]
         assertTrue(vuln.riskScore > 0, "Risk score should be calculated")
         assertNotNull(vuln.riskScoreBreakdown, "Risk score breakdown should be present")
+    }
+
+    @Test
+    fun `should fetch vulnerabilities for team directly without user context`() = runTest {
+        val mockNaisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-appsec",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "workload-1",
+                                name = "some-app",
+                                workloadType = "app",
+                                imageTag = null,
+                                repository = null,
+                                environment = "prod",
+                                ingressTypes = listOf("EXTERNAL"),
+                                createdAt = null,
+                                vulnerabilities = listOf(
+                                    VulnerabilityData(
+                                        identifier = "CVE-2024-1111",
+                                        severity = "CRITICAL",
+                                        packageName = null,
+                                        description = null,
+                                        vulnerabilityDetailsLink = null,
+                                        suppressed = false
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val mockKevService = object : KevService {
+            override suspend fun getKevCatalog() = KevCatalog(
+                title = "Test KEV Catalog",
+                catalogVersion = "1.0",
+                dateReleased = "2023-01-01",
+                count = 0,
+                vulnerabilities = emptyList()
+            )
+        }
+
+        val vulnService = VulnServiceImpl(
+            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
+            kevService = mockKevService,
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+            userContextService = MockUserContextService(mockTeams = emptyList()),
+            gitHubRepository = MockGitHubRepository(),
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
+        )
+
+        val result = vulnService.fetchVulnerabilitiesForTeam("team-appsec")
+
+        assertEquals(1, result.teams.size)
+        assertEquals("team-appsec", result.teams[0].team)
+        assertEquals(1, result.teams[0].workloads.size)
+        assertEquals("some-app", result.teams[0].workloads[0].name)
+        assertEquals(1, result.teams[0].workloads[0].vulnerabilities.size)
+        assertEquals("CVE-2024-1111", result.teams[0].workloads[0].vulnerabilities[0].identifier)
+    }
+
+    @Test
+    fun `should return ADMIN role when fetching vulnerabilities for team`() = runTest {
+        val mockNaisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(
+                teams = listOf(
+                    TeamVulnerabilitiesData(
+                        teamSlug = "team-x",
+                        workloads = listOf(
+                            WorkloadData(
+                                id = "w1",
+                                name = "app",
+                                workloadType = "app",
+                                imageTag = null,
+                                repository = null,
+                                environment = "prod",
+                                ingressTypes = emptyList(),
+                                createdAt = null,
+                                vulnerabilities = listOf(
+                                    VulnerabilityData(
+                                        identifier = "CVE-2024-2222",
+                                        severity = "HIGH",
+                                        packageName = null,
+                                        description = null,
+                                        vulnerabilityDetailsLink = null,
+                                        suppressed = false
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val vulnService = VulnServiceImpl(
+            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
+            kevService = object : KevService {
+                override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
+            },
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+            userContextService = MockUserContextService(mockTeams = emptyList()),
+            gitHubRepository = MockGitHubRepository(),
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
+        )
+
+        val result = vulnService.fetchVulnerabilitiesForTeam("team-x")
+
+        assertEquals(no.nav.tpt.domain.user.UserRole.ADMIN, result.userRole)
+    }
+
+    @Test
+    fun `should return empty teams when team has no vulnerabilities`() = runTest {
+        val mockNaisApiService = MockNaisApiService(
+            shouldSucceed = true,
+            mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
+        )
+
+        val vulnService = VulnServiceImpl(
+            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
+            kevService = object : KevService {
+                override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
+            },
+            epssService = MockEpssService(),
+            nvdRepository = MockNvdRepository(),
+            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+            userContextService = MockUserContextService(mockTeams = emptyList()),
+            gitHubRepository = MockGitHubRepository(),
+            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
+            vulnrichmentSyncService = mockVulnrichmentSyncService()
+        )
+
+        val result = vulnService.fetchVulnerabilitiesForTeam("team-empty")
+
+        assertTrue(result.teams.isEmpty())
     }
 }

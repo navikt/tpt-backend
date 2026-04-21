@@ -86,8 +86,10 @@ fun Application.installTestDependencies(
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService, actualAdminAuthorizationService)
 
     val vulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForUser(email: String) = 
+        override suspend fun getVulnerabilitiesForUser(email: String) =
             naisApiService.getVulnerabilitiesForUser(email)
+        override suspend fun getVulnerabilitiesForTeam(teamSlug: String) =
+            naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }
 
     val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()

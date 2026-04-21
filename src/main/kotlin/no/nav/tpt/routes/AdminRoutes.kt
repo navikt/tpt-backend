@@ -56,6 +56,26 @@ fun Route.adminRoutes() {
                     throw InternalServerException("Failed to fetch teams SLA report", e)
                 }
             }
+
+            get("/vulnerabilities/team/{teamSlug}") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                val teamSlug = call.parameters["teamSlug"]
+                    ?: throw no.nav.tpt.plugins.BadRequestException("teamSlug path parameter is required")
+
+                try {
+                    val vulnService = call.dependencies.vulnService
+                    val response = vulnService.fetchVulnerabilitiesForTeam(teamSlug)
+                    call.respond(HttpStatusCode.OK, response)
+                } catch (e: Exception) {
+                    throw InternalServerException("Failed to fetch vulnerabilities for team $teamSlug", e)
+                }
+            }
         }
     }
 }
