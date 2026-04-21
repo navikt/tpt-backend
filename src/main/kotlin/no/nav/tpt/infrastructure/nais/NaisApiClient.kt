@@ -71,6 +71,11 @@ class NaisApiClient(
                 throw e
             }
 
+            if (!response.status.isSuccess()) {
+                logger.error("HTTP ${response.status.value} fetching teams")
+                throw Exception("HTTP ${response.status.value}: ${response.status.description}")
+            }
+
             val pageResponse: TeamInformationResponse = response.body()
 
             if (!pageResponse.errors.isNullOrEmpty()) {
@@ -198,6 +203,18 @@ class NaisApiClient(
             } catch (e: Exception) {
                 logger.error("HTTP error fetching $workloadType for team $teamSlug", e)
                 throw e
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.error("HTTP ${response.status.value} fetching $workloadType for team $teamSlug")
+                return TeamWorkloadVulnerabilitiesResponse(
+                    errors = listOf(
+                        GraphQLTypes.GraphQLError(
+                            message = "HTTP ${response.status.value}: ${response.status.description}",
+                            path = listOf("team")
+                        )
+                    )
+                )
             }
 
             val pageResponse: TeamWorkloadVulnerabilitiesResponse = response.body()
@@ -369,6 +386,18 @@ class NaisApiClient(
             } catch (e: Exception) {
                 logger.error("HTTP error fetching $workloadType vulnerabilities for user $email", e)
                 throw e
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.error("HTTP ${response.status.value} fetching $workloadType vulnerabilities for user $email")
+                return WorkloadVulnerabilitiesResponse(
+                    errors = listOf(
+                        GraphQLTypes.GraphQLError(
+                            message = "HTTP ${response.status.value}: ${response.status.description}",
+                            path = listOf("user")
+                        )
+                    )
+                )
             }
 
             val pageResponse: WorkloadVulnerabilitiesResponse = response.body()
@@ -631,7 +660,7 @@ class NaisApiClient(
         )
 
         return try {
-            val response = httpClient.post("$apiUrl") {
+            val response = httpClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token)
                 setBody(request)
