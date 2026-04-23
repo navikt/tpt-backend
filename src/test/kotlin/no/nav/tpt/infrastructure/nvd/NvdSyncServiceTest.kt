@@ -63,25 +63,25 @@ class NvdSyncServiceTest {
     @Test
     fun `should handle pagination when syncing large result sets`() = runTest {
         val firstBatch = NvdTestDataBuilder.buildNvdResponse(
-            vulnerabilities = (1..2000).map {
+            vulnerabilities = (1..500).map {
                 NvdTestDataBuilder.buildVulnerabilityItem(
                     NvdTestDataBuilder.buildCveItem(id = "CVE-2024-$it")
                 )
             },
-            totalResults = 3500,
-            resultsPerPage = 2000,
+            totalResults = 750,
+            resultsPerPage = 500,
             startIndex = 0
         )
 
         val secondBatch = NvdTestDataBuilder.buildNvdResponse(
-            vulnerabilities = (2001..3500).map {
+            vulnerabilities = (501..750).map {
                 NvdTestDataBuilder.buildVulnerabilityItem(
                     NvdTestDataBuilder.buildCveItem(id = "CVE-2024-$it")
                 )
             },
-            totalResults = 3500,
-            resultsPerPage = 2000,
-            startIndex = 2000
+            totalResults = 750,
+            resultsPerPage = 500,
+            startIndex = 500
         )
 
         var requestCount = 0
@@ -91,7 +91,7 @@ class NvdSyncServiceTest {
 
             val responseData = when (startIndex) {
                 0 -> firstBatch
-                2000 -> secondBatch
+                500 -> secondBatch
                 else -> error("Unexpected startIndex: $startIndex")
             }
 
@@ -117,8 +117,8 @@ class NvdSyncServiceTest {
             LocalDateTime.now()
         )
 
-        assertEquals(3500, count)
-        assertEquals(3500, repository.cveCount())
+        assertEquals(750, count)
+        assertEquals(750, repository.cveCount())
         assertEquals(2, requestCount) // Should make 2 requests for pagination
     }
 
