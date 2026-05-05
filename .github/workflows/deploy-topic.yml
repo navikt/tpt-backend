@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1
+      - uses: nais/deploy/actions/deploy@2f28259ff29ea37915f5a0c9e2a8e3542c429df7
         env:
           RESOURCE: .nais/topic.yaml,.nais/kafka-manager.yaml
           CLUSTER: prod-gcp
