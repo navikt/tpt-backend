@@ -1,4 +1,4 @@
-name: Build and deploy main
+name: Scorecard
 on:
   push:
     branches:
@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - name: OSSF Scorecard action
-        uses: ossf/scorecard-action@v2.4.
+        uses: ossf/scorecard-action@v2
         with:
           results_file: output.sarif
           results_format: sarif
