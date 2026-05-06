@@ -1,0 +1,21 @@
+name: Build and deploy main
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+  pull_request:
+jobs:
+  test-build:
+    permissions:
+      actions: read # for sarif
+      contents: write # for dependency graph & sarif
+      id-token: write # for nais docker-build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: OSSF Scorecard action
+        uses: ossf/scorecard-action@v2.4.3
