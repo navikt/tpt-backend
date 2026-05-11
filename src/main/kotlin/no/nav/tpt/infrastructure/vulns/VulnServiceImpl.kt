@@ -150,7 +150,6 @@ class VulnServiceImpl(
                         workloadType = workload.workloadType,
                         environment = workload.environment,
                         repository = workload.repository,
-                        lastDeploy = workload.createdAt,
                         vulnerabilities = vulnerabilities
                     )
                 } else {
@@ -236,7 +235,6 @@ class VulnServiceImpl(
                         workloadType = workload.workloadType,
                         environment = workload.environment,
                         repository = workload.repository,
-                        lastDeploy = workload.createdAt,
                         vulnerabilities = vulnerabilities
                     )
                 } else {

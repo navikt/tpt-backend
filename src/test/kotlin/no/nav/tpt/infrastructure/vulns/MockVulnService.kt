@@ -29,7 +29,6 @@ class MockVulnService : VulnService {
                             workloadType = "app",
                             environment = "prod-gcp",
                             repository = "navikt/tpt-backend",
-                            lastDeploy = "2023-10-15T08:30:00.000Z",
                             vulnerabilities = listOf(
                                 VulnVulnerabilityDto(
                                     identifier = "CVE-2024-12345",
@@ -100,7 +99,6 @@ class MockVulnService : VulnService {
                             workloadType = "app",
                             environment = "prod-gcp",
                             repository = "navikt/security-scanner",
-                            lastDeploy = "2026-02-01T14:20:00.000Z",
                             vulnerabilities = listOf(
                                 VulnVulnerabilityDto(
                                     identifier = "CVE-2025-11111",
@@ -205,7 +203,6 @@ class MockVulnService : VulnService {
                             workloadType = "app",
                             environment = "prod-gcp",
                             repository = "navikt/legacy-payment",
-                            lastDeploy = "2023-08-20T10:15:00.000Z",
                             vulnerabilities = listOf(
                                 VulnVulnerabilityDto(
                                     identifier = "CVE-2023-98765",
@@ -274,7 +271,6 @@ class MockVulnService : VulnService {
                             workloadType = "job",
                             environment = "prod-gcp",
                             repository = "navikt/data-sync",
-                            lastDeploy = "2026-01-28T09:00:00.000Z",
                             vulnerabilities = listOf(
                                 VulnVulnerabilityDto(
                                     identifier = "CVE-2025-99999",
