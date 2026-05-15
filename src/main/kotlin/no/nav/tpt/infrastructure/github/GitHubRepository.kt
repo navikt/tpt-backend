@@ -7,6 +7,7 @@ interface GitHubRepository {
     suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean)
     suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData?
     suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData>
+    suspend fun getVulnerabilitiesByRepos(nameWithOwners: List<String>): Map<String, List<GitHubVulnerabilityData>>
     suspend fun getAllRepositories(): List<GitHubRepositoryData>
     suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData>
 }
