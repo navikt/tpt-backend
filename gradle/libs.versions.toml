@@ -6,14 +6,14 @@ logstash-encoder = "9.0"
 logback-mdc = "2.27.0-alpha"
 kotlin-test = "2.3.21"
 testcontainers = "1.21.4"
-kotlinx-coroutines = "1.10.2"
+kotlinx-coroutines = "1.11.0"
 junit = "6.0.3"
-fabrikt = "1.33.0"
+fabrikt = "1.34.1"
 jakarta-validation = "3.1.1"
 postgresql = "42.7.11"
 exposed = "1.2.0"
 hikaricp = "7.0.2"
-flyway = "12.5.0"
+flyway = "12.6.1"
 kafka = "4.2.0"
 
 [libraries]
@@ -44,7 +44,7 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
-google-auth-oauth2 = { module = "com.google.auth:google-auth-library-oauth2-http", version = "1.46.0" }
+google-auth-oauth2 = { module = "com.google.auth:google-auth-library-oauth2-http", version = "1.47.0" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin-test" }
