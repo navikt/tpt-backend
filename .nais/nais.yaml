@@ -53,10 +53,10 @@ spec:
     min: 2
   resources:
     limits:
-      memory: 2048Mi
+      memory: 2304Mi
     requests:
-      cpu: 200m
-      memory: 960Mi
+      cpu: 100m
+      memory: 1760Mi
   observability:
     logging:
       destinations:
