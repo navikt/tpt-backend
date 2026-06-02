@@ -89,7 +89,7 @@ class NvdRepositoryImpl(
                     this[NvdCves.cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
                     this[NvdCves.hasExploitReference] = cveData.hasExploitReference
                     this[NvdCves.hasPatchReference] = cveData.hasPatchReference
-                    this[NvdCves.updatedAt] = LocalDateTime.now().toInstant()
+                    this[NvdCves.updatedAt] = Instant.now()
                 }
 
                 addedCount += chunk.size - existingCveIds.size

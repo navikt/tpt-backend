@@ -43,6 +43,7 @@ class EpssRepositoryImpl(
             logger.debug("Upserting ${scores.size} EPSS scores")
 
             scores.chunked(100).forEach { chunk ->
+                val now = Instant.now()
                 EpssScores.batchUpsert(
                     chunk,
                     EpssScores.cveId,
@@ -53,9 +54,9 @@ class EpssRepositoryImpl(
                     this[EpssScores.epssScore] = score.epss
                     this[EpssScores.percentile] = score.percentile
                     this[EpssScores.scoreDate] = score.date
-                    this[EpssScores.lastUpdated] = Instant.now()
-                    this[EpssScores.createdAt] = Instant.now()
-                    this[EpssScores.updatedAt] = Instant.now()
+                    this[EpssScores.lastUpdated] = now
+                    this[EpssScores.createdAt] = now
+                    this[EpssScores.updatedAt] = now
                 }
                 logger.debug("Upserted batch of ${chunk.size} EPSS scores")
             }
