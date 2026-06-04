@@ -9,6 +9,11 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
+/*
+ * DEPRECATED :D -> https://www.nist.gov/itl/nvd
+ * May 28, 2026: NVD Will Now Include SSVC and Affected Data Within the CVE Feed and CVE API Results
+ * Starting on June 17, 2026, the NVD will expand to include two distinct types of vulnerability assessment metrics.
+ */
 class VulnrichmentClient(
     private val httpClient: HttpClient,
     private val baseUrl: String = "https://cveawg.mitre.org/api",
