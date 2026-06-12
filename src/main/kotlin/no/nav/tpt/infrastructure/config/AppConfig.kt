@@ -3,7 +3,7 @@ package no.nav.tpt.infrastructure.config
 data class AppConfig(
     val naisTokenIntrospectionEndpoint: String,
     val naisApiUrl: String,
-    val naisApiToken: String,
+    val naisTokenFilePath: String,
     val dbJdbcUrl: String,
     val nvdApiUrl: String,
     val nvdApiKey: String?,
@@ -28,8 +28,8 @@ data class AppConfig(
             val naisApiUrl = System.getenv("NAIS_API_URL")
                 ?: error("NAIS_API_URL not configured")
 
-            val naisApiToken = System.getenv("NAIS_API_TOKEN")
-                ?: error("NAIS_API_TOKEN not configured")
+            val naisTokenFilePath = System.getenv("NAIS_SERVICE_ACCOUNT_TOKEN_PATH")
+                ?: error("NAIS_SERVICE_ACCOUNT_TOKEN_PATH not configured")
 
             val dbJdbcUrl = System.getenv("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL")
                 ?: error("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL not configured")
@@ -50,7 +50,7 @@ data class AppConfig(
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
-                naisApiToken = naisApiToken,
+                naisTokenFilePath = naisTokenFilePath,
                 dbJdbcUrl = dbJdbcUrl,
                 nvdApiKey = nvdApiKey,
                 nvdApiUrl = nvdApiUrl,

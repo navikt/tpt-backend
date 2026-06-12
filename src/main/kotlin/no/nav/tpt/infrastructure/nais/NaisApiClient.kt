@@ -10,14 +10,24 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.io.IOException
 
 class NaisApiClient(
     private val httpClient: HttpClient,
     private val apiUrl: String,
-    private val token: String,
+    private val tokenFilePath: String,
 ) : NaisApiService {
     private val logger = LoggerFactory.getLogger(NaisApiClient::class.java)
     private val paginationSemaphore = Semaphore(4)
+
+    private fun readToken(): String =
+        try {
+            File(tokenFilePath).readText(Charsets.UTF_8)
+        } catch (e: IOException) {
+            logger.error("Failed to read NAIS service account token from $tokenFilePath", e)
+            throw e
+        }
 
     private val applicationsForUserQuery = this::class.java.classLoader
         .getResource("graphql/app-vulnerabilities-for-user.graphql")
@@ -66,7 +76,7 @@ class NaisApiClient(
             val response = try {
                 httpClient.post(apiUrl) {
                     contentType(ContentType.Application.Json)
-                    bearerAuth(token)
+                    bearerAuth(readToken())
                     setBody(request)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -197,7 +207,7 @@ class NaisApiClient(
                 try {
                     httpClient.post(apiUrl) {
                         contentType(ContentType.Application.Json)
-                        bearerAuth(token)
+                        bearerAuth(readToken())
                         setBody(request)
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
@@ -335,7 +345,7 @@ class NaisApiClient(
                 try {
                     httpClient.post(apiUrl) {
                         contentType(ContentType.Application.Json)
-                        bearerAuth(token)
+                        bearerAuth(readToken())
                         setBody(vulnRequest)
                     }
                 } catch (e: Exception) {
@@ -420,7 +430,7 @@ class NaisApiClient(
                 try {
                     httpClient.post(apiUrl) {
                         contentType(ContentType.Application.Json)
-                        bearerAuth(token)
+                        bearerAuth(readToken())
                         setBody(request)
                     }
                 } catch (e: Exception) {
@@ -519,7 +529,7 @@ class NaisApiClient(
                         try {
                             httpClient.post(apiUrl) {
                                 contentType(ContentType.Application.Json)
-                                bearerAuth(token)
+                                bearerAuth(readToken())
                                 setBody(workloadRequest)
                             }
                         } catch (e: Exception) {
@@ -664,7 +674,7 @@ class NaisApiClient(
                 try {
                     httpClient.post(apiUrl) {
                         contentType(ContentType.Application.Json)
-                        bearerAuth(token)
+                        bearerAuth(readToken())
                         setBody(vulnRequest)
                     }
                 } catch (e: Exception) {
@@ -780,7 +790,7 @@ class NaisApiClient(
         return try {
             val response = httpClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)
-                bearerAuth(token)
+                bearerAuth(readToken())
                 setBody(request)
             }
 

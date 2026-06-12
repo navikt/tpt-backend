@@ -112,7 +112,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val naisApiClient = NaisApiClient(
         httpClient = httpClient,
         apiUrl = config.naisApiUrl,
-        token = config.naisApiToken
+        tokenFilePath = config.naisTokenFilePath
     )
 
     val database = DatabaseFactory.init(config)

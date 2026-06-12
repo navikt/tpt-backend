@@ -8,12 +8,19 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class NaisApiClientTeamMembershipsTest {
+    companion object {
+        val tokenFile: File = File.createTempFile("nais-token", null).apply {
+            writeText("test-token")
+            deleteOnExit()
+        }
+    }
 
     @Test
     fun `should handle user not found error correctly`() = runTest {
@@ -46,7 +53,7 @@ class NaisApiClientTeamMembershipsTest {
                 })
             }
         }
-        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
         val response = naisApiClient.getTeamMembershipsForUser("notfound@external.com")
 
@@ -95,7 +102,7 @@ class NaisApiClientTeamMembershipsTest {
                 })
             }
         }
-        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
         val response = naisApiClient.getTeamMembershipsForUser("member@nav.no")
 
@@ -135,7 +142,7 @@ class NaisApiClientTeamMembershipsTest {
                 })
             }
         }
-        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+        val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
         val response = naisApiClient.getTeamMembershipsForUser("developer@nav.no")
 

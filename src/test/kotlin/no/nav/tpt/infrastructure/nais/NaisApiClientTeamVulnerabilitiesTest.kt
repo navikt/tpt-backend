@@ -9,6 +9,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,6 +17,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class NaisApiClientTeamVulnerabilitiesTest {
+    companion object {
+        val tokenFile: File = File.createTempFile("nais-token", null).apply {
+            writeText("test-token")
+            deleteOnExit()
+        }
+    }
     @Test
     fun `should parse team vulnerabilities response correctly`() =
         runTest {
@@ -85,7 +92,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -136,7 +143,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val exception =
                 kotlin
@@ -180,7 +187,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("empty-team")
 
@@ -313,7 +320,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -465,7 +472,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -570,7 +577,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -644,7 +651,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -734,7 +741,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
@@ -828,7 +835,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                 }
 
             val httpClient = createTestHttpClient(mockEngine)
-            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", "test-token")
+            val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
             naisApiClient.getVulnerabilitiesForTeam("t")
 

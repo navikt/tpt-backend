@@ -151,7 +151,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val config = AppConfig(
         naisTokenIntrospectionEndpoint = "http://localhost:8080/mock-introspection",
         naisApiUrl = "http://localhost:8080/mock-nais-api",
-        naisApiToken = "mock-token",
+        naisTokenFilePath = "mock-token",
         dbJdbcUrl = postgres.jdbcUrl,
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,

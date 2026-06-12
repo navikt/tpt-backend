@@ -65,7 +65,7 @@ fun Application.installTestDependencies(
     val testConfig = AppConfig(
         naisTokenIntrospectionEndpoint = "http://test-introspection",
         naisApiUrl = "http://test-nais-api",
-        naisApiToken = "test-token",
+        naisTokenFilePath = "test-token",
         dbJdbcUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test",
         nvdApiUrl = "http://localhost:8080/mock-nvd-api",
         nvdApiKey = null,
