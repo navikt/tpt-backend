@@ -1,0 +1,76 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://csrc.nist.gov/schema/nvd/api/2.0/ssvc-v2.0.3.json",
+	"title": "Computed SSVC score representing the path in the decision tree",
+	"description": "This schema represents the full path in the decision tree taken by an analyst with a specific role.  The representation of the full decision tree is optional",
+	"type": "object",
+	"properties": {
+		"computed": {
+			"type": "string",
+			"description": "An optional short vector representation of a SSV computed decision score.  This will be useful in providing permalink and other ways to provide quick read and access to a SSVC decision made"
+		},
+		"options": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"patternProperties": {
+					".*": {
+						"type": [
+							"array",
+							"string"
+						],
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"minItems": 1,
+			"uniqueItems": true
+		},
+		"timestamp": {
+			"description": "Date and time in ISO format  ISO 8601 format",
+			"type": "string",
+			"format": "date-time"
+		},
+		"role": {
+			"type": "string",
+			"description": "Roles are defined in SSVC spec and optional in SSVC provision schema"
+		},
+		"version": {
+			"type": "string",
+			"description": "Version of the SSVC that was used in this decision.  This version is of the semver format major.minor.patch The major.minor should identify SSVC version being used.  The specific tree being used should be in the patch number For example: \"Applier Tree 2.0.3\" would be the identity of the version of SSVC being \"2.0\" and the version of the Applier Tree to be \"3\"."
+		},
+		"decisionTree": {
+			"description": "The full decision tree that was used for this SSVC computed score",
+			"$ref": "https://democert.org/ssvc/SSVC_Provision_v2.03.schema.json"
+		},
+		"id": {
+			"type": "string",
+			"description": "Identifier for a vulnerability could be CVE, CERT/CC VU#, OSV id, Bugtraq etc."
+		},
+		"decisionTreeUrl": {
+			"type": "string",
+			"format": "uri",
+			"description": "A URL that points to the decision tree that was used to make this \"Computed\" decision"
+		},
+		"$schema": {
+			"type": "string",
+			"format": "uri",
+			"description": "A URL that points to the schema that was used for the decision tree that was used to make this \"Computed\" decision"
+		},
+		"generator": {
+			"type": "string",
+			"description": "Identify the software or tool that was used to generate this Computed JSON output.  Optionally append the version of the tool. ",
+			"examples": [
+				"Dryad version 5.01.1"
+			]
+		}
+	},
+	"required": [
+		"options",
+		"role",
+		"version"
+	],
+	"additionalProperties": false
+}
