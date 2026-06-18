@@ -83,7 +83,7 @@ open class NvdSyncService(
 
     suspend fun syncDateRangeWithStats(startDate: LocalDateTime, endDate: LocalDateTime): Triple<Int, Int, Int> {
         var startIndex = 0
-        val resultsPerPage = 500 // Max allowed by NVD is 2000
+        val resultsPerPage = 250
         var totalProcessed = 0
         var totalAdded = 0
         var totalUpdated = 0
@@ -158,7 +158,7 @@ open class NvdSyncService(
 
     suspend fun syncPublishedDateRangeWithStats(startDate: LocalDateTime, endDate: LocalDateTime): Pair<Int, Int> {
         var startIndex = 0
-        val resultsPerPage = 500 // Max allowed by NVD is 2000
+        val resultsPerPage = 250
         var totalProcessed = 0
         var totalAdded = 0
         var consecutiveErrors = 0
