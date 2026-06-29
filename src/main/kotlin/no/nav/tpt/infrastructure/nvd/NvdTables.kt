@@ -36,6 +36,11 @@ object NvdCves : Table("nvd_cves") {
     val hasExploitReference = bool("has_exploit_reference").default(false)
     val hasPatchReference = bool("has_patch_reference").default(false)
 
+    // NVD-embedded SSVC fields (CISA-ADP)
+    val nvdSsvcExploitation = varchar("exploitation_status", 20).nullable()
+    val nvdSsvcAutomatable = varchar("automatable", 10).nullable()
+    val nvdSsvcTechnicalImpact = varchar("technical_impact", 20).nullable()
+
     // Metadata
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)

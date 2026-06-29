@@ -343,6 +343,44 @@ class NvdRepositoryIntegrationTest {
     }
 
     @Test
+    fun `should store and retrieve nvd ssvc fields`() = runTest {
+        val ssvcCve = NvdTestDataBuilder.buildNvdCveData(
+            cveId = "CVE-2024-SSVC",
+            nvdSsvcExploitation = "active",
+            nvdSsvcAutomatable = "yes",
+            nvdSsvcTechnicalImpact = "total"
+        )
+
+        repository.upsertCve(ssvcCve)
+
+        val retrieved = repository.getCveData("CVE-2024-SSVC")
+
+        assertNotNull(retrieved)
+        assertEquals("active", retrieved.nvdSsvcExploitation)
+        assertEquals("yes", retrieved.nvdSsvcAutomatable)
+        assertEquals("total", retrieved.nvdSsvcTechnicalImpact)
+    }
+
+    @Test
+    fun `should store and retrieve null nvd ssvc fields`() = runTest {
+        val noSsvcCve = NvdTestDataBuilder.buildNvdCveData(
+            cveId = "CVE-2024-NO-SSVC",
+            nvdSsvcExploitation = null,
+            nvdSsvcAutomatable = null,
+            nvdSsvcTechnicalImpact = null
+        )
+
+        repository.upsertCve(noSsvcCve)
+
+        val retrieved = repository.getCveData("CVE-2024-NO-SSVC")
+
+        assertNotNull(retrieved)
+        assertNull(retrieved.nvdSsvcExploitation)
+        assertNull(retrieved.nvdSsvcAutomatable)
+        assertNull(retrieved.nvdSsvcTechnicalImpact)
+    }
+
+    @Test
     fun `should handle empty batch upsert gracefully`() = runTest {
         repository.upsertCves(emptyList())
 
