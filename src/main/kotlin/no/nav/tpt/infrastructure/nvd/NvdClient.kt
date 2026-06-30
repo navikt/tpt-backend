@@ -166,6 +166,9 @@ class NvdClient(
         val hasPatchReference = cve.references
             .any { it.tags?.any { tag -> tag.equals("Patch", ignoreCase = true) } == true }
 
+        // Extract SSVC fields from NVD-embedded CISA-ADP data
+        val ssvc = cve.metrics?.extractNvdSsvc()
+
         return NvdCveData(
             cveId = cve.id,
             sourceIdentifier = cve.sourceIdentifier,
@@ -192,7 +195,10 @@ class NvdClient(
             daysOld = daysOld,
             daysSinceModified = daysSinceModified,
             hasExploitReference = hasExploitReference,
-            hasPatchReference = hasPatchReference
+            hasPatchReference = hasPatchReference,
+            nvdSsvcExploitation = ssvc?.exploitation,
+            nvdSsvcAutomatable = ssvc?.automatable,
+            nvdSsvcTechnicalImpact = ssvc?.technicalImpact,
         )
     }
 }

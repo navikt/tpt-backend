@@ -52,8 +52,37 @@ data class CveDescription(
 data class CveMetrics(
     val cvssMetricV31: List<CvssMetricV31>? = null,
     val cvssMetricV30: List<CvssMetricV30>? = null,
-    val cvssMetricV2: List<CvssMetricV2>? = null
+    val cvssMetricV2: List<CvssMetricV2>? = null,
+    val ssvcV203: List<SsvcMetric>? = null
 )
+
+@Serializable
+data class SsvcMetric(
+    val source: String,
+    val ssvcData: SsvcData
+)
+
+@Serializable
+data class SsvcData(
+    val options: List<Map<String, String>>
+)
+
+data class NvdSsvcDecisions(
+    val exploitation: String?,
+    val automatable: String?,
+    val technicalImpact: String?
+)
+
+fun CveMetrics.extractNvdSsvc(): NvdSsvcDecisions? {
+    val cisaEntry = ssvcV203?.firstOrNull { it.source.contains("cisa.gov", ignoreCase = true) }
+        ?: return null
+    val options = cisaEntry.ssvcData.options
+    return NvdSsvcDecisions(
+        exploitation = options.firstOrNull { it.containsKey("Exploitation") }?.get("Exploitation")?.lowercase(),
+        automatable = options.firstOrNull { it.containsKey("Automatable") }?.get("Automatable")?.lowercase(),
+        technicalImpact = options.firstOrNull { it.containsKey("Technical Impact") }?.get("Technical Impact")?.lowercase()
+    )
+}
 
 @Serializable
 data class CvssMetricV31(
@@ -151,6 +180,11 @@ data class NvdCveData(
     val daysOld: Long,
     val daysSinceModified: Long,
     val hasExploitReference: Boolean,
-    val hasPatchReference: Boolean
+    val hasPatchReference: Boolean,
+
+    // NVD-embedded SSVC fields (CISA-ADP, available from June 2026)
+    val nvdSsvcExploitation: String? = null,
+    val nvdSsvcAutomatable: String? = null,
+    val nvdSsvcTechnicalImpact: String? = null
 )
 

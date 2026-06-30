@@ -89,6 +89,9 @@ class NvdRepositoryImpl(
                     this[NvdCves.cweIds] = json.encodeToString<List<String>>(cveData.cweIds)
                     this[NvdCves.hasExploitReference] = cveData.hasExploitReference
                     this[NvdCves.hasPatchReference] = cveData.hasPatchReference
+                    this[NvdCves.nvdSsvcExploitation] = cveData.nvdSsvcExploitation
+                    this[NvdCves.nvdSsvcAutomatable] = cveData.nvdSsvcAutomatable
+                    this[NvdCves.nvdSsvcTechnicalImpact] = cveData.nvdSsvcTechnicalImpact
                     this[NvdCves.updatedAt] = Instant.now()
                 }
 
@@ -155,6 +158,9 @@ class NvdRepositoryImpl(
                     .between(lastModifiedDate, now),
             hasExploitReference = row[NvdCves.hasExploitReference],
             hasPatchReference = row[NvdCves.hasPatchReference],
+            nvdSsvcExploitation = row[NvdCves.nvdSsvcExploitation],
+            nvdSsvcAutomatable = row[NvdCves.nvdSsvcAutomatable],
+            nvdSsvcTechnicalImpact = row[NvdCves.nvdSsvcTechnicalImpact],
         )
     }
 }

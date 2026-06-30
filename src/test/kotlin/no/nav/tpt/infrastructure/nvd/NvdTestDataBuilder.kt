@@ -25,6 +25,7 @@ object NvdTestDataBuilder {
         cvssV31: CvssMetricV31? = buildCvssV31Metric(),
         cvssV30: CvssMetricV30? = null,
         cvssV2: CvssMetricV2? = null,
+        ssvcMetric: SsvcMetric? = null,
         references: List<CveReference> = listOf(
             CveReference("https://example.com/advisory", "vendor@example.com", listOf("Vendor Advisory"))
         ),
@@ -46,10 +47,29 @@ object NvdTestDataBuilder {
             metrics = CveMetrics(
                 cvssMetricV31 = cvssV31?.let { listOf(it) },
                 cvssMetricV30 = cvssV30?.let { listOf(it) },
-                cvssMetricV2 = cvssV2?.let { listOf(it) }
+                cvssMetricV2 = cvssV2?.let { listOf(it) },
+                ssvcV203 = ssvcMetric?.let { listOf(it) }
             ),
             references = references,
             weaknesses = weaknesses
+        )
+    }
+
+    fun buildSsvcMetric(
+        source: String = "cisa.gov",
+        exploitation: String = "None",
+        automatable: String = "No",
+        technicalImpact: String = "Partial"
+    ): SsvcMetric {
+        return SsvcMetric(
+            source = source,
+            ssvcData = SsvcData(
+                options = listOf(
+                    mapOf("Exploitation" to exploitation),
+                    mapOf("Automatable" to automatable),
+                    mapOf("Technical Impact" to technicalImpact)
+                )
+            )
         )
     }
 
@@ -149,7 +169,10 @@ object NvdTestDataBuilder {
         references: List<String> = listOf("https://example.com/advisory"),
         cweIds: List<String> = listOf("CWE-120"),
         hasExploitReference: Boolean = false,
-        hasPatchReference: Boolean = false
+        hasPatchReference: Boolean = false,
+        nvdSsvcExploitation: String? = null,
+        nvdSsvcAutomatable: String? = null,
+        nvdSsvcTechnicalImpact: String? = null
     ): NvdCveData {
         val now = LocalDateTime.now()
         return NvdCveData(
@@ -174,7 +197,10 @@ object NvdTestDataBuilder {
             daysOld = java.time.temporal.ChronoUnit.DAYS.between(publishedDate, now),
             daysSinceModified = java.time.temporal.ChronoUnit.DAYS.between(lastModifiedDate, now),
             hasExploitReference = hasExploitReference,
-            hasPatchReference = hasPatchReference
+            hasPatchReference = hasPatchReference,
+            nvdSsvcExploitation = nvdSsvcExploitation,
+            nvdSsvcAutomatable = nvdSsvcAutomatable,
+            nvdSsvcTechnicalImpact = nvdSsvcTechnicalImpact
         )
     }
 

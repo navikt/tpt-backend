@@ -318,6 +318,77 @@ class NvdSyncServiceTest {
             )
         }
     }
+
+    @Test
+    fun `should persist ssvc fields when nvd response contains ssvcV203`() = runTest {
+        val cve = NvdTestDataBuilder.buildCveItem(
+            id = "CVE-2024-SSVC",
+            ssvcMetric = NvdTestDataBuilder.buildSsvcMetric(
+                exploitation = "Active",
+                automatable = "Yes",
+                technicalImpact = "Total"
+            )
+        )
+        val response = NvdTestDataBuilder.buildNvdResponse(
+            vulnerabilities = listOf(NvdTestDataBuilder.buildVulnerabilityItem(cve))
+        )
+
+        val mockEngine = MockEngine {
+            respond(
+                content = json.encodeToString(response),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(json) }
+        }
+
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
+        val repository = InMemoryNvdRepository()
+        val syncService = NvdSyncService(nvdClient, repository)
+
+        syncService.syncDateRange(LocalDateTime.now().minusDays(1), LocalDateTime.now())
+
+        val stored = repository.getCveData("CVE-2024-SSVC")
+        assertNotNull(stored)
+        assertEquals("active", stored.nvdSsvcExploitation)
+        assertEquals("yes", stored.nvdSsvcAutomatable)
+        assertEquals("total", stored.nvdSsvcTechnicalImpact)
+    }
+
+    @Test
+    fun `should persist null ssvc fields when nvd response has no ssvcV203`() = runTest {
+        val cve = NvdTestDataBuilder.buildCveItem(id = "CVE-2024-NO-SSVC")
+        val response = NvdTestDataBuilder.buildNvdResponse(
+            vulnerabilities = listOf(NvdTestDataBuilder.buildVulnerabilityItem(cve))
+        )
+
+        val mockEngine = MockEngine {
+            respond(
+                content = json.encodeToString(response),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(json) }
+        }
+
+        val nvdClient = NvdClient(httpClient, null, testBaseUrl)
+        val repository = InMemoryNvdRepository()
+        val syncService = NvdSyncService(nvdClient, repository)
+
+        syncService.syncDateRange(LocalDateTime.now().minusDays(1), LocalDateTime.now())
+
+        val stored = repository.getCveData("CVE-2024-NO-SSVC")
+        assertNotNull(stored)
+        assertNull(stored.nvdSsvcExploitation)
+        assertNull(stored.nvdSsvcAutomatable)
+        assertNull(stored.nvdSsvcTechnicalImpact)
+    }
 }
 
 /**
