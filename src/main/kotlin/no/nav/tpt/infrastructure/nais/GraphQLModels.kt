@@ -3,6 +3,245 @@ package no.nav.tpt.infrastructure.nais
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+const val APP_VULNERABILITIES_FOR_USER_QUERY = $$"""
+query ApplicationVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  user(email: $email) {
+    teams(first: $teamFirst, after: $teamAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        team {
+          slug
+          applications(first: $workloadFirst, after: $workloadAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              name
+              ingresses {
+                type
+              }
+              deployments(first: 1) {
+                nodes {
+                  repository
+                  environmentName
+                  createdAt
+                }
+              }
+              image {
+                name
+                tag
+                vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    identifier
+                    description
+                    vulnerabilityDetailsLink
+                    severity
+                    package
+                    suppression {
+                      state
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+const val JOB_VULNERABILITIES_FOR_USER_QUERY = $$"""
+query JobVulnerabilitiesForUser($email: String!, $teamFirst: Int = 1, $teamAfter: Cursor, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  user(email: $email) {
+    teams(first: $teamFirst, after: $teamAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        team {
+          slug
+          jobs(first: $workloadFirst, after: $workloadAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              name
+              deployments(first: 1) {
+                nodes {
+                  repository
+                  environmentName
+                  createdAt
+                }
+              }
+              image {
+                name
+                tag
+                vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    identifier
+                    description
+                    vulnerabilityDetailsLink
+                    severity
+                    package
+                    suppression {
+                      state
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+const val APP_VULNERABILITIES_FOR_TEAM_QUERY = $$"""
+query ApplicationVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  team(slug: $team) {
+    slug
+    applications(first: $workloadFirst, after: $workloadAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        id
+        name
+        ingresses {
+          type
+        }
+        deployments(first: 1) {
+          nodes {
+            repository
+            environmentName
+            createdAt
+          }
+        }
+        image {
+          name
+          tag
+          vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              identifier
+              description
+              vulnerabilityDetailsLink
+              severity
+              package
+              suppression {
+                state
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+const val JOB_VULNERABILITIES_FOR_TEAM_QUERY = $$"""
+query JobVulnerabilitiesForTeam($team: Slug!, $workloadFirst: Int = 50, $workloadAfter: Cursor, $vulnFirst: Int = 50, $vulnAfter: Cursor) {
+  team(slug: $team) {
+    slug
+    jobs(first: $workloadFirst, after: $workloadAfter) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        id
+        name
+        deployments(first: 1) {
+          nodes {
+            repository
+            environmentName
+            createdAt
+          }
+        }
+        image {
+          name
+          tag
+          vulnerabilities(first: $vulnFirst, after: $vulnAfter) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              identifier
+              description
+              vulnerabilityDetailsLink
+              severity
+              package
+              suppression {
+                state
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+const val TEAM_MEMBERSHIPS_FOR_USER_QUERY = $$"""
+query TeamMembershipsForUser($email: String!) {
+  user(email: $email) {
+    teams {
+      nodes {
+        team {
+          slug
+        }
+      }
+    }
+  }
+}
+"""
+
+const val TEAM_INFORMATION_QUERY = $$"""
+query TeamInformation($teamFirst: Int = 200, $teamAfter: Cursor) {
+  teams(
+    first: $teamFirst,
+    after: $teamAfter,
+    filter: {hasWorkloads: true}
+  ) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    nodes {
+      slug
+      slackChannel
+    }
+  }
+}
+"""
+
 interface GraphQLErrorInterface {
     val message: String
     val path: List<String>?
