@@ -119,4 +119,44 @@ class AdminRoutesTest {
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
+
+    @Test
+    fun `should trigger ssvc backfill for admin user`() = testApplication {
+        application {
+            testModule(
+                tokenIntrospectionService = AdminMockTokenIntrospectionService(),
+                adminAuthorizationService = no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl("admin-group-1")
+            )
+        }
+
+        val response = client.post("/admin/vulnrichment/backfill-ssvc") {
+            header(HttpHeaders.Authorization, "Bearer valid_admin_token")
+        }
+
+        assertEquals(HttpStatusCode.Accepted, response.status)
+    }
+
+    @Test
+    fun `should return 403 for non-admin user on ssvc backfill endpoint`() = testApplication {
+        application {
+            testModule(tokenIntrospectionService = AdminMockTokenIntrospectionService())
+        }
+
+        val response = client.post("/admin/vulnrichment/backfill-ssvc") {
+            header(HttpHeaders.Authorization, "Bearer valid_non_admin_token")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `should return 401 for missing token on ssvc backfill endpoint`() = testApplication {
+        application {
+            testModule()
+        }
+
+        val response = client.post("/admin/vulnrichment/backfill-ssvc")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }

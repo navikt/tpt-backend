@@ -7,4 +7,5 @@ interface VulnrichmentRepository {
     suspend fun getVulnrichmentDataBatch(cveIds: List<String>): Map<String, VulnrichmentData>
     suspend fun upsertVulnrichmentData(data: List<VulnrichmentData>)
     suspend fun getStaleVulnrichmentIds(olderThan: LocalDateTime, limit: Int = 500): List<String>
+    suspend fun getAllVulnrichmentCveIds(): List<String>
 }

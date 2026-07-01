@@ -131,7 +131,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
 - **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
-- **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter
+- **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter. `POST /admin/vulnrichment/backfill-ssvc` triggers a one-time re-fetch of tracked CVEs from NVD to backfill NVD-embedded SSVC data ahead of a planned migration away from Vulnrichment.
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`

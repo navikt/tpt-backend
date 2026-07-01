@@ -69,6 +69,13 @@ class VulnrichmentRepositoryImpl(
                 .map { it[VulnrichmentTable.cveId] }
         }
 
+    override suspend fun getAllVulnrichmentCveIds(): List<String> =
+        dbQuery {
+            VulnrichmentTable
+                .select(VulnrichmentTable.cveId)
+                .map { it[VulnrichmentTable.cveId] }
+        }
+
     private fun toVulnrichmentData(row: ResultRow): VulnrichmentData? =
         try {
             VulnrichmentData(

@@ -325,6 +325,50 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /admin/vulnrichment/backfill-ssvc:
+    post:
+      summary: Trigger a one-time SSVC backfill from NVD
+      description: |
+        Re-fetches every CVE currently tracked in Vulnrichment from the NVD API so that its
+        embedded CISA-ADP SSVC data (exploitation, automatable, technical impact) is persisted
+        into the local NVD CVE store. This is needed because NVD only embeds SSVC on a CVE
+        record when that record is fetched again — the regular incremental NVD sync only
+        re-pulls CVEs whose lastModifiedDate falls within the sync window.
+
+        The backfill runs asynchronously in the background; this endpoint returns immediately.
+        Progress and a summary (total candidates, updated, still missing in NVD, fetch failures)
+        are written to the application logs.
+
+        Only accessible to admin users. Intended as a one-time operational step ahead of
+        removing the Vulnrichment integration.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: SSVC backfill started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "SSVC backfill started. Check application logs for progress and summary."
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/remediation:
     post:
       summary: Stream AI-generated remediation guide for a vulnerability
