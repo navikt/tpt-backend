@@ -33,7 +33,7 @@ class GcveComparisonService(
             val nvdScore = nvdData.cvssV31Score
             val gcveScore = gcveData.cvssV31Score
 
-            if (nvdScore != null && gcveScore != null && nvdScore != gcveScore) {
+            if (nvdScore != null && gcveScore != null && kotlin.math.abs(nvdScore - gcveScore) > 0.05) {
                 discrepancies.add(
                     CvssDiscrepancy(
                         cveId = cveId,

@@ -369,6 +369,36 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /admin/gcve/comparison:
+    get:
+      summary: Compare NVD and GCVE data coverage
+      description: |
+        Returns a parity report comparing NVD and GCVE data for tracked CVEs.
+        Shows coverage counts, a sample of missing CVEs, and CVSS score discrepancies.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: GCVE comparison report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GcveComparisonReport'
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/remediation:
     post:
       summary: Stream AI-generated remediation guide for a vulnerability
@@ -478,6 +508,47 @@ components:
       bearerFormat: JWT
       description: Bearer token authentication using JWT
   schemas:
+    GcveComparisonReport:
+      type: object
+      properties:
+        totalTrackedCves:
+          type: integer
+          description: Total number of tracked CVEs (from the cves table)
+        gcveCoveredCount:
+          type: integer
+          description: Number of tracked CVEs present in the GCVE table
+        gcveMissingCount:
+          type: integer
+          description: Number of tracked CVEs NOT yet in the GCVE table
+        gcveMissingSample:
+          type: array
+          items:
+            type: string
+          description: Sample of up to 50 missing CVE IDs
+        cvssDiscrepancies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CvssDiscrepancy'
+          description: Up to 50 CVEs where NVD and GCVE CVSS v3.1 scores differ
+        lastGcveSyncTimestamp:
+          type: string
+          nullable: true
+          description: Timestamp of the last GCVE sync
+    CvssDiscrepancy:
+      type: object
+      properties:
+        cveId:
+          type: string
+        nvdCvssV31Score:
+          type: number
+        gcveCvssV31Score:
+          type: number
+        nvdSeverity:
+          type: string
+          nullable: true
+        gcveSeverity:
+          type: string
+          nullable: true
     RemediationRequest:
       type: object
       required:

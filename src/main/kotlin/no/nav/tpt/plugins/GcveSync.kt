@@ -25,11 +25,14 @@ fun Application.configureGcveSync() {
             try {
                 if (leaderElection.isLeader()) {
                     val lastSync = gcveRepository.getLastSyncTimestamp()
-                    val since = lastSync
-                        ?.atOffset(ZoneOffset.UTC)
-                        ?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                        ?: Instant.now().atOffset(ZoneOffset.UTC)
-                            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    val sinceInstant = lastSync ?: Instant.now().minusSeconds(86400)
+                    val since = sinceInstant
+                        .atOffset(ZoneOffset.UTC)
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+                    if (lastSync == null) {
+                        logger.info("No GCVE sync watermark found, starting with 24h lookback: since=$since")
+                    }
 
                     val trackedCveIds = gcveRepository.getTrackedCveIds()
                     logger.info("Starting GCVE incremental sync since=$since, tracked CVEs: ${trackedCveIds.size}")

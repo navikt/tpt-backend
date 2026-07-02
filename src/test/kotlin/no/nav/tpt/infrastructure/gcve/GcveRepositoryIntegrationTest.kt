@@ -35,7 +35,6 @@ class GcveRepositoryIntegrationTest {
         @JvmStatic
         @BeforeAll
         fun setUp() {
-            postgresContainer.start()
             val dataSource = HikariDataSource(HikariConfig().apply {
                 jdbcUrl = postgresContainer.jdbcUrl
                 username = postgresContainer.username
@@ -45,12 +44,6 @@ class GcveRepositoryIntegrationTest {
             Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate()
             database = Database.connect(dataSource)
             repository = GcveRepositoryImpl(database)
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDown() {
-            postgresContainer.stop()
         }
     }
 

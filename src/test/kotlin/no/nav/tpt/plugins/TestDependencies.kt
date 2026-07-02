@@ -186,7 +186,7 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         gcveMissPathService = mockGcveMissPathService,
-        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(mockGcveRepository, MockNvdRepository()),
+        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(mockGcveRepository, mockNvdRepository),
     )
 
     attributes.put(DependenciesKey, dependencies)

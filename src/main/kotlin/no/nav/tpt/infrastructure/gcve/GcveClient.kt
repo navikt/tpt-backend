@@ -137,7 +137,6 @@ class GcveClient(
                 attempt++
                 if (attempt > maxRetries) {
                     logger.error("GCVE API rate limit exceeded after $maxRetries retries")
-                    circuitBreaker.recordFailure()
                     return null
                 }
                 val retryAfter = response.headers[HttpHeaders.RetryAfter]
@@ -153,7 +152,6 @@ class GcveClient(
                 attempt++
                 if (attempt > maxRetries) {
                     logger.error("GCVE API returned ${response.status.value} after $maxRetries retries")
-                    circuitBreaker.recordFailure()
                     return response
                 }
                 val backoff = (2L shl (attempt - 1)).coerceAtMost(30)
