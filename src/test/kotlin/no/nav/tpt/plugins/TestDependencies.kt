@@ -99,6 +99,12 @@ fun Application.installTestDependencies(
         repository = mockVulnrichmentRepository,
     )
 
+    val ssvcBackfillService = no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService(
+        vulnrichmentRepository = mockVulnrichmentRepository,
+        nvdClient = no.nav.tpt.infrastructure.nvd.NvdClient(client, apiKey = null, baseUrl = testConfig.nvdApiUrl),
+        nvdRepository = mockNvdRepository,
+    )
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
@@ -171,6 +177,7 @@ fun Application.installTestDependencies(
         remediationService = remediationService,
         vulnrichmentRepository = mockVulnrichmentRepository,
         vulnrichmentSyncService = mockVulnrichmentSyncService,
+        ssvcBackfillService = ssvcBackfillService,
     )
 
     attributes.put(DependenciesKey, dependencies)

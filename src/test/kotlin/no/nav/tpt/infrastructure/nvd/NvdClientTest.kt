@@ -261,5 +261,108 @@ class NvdClientTest {
 
         assertEquals("English description", result.description)
     }
+
+    @Test
+    fun `should retry after 429 honoring Retry-After header and eventually succeed`() = runTest {
+        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
+        var requestCount = 0
+
+        val mockEngine = MockEngine {
+            requestCount++
+            if (requestCount < 3) {
+                respond(
+                    content = "Rate limit exceeded",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(HttpHeaders.RetryAfter, "1")
+                )
+            } else {
+                respond(
+                    content = json.encodeToString(response),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCvesByModifiedDate(
+            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+        )
+
+        assertEquals(3, requestCount)
+        assertEquals(0, result.totalResults)
+    }
+
+    @Test
+    fun `should throw after exhausting retries on persistent 429`() = runTest {
+        var requestCount = 0
+        val mockEngine = MockEngine {
+            requestCount++
+            respond(
+                content = "Rate limit exceeded",
+                status = HttpStatusCode.TooManyRequests,
+                headers = headersOf(HttpHeaders.RetryAfter, "1")
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+
+        assertFailsWith<IllegalStateException> {
+            nvdClient.getCvesByModifiedDate(
+                lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+                lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+            )
+        }
+
+        assertEquals(4, requestCount) // initial attempt + 3 retries
+    }
+
+    @Test
+    fun `should return null for getCveByCveId after exhausting retries on persistent 429`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "Rate limit exceeded",
+                status = HttpStatusCode.TooManyRequests,
+                headers = headersOf(HttpHeaders.RetryAfter, "1")
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCveByCveId("CVE-2024-1234")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `should back off with default duration when Retry-After header is missing`() = runTest {
+        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
+        var requestCount = 0
+
+        val mockEngine = MockEngine {
+            requestCount++
+            if (requestCount < 2) {
+                respond(
+                    content = "Rate limit exceeded",
+                    status = HttpStatusCode.TooManyRequests
+                )
+            } else {
+                respond(
+                    content = json.encodeToString(response),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCvesByModifiedDate(
+            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+        )
+
+        assertEquals(2, requestCount)
+        assertEquals(0, result.totalResults)
+    }
 }
 

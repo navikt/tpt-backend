@@ -15,4 +15,6 @@ class MockVulnrichmentRepository : VulnrichmentRepository {
     }
 
     override suspend fun getStaleVulnrichmentIds(olderThan: LocalDateTime, limit: Int): List<String> = emptyList()
+
+    override suspend fun getAllVulnrichmentCveIds(): List<String> = data.keys.toList()
 }

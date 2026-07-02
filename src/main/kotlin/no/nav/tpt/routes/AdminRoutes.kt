@@ -1,15 +1,20 @@
 package no.nav.tpt.routes
 
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.launch
 import no.nav.tpt.plugins.ForbiddenException
 import no.nav.tpt.plugins.InternalServerException
 import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.dependencies
+import org.slf4j.LoggerFactory
 
 fun Route.adminRoutes() {
+    val logger = LoggerFactory.getLogger("AdminRoutes")
+
     authenticate("auth-bearer") {
         route("/admin") {
             get("/status") {
@@ -75,6 +80,31 @@ fun Route.adminRoutes() {
                 } catch (e: Exception) {
                     throw InternalServerException("Failed to fetch vulnerabilities for team $teamSlug", e)
                 }
+            }
+
+            post("/vulnrichment/backfill-ssvc") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                val ssvcBackfillService = call.dependencies.ssvcBackfillService
+                val application = call.application
+
+                application.launch {
+                    try {
+                        ssvcBackfillService.run()
+                    } catch (e: Exception) {
+                        logger.error("SSVC backfill failed: ${e.message}", e)
+                    }
+                }
+
+                call.respond(
+                    HttpStatusCode.Accepted,
+                    mapOf("message" to "SSVC backfill started. Check application logs for progress and summary.")
+                )
             }
         }
     }

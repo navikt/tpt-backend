@@ -56,6 +56,7 @@ import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepositoryImpl
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
+import no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService
 
 @Suppress("unused")
 class Dependencies(
@@ -81,6 +82,7 @@ class Dependencies(
     val remediationService: RemediationService?,
     val vulnrichmentRepository: VulnrichmentRepository,
     val vulnrichmentSyncService: VulnrichmentSyncService,
+    val ssvcBackfillService: SsvcBackfillService,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -159,6 +161,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
     val vulnrichmentClient = VulnrichmentClient(httpClient)
     val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
+    val ssvcBackfillService = SsvcBackfillService(vulnrichmentRepository, nvdClient, nvdRepository)
 
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
@@ -222,6 +225,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         remediationService = remediationService,
         vulnrichmentRepository = vulnrichmentRepository,
         vulnrichmentSyncService = vulnrichmentSyncService,
+        ssvcBackfillService = ssvcBackfillService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

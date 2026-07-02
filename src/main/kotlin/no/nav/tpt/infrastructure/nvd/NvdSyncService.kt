@@ -8,6 +8,9 @@ open class NvdSyncService(
     private val nvdClient: NvdClient,
     private val repository: NvdRepository
 ) {
+    // Rate limiting (interval between requests, backoff on 429 Too Many Requests) is
+    // handled centrally inside NvdClient via its shared NvdRateLimiter — no manual
+    // delay()s are needed here between requests.
     private val logger = LoggerFactory.getLogger(NvdSyncService::class.java)
 
     suspend fun performInitialSync() {
@@ -53,9 +56,6 @@ open class NvdSyncService(
             if (!currentStart.isBefore(now)) {
                 break
             }
-
-            // Respect rate limits: 6 seconds between requests (safe for both free and paid tiers)
-            delay(6000)
         }
 
         logger.info("Initial NVD sync completed after $chunkNumber chunks. Total CVEs: $totalCvesProcessed (added: $totalCvesAdded). Failed chunks: $failedChunks")
@@ -128,10 +128,6 @@ open class NvdSyncService(
                     break
                 }
 
-                // Rate limit: 6 seconds between requests
-                // This is safe for both free tier (5 req/30s) and paid tier (50 req/30s)
-                delay(6000)
-
             } catch (e: Exception) {
                 consecutiveErrors++
                 logger.error("Error syncing CVEs at index $startIndex (attempt $consecutiveErrors/$maxConsecutiveErrors): ${e.message}", e)
@@ -200,9 +196,6 @@ open class NvdSyncService(
                 if (startIndex >= response.totalResults) {
                     break
                 }
-
-                // Rate limit: 6 seconds between requests
-                delay(6000)
 
             } catch (e: Exception) {
                 consecutiveErrors++

@@ -29,36 +29,6 @@ class NaisApiClient(
             throw e
         }
 
-    private val applicationsForUserQuery = this::class.java.classLoader
-        .getResource("graphql/app-vulnerabilities-for-user.graphql")
-        ?.readText()
-        ?: error("Could not load app-vulnerabilities-for-user.graphql")
-
-    private val jobVulnerabilitiesForUserQuery = this::class.java.classLoader
-        .getResource("graphql/job-vulnerabilities-for-user.graphql")
-        ?.readText()
-        ?: error("Could not load job-vulnerabilities-for-user.graphql")
-
-    private val applicationsForTeamQuery = this::class.java.classLoader
-        .getResource("graphql/app-vulnerabilities-for-team.graphql")
-        ?.readText()
-        ?: error("Could not load app-vulnerabilities-for-team.graphql")
-
-    private val jobVulnerabilitiesForTeamQuery = this::class.java.classLoader
-        .getResource("graphql/job-vulnerabilities-for-team.graphql")
-        ?.readText()
-        ?: error("Could not load job-vulnerabilities-for-team.graphql")
-
-    private val teamMembershipsForUserQuery = this::class.java.classLoader
-        .getResource("graphql/team-memberships-for-user.graphql")
-        ?.readText()
-        ?: error("Could not load team-memberships-for-user.graphql")
-
-    private val teamInformationQuery = this::class.java.classLoader
-        .getResource("graphql/team-information.graphql")
-        ?.readText()
-        ?: error("Could not load team-information.graphql")
-
     override suspend fun getAllTeams(): List<TeamInfo> {
         val allTeams = mutableListOf<TeamInformationResponse.TeamNode>()
         var cursor: String? = null
@@ -66,7 +36,7 @@ class NaisApiClient(
 
         while (hasNextPage) {
             val request = TeamInformationRequest(
-                query = teamInformationQuery,
+                query = TEAM_INFORMATION_QUERY,
                 variables = TeamInformationRequest.Variables(
                     teamFirst = 200,
                     teamAfter = cursor
@@ -112,8 +82,8 @@ class NaisApiClient(
     }
 
     override suspend fun getVulnerabilitiesForUser(email: String): UserVulnerabilitiesData {
-        val appResponse = fetchWorkloadVulnerabilities(email, applicationsForUserQuery, "applications")
-        val jobResponse = fetchWorkloadVulnerabilities(email, jobVulnerabilitiesForUserQuery, "jobs")
+        val appResponse = fetchWorkloadVulnerabilities(email, APP_VULNERABILITIES_FOR_USER_QUERY, "applications")
+        val jobResponse = fetchWorkloadVulnerabilities(email, JOB_VULNERABILITIES_FOR_USER_QUERY, "jobs")
 
         if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
             val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
@@ -135,8 +105,8 @@ class NaisApiClient(
     }
 
     override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
-        val appResponse = fetchTeamWorkloadVulnerabilities(teamSlug, applicationsForTeamQuery, "applications")
-        val jobResponse = fetchTeamWorkloadVulnerabilities(teamSlug, jobVulnerabilitiesForTeamQuery, "jobs")
+        val appResponse = fetchTeamWorkloadVulnerabilities(teamSlug, APP_VULNERABILITIES_FOR_TEAM_QUERY, "applications")
+        val jobResponse = fetchTeamWorkloadVulnerabilities(teamSlug, JOB_VULNERABILITIES_FOR_TEAM_QUERY, "jobs")
 
         if (!appResponse.errors.isNullOrEmpty() || !jobResponse.errors.isNullOrEmpty()) {
             val allErrors = (appResponse.errors ?: emptyList()) + (jobResponse.errors ?: emptyList())
@@ -783,7 +753,7 @@ class NaisApiClient(
 
     private suspend fun getTeamMembershipsRaw(email: String): TeamMembershipsForUserResponse {
         val request = TeamMembershipsForUserRequest(
-            query = teamMembershipsForUserQuery,
+            query = TEAM_MEMBERSHIPS_FOR_USER_QUERY,
             variables = TeamMembershipsForUserRequest.Variables(email = email)
         )
 

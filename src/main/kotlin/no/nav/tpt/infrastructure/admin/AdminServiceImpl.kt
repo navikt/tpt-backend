@@ -3,18 +3,14 @@ package no.nav.tpt.infrastructure.admin
 import no.nav.tpt.domain.admin.*
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import org.slf4j.LoggerFactory
-import java.time.Duration
 import java.time.Instant
 
 class AdminServiceImpl(
     private val vulnerabilityRepository: VulnerabilityRepository
 ) : AdminService {
     private val logger = LoggerFactory.getLogger(AdminServiceImpl::class.java)
-    
-    private val overviewCache = AdminReportCache<TeamsOverviewResponse>(ttl = Duration.ofMinutes(30))
-    private val slaCache = AdminReportCache<TeamsSlaReportResponse>(ttl = Duration.ofMinutes(30))
-    
-    override suspend fun getTeamsOverview(): TeamsOverviewResponse = overviewCache.get {
+
+    override suspend fun getTeamsOverview(): TeamsOverviewResponse {
         logger.debug("Generating teams overview report (not cached)")
         
         val teamCounts = vulnerabilityRepository.getTeamVulnerabilityCounts()
@@ -32,7 +28,7 @@ class AdminServiceImpl(
             )
         }
         
-        TeamsOverviewResponse(
+        return TeamsOverviewResponse(
             teams = teamOverviews,
             totalTeams = teamOverviews.size,
             totalVulnerabilities = teamCounts.sumOf { it.totalCount },
@@ -40,7 +36,7 @@ class AdminServiceImpl(
         )
     }
     
-    override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse = slaCache.get {
+    override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse {
         logger.debug("Generating teams SLA report (not cached)")
         
         val teamSlaSummaries = vulnerabilityRepository.getTeamSlaSummaries()
@@ -62,7 +58,7 @@ class AdminServiceImpl(
         val totalCriticalOverdue = teamSlaOverviews.sumOf { it.criticalOverdue }
         val totalNonCriticalOverdue = teamSlaOverviews.sumOf { it.nonCriticalOverdue }
         
-        TeamsSlaReportResponse(
+        return TeamsSlaReportResponse(
             teams = teamSlaOverviews,
             totalTeams = teamSlaOverviews.size,
             totalOverdue = totalCriticalOverdue + totalNonCriticalOverdue,
