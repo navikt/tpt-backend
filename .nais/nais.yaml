@@ -31,6 +31,7 @@ spec:
         - host: api.first.org
         - host: services.nvd.nist.gov
         - host: cveawg.mitre.org
+        - host: db.gcve.eu
   gcp:
     sqlInstances:
       - type: POSTGRES_17
