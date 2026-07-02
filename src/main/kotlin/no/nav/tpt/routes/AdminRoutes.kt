@@ -82,6 +82,23 @@ fun Route.adminRoutes() {
                 }
             }
 
+            get("/gcve/comparison") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                try {
+                    val comparisonService = call.dependencies.gcveComparisonService
+                    val report = comparisonService.compareDataCoverage()
+                    call.respond(HttpStatusCode.OK, report)
+                } catch (e: Exception) {
+                    throw InternalServerException("Failed to generate GCVE comparison report", e)
+                }
+            }
+
             post("/vulnrichment/backfill-ssvc") {
                 val principal = call.principal<TokenPrincipal>()!!
                 val adminAuthService = call.dependencies.adminAuthorizationService

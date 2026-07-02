@@ -12,6 +12,8 @@ data class AppConfig(
     val adminGroups: String?,
     val aiApiUrl: String?,
     val aiModel: String = "gemini-2.5-flash",
+    val gcveApiUrl: String = "https://db.gcve.eu/api",
+    val gcveApiKey: String? = null,
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
@@ -47,6 +49,9 @@ data class AppConfig(
             val aiApiUrl = System.getenv("AI_API_URL")
             val aiModel = System.getenv("AI_MODEL") ?: "gemini-2.5-flash"
 
+            val gcveApiUrl = System.getenv("GCVE_API_URL") ?: "https://db.gcve.eu/api"
+            val gcveApiKey = System.getenv("GCVE_API_KEY")
+
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
@@ -58,7 +63,9 @@ data class AppConfig(
                 teamkatalogenUrl = teamkatalogenUrl,
                 adminGroups = adminGroups,
                 aiApiUrl = aiApiUrl,
-                aiModel = aiModel
+                aiModel = aiModel,
+                gcveApiUrl = gcveApiUrl,
+                gcveApiKey = gcveApiKey,
             )
         }
     }

@@ -57,6 +57,12 @@ import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepositoryImpl
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
 import no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService
+import no.nav.tpt.infrastructure.gcve.GcveComparisonService
+import no.nav.tpt.infrastructure.gcve.GcveClient
+import no.nav.tpt.infrastructure.gcve.GcveMissPathService
+import no.nav.tpt.infrastructure.gcve.GcveRepository
+import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
+import no.nav.tpt.infrastructure.gcve.GcveSyncService
 
 @Suppress("unused")
 class Dependencies(
@@ -83,6 +89,10 @@ class Dependencies(
     val vulnrichmentRepository: VulnrichmentRepository,
     val vulnrichmentSyncService: VulnrichmentSyncService,
     val ssvcBackfillService: SsvcBackfillService,
+    val gcveRepository: GcveRepository,
+    val gcveSyncService: GcveSyncService,
+    val gcveMissPathService: GcveMissPathService,
+    val gcveComparisonService: GcveComparisonService,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -163,6 +173,13 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
     val ssvcBackfillService = SsvcBackfillService(vulnrichmentRepository, nvdClient, nvdRepository)
 
+    val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
+    val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
+    val gcveRepository = GcveRepositoryImpl(database)
+    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
+    val gcveMissPathService = GcveMissPathService(gcveClient, gcveRepository)
+    val gcveComparisonService = GcveComparisonService(gcveRepository, nvdRepository)
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
@@ -226,6 +243,10 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnrichmentRepository = vulnrichmentRepository,
         vulnrichmentSyncService = vulnrichmentSyncService,
         ssvcBackfillService = ssvcBackfillService,
+        gcveRepository = gcveRepository,
+        gcveSyncService = gcveSyncService,
+        gcveMissPathService = gcveMissPathService,
+        gcveComparisonService = gcveComparisonService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

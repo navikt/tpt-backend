@@ -16,6 +16,7 @@ import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureKafka
+import no.nav.tpt.plugins.configureGcveSync
 import no.nav.tpt.plugins.configureNvdSync
 import no.nav.tpt.plugins.configureStatusPages
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
@@ -72,6 +73,7 @@ fun Application.module() {
     configureNvdSync()
     configureVulnerabilityDataSync()
     configureVulnrichmentSync()
+    configureGcveSync()
     configureKafka()
 
     routing {

@@ -191,6 +191,19 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnrichmentRepository = mockVulnrichmentRepository,
         vulnrichmentSyncService = mockVulnrichmentSyncService,
         ssvcBackfillService = ssvcBackfillService,
+        gcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository(),
+        gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(
+            no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api"),
+            no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+        ),
+        gcveMissPathService = no.nav.tpt.infrastructure.gcve.GcveMissPathService(
+            no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api"),
+            no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+        ),
+        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(
+            no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository(),
+            nvdRepository
+        ),
     )
 
     application.attributes.put(DependenciesKey, dependencies)
