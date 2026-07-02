@@ -364,5 +364,103 @@ class NvdClientTest {
         assertEquals(2, requestCount)
         assertEquals(0, result.totalResults)
     }
+
+    @Test
+    fun `should retry after 503 and eventually succeed`() = runTest {
+        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
+        var requestCount = 0
+
+        val mockEngine = MockEngine {
+            requestCount++
+            if (requestCount < 3) {
+                respond(
+                    content = "<html>503 Service Unavailable</html>",
+                    status = HttpStatusCode.ServiceUnavailable
+                )
+            } else {
+                respond(
+                    content = json.encodeToString(response),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCvesByModifiedDate(
+            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+        )
+
+        assertEquals(3, requestCount)
+        assertEquals(0, result.totalResults)
+    }
+
+    @Test
+    fun `should throw after exhausting retries on persistent 503`() = runTest {
+        var requestCount = 0
+        val mockEngine = MockEngine {
+            requestCount++
+            respond(
+                content = "<html>503 Service Unavailable</html>",
+                status = HttpStatusCode.ServiceUnavailable
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+
+        val exception = assertFailsWith<IllegalStateException> {
+            nvdClient.getCvesByModifiedDate(
+                lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+                lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+            )
+        }
+
+        assertEquals(4, requestCount) // initial attempt + 3 retries
+        assertTrue(exception.message?.contains("503") == true)
+    }
+
+    @Test
+    fun `should return null for getCveByCveId after exhausting retries on persistent 503`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "<html>503 Service Unavailable</html>",
+                status = HttpStatusCode.ServiceUnavailable
+            )
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCveByCveId("CVE-2024-1234")
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `should also retry on 502 and 504`() = runTest {
+        val response = NvdTestDataBuilder.buildNvdResponse(vulnerabilities = emptyList())
+        var requestCount = 0
+
+        val mockEngine = MockEngine {
+            requestCount++
+            when (requestCount) {
+                1 -> respond(content = "Bad Gateway", status = HttpStatusCode.BadGateway)
+                2 -> respond(content = "Gateway Timeout", status = HttpStatusCode.GatewayTimeout)
+                else -> respond(
+                    content = json.encodeToString(response),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val nvdClient = createMockClient(mockEngine)
+        val result = nvdClient.getCvesByModifiedDate(
+            lastModStartDate = java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
+            lastModEndDate = java.time.LocalDateTime.of(2024, 1, 2, 0, 0, 0)
+        )
+
+        assertEquals(3, requestCount)
+        assertEquals(0, result.totalResults)
+    }
 }
 

@@ -56,19 +56,21 @@ object NvdTestDataBuilder {
     }
 
     fun buildSsvcMetric(
-        source: String = "cisa.gov",
-        exploitation: String = "None",
-        automatable: String = "No",
-        technicalImpact: String = "Partial"
+        source: String = "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+        exploitation: String = "none",
+        automatable: String = "no",
+        technicalImpact: String = "partial",
+        role: String = "CISA Coordinator"
     ): SsvcMetric {
         return SsvcMetric(
             source = source,
             ssvcData = SsvcData(
                 options = listOf(
-                    mapOf("Exploitation" to exploitation),
-                    mapOf("Automatable" to automatable),
-                    mapOf("Technical Impact" to technicalImpact)
-                )
+                    mapOf("exploitation" to exploitation),
+                    mapOf("automatable" to automatable),
+                    mapOf("technicalImpact" to technicalImpact)
+                ),
+                role = role
             )
         )
     }

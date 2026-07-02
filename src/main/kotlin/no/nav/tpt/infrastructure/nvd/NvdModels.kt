@@ -64,7 +64,8 @@ data class SsvcMetric(
 
 @Serializable
 data class SsvcData(
-    val options: List<Map<String, String>>
+    val options: List<Map<String, String>>,
+    val role: String? = null
 )
 
 data class NvdSsvcDecisions(
@@ -73,14 +74,18 @@ data class NvdSsvcDecisions(
     val technicalImpact: String?
 )
 
+// NVD identifies CISA's contribution by ssvcData.role == "CISA Coordinator" — `source` is a
+// UUID assigned per contributing organization (not a domain string), and option keys are
+// lowercase camelCase ("exploitation", "automatable", "technicalImpact"), not the
+// human-readable decision-point names. Verified against a live NVD API response.
 fun CveMetrics.extractNvdSsvc(): NvdSsvcDecisions? {
-    val cisaEntry = ssvcV203?.firstOrNull { it.source.contains("cisa.gov", ignoreCase = true) }
+    val cisaEntry = ssvcV203?.firstOrNull { it.ssvcData.role?.contains("CISA", ignoreCase = true) == true }
         ?: return null
     val options = cisaEntry.ssvcData.options
     return NvdSsvcDecisions(
-        exploitation = options.firstOrNull { it.containsKey("Exploitation") }?.get("Exploitation")?.lowercase(),
-        automatable = options.firstOrNull { it.containsKey("Automatable") }?.get("Automatable")?.lowercase(),
-        technicalImpact = options.firstOrNull { it.containsKey("Technical Impact") }?.get("Technical Impact")?.lowercase()
+        exploitation = options.firstOrNull { it.containsKey("exploitation") }?.get("exploitation")?.lowercase(),
+        automatable = options.firstOrNull { it.containsKey("automatable") }?.get("automatable")?.lowercase(),
+        technicalImpact = options.firstOrNull { it.containsKey("technicalImpact") }?.get("technicalImpact")?.lowercase()
     )
 }
 

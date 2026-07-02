@@ -27,39 +27,73 @@ class NvdClient(
     private val defaultRateLimitBackoffSeconds = 60L
     private val maxRateLimitBackoffSeconds = 300L
 
+    private val maxServerErrorRetries = 3
+    private val baseServerErrorBackoffSeconds = 5L
+    private val maxServerErrorBackoffSeconds = 60L
+
+    private val retryableServerErrorStatuses = setOf(
+        HttpStatusCode.BadGateway,
+        HttpStatusCode.ServiceUnavailable,
+        HttpStatusCode.GatewayTimeout,
+    )
+
     /**
      * Executes an HTTP request against the NVD API, respecting [rateLimiter] before every
      * attempt and transparently retrying with backoff if NVD responds with 429 Too Many
-     * Requests. Honors the `Retry-After` header when present. Gives up after
-     * [maxRateLimitRetries] retries and returns the last (still-429) response, letting the
-     * caller's existing error handling take over.
+     * Requests or a 502/503/504 server error. Honors the `Retry-After` header when present
+     * for 429s. Gives up after exhausting retries and returns the last (still-failing)
+     * response, letting the caller's existing error handling take over.
      */
     private suspend fun executeWithRateLimit(request: suspend () -> HttpResponse): HttpResponse {
-        var attempt = 0
+        var rateLimitAttempt = 0
+        var serverErrorAttempt = 0
         while (true) {
             rateLimiter.acquire()
             val response = request()
 
-            if (response.status != HttpStatusCode.TooManyRequests) {
-                return response
+            if (response.status == HttpStatusCode.TooManyRequests) {
+                rateLimitAttempt++
+                if (rateLimitAttempt > maxRateLimitRetries) {
+                    logger.error("NVD API rate limit exceeded after $maxRateLimitRetries retries, giving up")
+                    return response
+                }
+
+                val retryAfterSeconds = response.headers[HttpHeaders.RetryAfter]
+                    ?.toLongOrNull()
+                    ?.coerceIn(1, maxRateLimitBackoffSeconds)
+                    ?: defaultRateLimitBackoffSeconds
+
+                logger.warn(
+                    "NVD API rate limit hit (429), backing off for ${retryAfterSeconds}s " +
+                        "(attempt $rateLimitAttempt/$maxRateLimitRetries)"
+                )
+                delay(retryAfterSeconds * 1000)
+                continue
             }
 
-            attempt++
-            if (attempt > maxRateLimitRetries) {
-                logger.error("NVD API rate limit exceeded after $maxRateLimitRetries retries, giving up")
-                return response
+            if (response.status in retryableServerErrorStatuses) {
+                serverErrorAttempt++
+                if (serverErrorAttempt > maxServerErrorRetries) {
+                    logger.error(
+                        "NVD API returned ${response.status.value} after $maxServerErrorRetries retries, giving up"
+                    )
+                    return response
+                }
+
+                val backoffSeconds = response.headers[HttpHeaders.RetryAfter]
+                    ?.toLongOrNull()
+                    ?.coerceIn(1, maxServerErrorBackoffSeconds)
+                    ?: (baseServerErrorBackoffSeconds shl (serverErrorAttempt - 1)).coerceAtMost(maxServerErrorBackoffSeconds)
+
+                logger.warn(
+                    "NVD API returned ${response.status.value}, backing off for " +
+                        "${backoffSeconds}s (attempt $serverErrorAttempt/$maxServerErrorRetries)"
+                )
+                delay(backoffSeconds * 1000)
+                continue
             }
 
-            val retryAfterSeconds = response.headers[HttpHeaders.RetryAfter]
-                ?.toLongOrNull()
-                ?.coerceIn(1, maxRateLimitBackoffSeconds)
-                ?: defaultRateLimitBackoffSeconds
-
-            logger.warn(
-                "NVD API rate limit hit (429), backing off for ${retryAfterSeconds}s " +
-                    "(attempt $attempt/$maxRateLimitRetries)"
-            )
-            delay(retryAfterSeconds * 1000)
+            return response
         }
     }
 
