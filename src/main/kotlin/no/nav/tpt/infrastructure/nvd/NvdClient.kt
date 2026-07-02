@@ -3,8 +3,10 @@ package no.nav.tpt.infrastructure.nvd
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
+import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -15,10 +17,51 @@ import java.time.temporal.ChronoUnit
 class NvdClient(
     private val httpClient: HttpClient,
     private val apiKey: String?,
-    private val baseUrl: String
+    private val baseUrl: String,
+    private val rateLimiter: NvdRateLimiter = NvdRateLimiter.forApiKey(apiKey),
 ) {
 
     private val logger = LoggerFactory.getLogger(NvdClient::class.java)
+
+    private val maxRateLimitRetries = 3
+    private val defaultRateLimitBackoffSeconds = 60L
+    private val maxRateLimitBackoffSeconds = 300L
+
+    /**
+     * Executes an HTTP request against the NVD API, respecting [rateLimiter] before every
+     * attempt and transparently retrying with backoff if NVD responds with 429 Too Many
+     * Requests. Honors the `Retry-After` header when present. Gives up after
+     * [maxRateLimitRetries] retries and returns the last (still-429) response, letting the
+     * caller's existing error handling take over.
+     */
+    private suspend fun executeWithRateLimit(request: suspend () -> HttpResponse): HttpResponse {
+        var attempt = 0
+        while (true) {
+            rateLimiter.acquire()
+            val response = request()
+
+            if (response.status != HttpStatusCode.TooManyRequests) {
+                return response
+            }
+
+            attempt++
+            if (attempt > maxRateLimitRetries) {
+                logger.error("NVD API rate limit exceeded after $maxRateLimitRetries retries, giving up")
+                return response
+            }
+
+            val retryAfterSeconds = response.headers[HttpHeaders.RetryAfter]
+                ?.toLongOrNull()
+                ?.coerceIn(1, maxRateLimitBackoffSeconds)
+                ?: defaultRateLimitBackoffSeconds
+
+            logger.warn(
+                "NVD API rate limit hit (429), backing off for ${retryAfterSeconds}s " +
+                    "(attempt $attempt/$maxRateLimitRetries)"
+            )
+            delay(retryAfterSeconds * 1000)
+        }
+    }
 
     suspend fun getCvesByModifiedDate(
         lastModStartDate: LocalDateTime,
@@ -27,13 +70,15 @@ class NvdClient(
         resultsPerPage: Int = 2000
     ): NvdResponse {
         return try {
-            val response = httpClient.get(baseUrl) {
-                parameter("lastModStartDate", formatDateForNvd(lastModStartDate))
-                parameter("lastModEndDate", formatDateForNvd(lastModEndDate))
-                parameter("startIndex", startIndex)
-                parameter("resultsPerPage", resultsPerPage)
-                apiKey?.let { header("apiKey", it) }
-                contentType(ContentType.Application.Json)
+            val response = executeWithRateLimit {
+                httpClient.get(baseUrl) {
+                    parameter("lastModStartDate", formatDateForNvd(lastModStartDate))
+                    parameter("lastModEndDate", formatDateForNvd(lastModEndDate))
+                    parameter("startIndex", startIndex)
+                    parameter("resultsPerPage", resultsPerPage)
+                    apiKey?.let { header("apiKey", it) }
+                    contentType(ContentType.Application.Json)
+                }
             }
 
             if (!response.status.isSuccess()) {
@@ -60,13 +105,15 @@ class NvdClient(
         resultsPerPage: Int = 2000
     ): NvdResponse {
         return try {
-            val response = httpClient.get(baseUrl) {
-                parameter("pubStartDate", formatDateForNvd(pubStartDate))
-                parameter("pubEndDate", formatDateForNvd(pubEndDate))
-                parameter("startIndex", startIndex)
-                parameter("resultsPerPage", resultsPerPage)
-                apiKey?.let { header("apiKey", it) }
-                contentType(ContentType.Application.Json)
+            val response = executeWithRateLimit {
+                httpClient.get(baseUrl) {
+                    parameter("pubStartDate", formatDateForNvd(pubStartDate))
+                    parameter("pubEndDate", formatDateForNvd(pubEndDate))
+                    parameter("startIndex", startIndex)
+                    parameter("resultsPerPage", resultsPerPage)
+                    apiKey?.let { header("apiKey", it) }
+                    contentType(ContentType.Application.Json)
+                }
             }
 
             if (!response.status.isSuccess()) {
@@ -105,10 +152,17 @@ class NvdClient(
 
     suspend fun getCveByCveId(cveId: String): CveItem? {
         return try {
-            val response = httpClient.get(baseUrl) {
-                parameter("cveId", cveId)
-                apiKey?.let { header("apiKey", it) }
-                contentType(ContentType.Application.Json)
+            val response = executeWithRateLimit {
+                httpClient.get(baseUrl) {
+                    parameter("cveId", cveId)
+                    apiKey?.let { header("apiKey", it) }
+                    contentType(ContentType.Application.Json)
+                }
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.warn("NVD API returned error status ${response.status.value} for $cveId: ${response.bodyAsText()}")
+                return null
             }
 
             val nvdResponse: NvdResponse = response.body()

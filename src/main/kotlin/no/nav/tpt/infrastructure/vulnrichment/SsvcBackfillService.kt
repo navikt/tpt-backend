@@ -1,6 +1,5 @@
 package no.nav.tpt.infrastructure.vulnrichment
 
-import kotlinx.coroutines.delay
 import no.nav.tpt.infrastructure.nvd.NvdClient
 import no.nav.tpt.infrastructure.nvd.NvdRepository
 import org.slf4j.LoggerFactory
@@ -20,6 +19,10 @@ data class SsvcBackfillResult(
  * lastModifiedDate falls within the sync window, which may not cover CVEs where CISA-ADP
  * added an SSVC decision without the CVE's NVD lastModifiedDate advancing.
  *
+ * Rate limiting (interval between requests, backoff on 429 Too Many Requests) is handled
+ * centrally by the shared [NvdClient] passed in here — no manual delay is needed between
+ * iterations.
+ *
  * Intended to be run once (via an admin-triggered endpoint), and removed together with the
  * rest of the Vulnrichment integration once coverage is confirmed.
  */
@@ -27,7 +30,6 @@ class SsvcBackfillService(
     private val vulnrichmentRepository: VulnrichmentRepository,
     private val nvdClient: NvdClient,
     private val nvdRepository: NvdRepository,
-    private val rateLimitDelayMs: Long = 6000,
 ) {
     private val logger = LoggerFactory.getLogger(SsvcBackfillService::class.java)
 
@@ -39,7 +41,7 @@ class SsvcBackfillService(
         var stillMissingInNvd = 0
         var fetchFailures = 0
 
-        cveIds.forEachIndexed { index, cveId ->
+        cveIds.forEach { cveId ->
             try {
                 val cveItem = nvdClient.getCveByCveId(cveId)
                 if (cveItem == null) {
@@ -58,10 +60,6 @@ class SsvcBackfillService(
             } catch (e: Exception) {
                 fetchFailures++
                 logger.error("SSVC backfill: failed to process $cveId: ${e.message}", e)
-            }
-
-            if (index < cveIds.lastIndex) {
-                delay(rateLimitDelayMs)
             }
         }
 
