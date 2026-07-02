@@ -135,6 +135,62 @@ class GcveSyncServiceTest {
     }
 
     @Test
+    fun `should NOT advance sync watermark when the fetch fails`() = runTest {
+        val gcveRepository = InMemoryGcveRepository()
+
+        val mockEngine = MockEngine {
+            respond(content = "Internal Server Error", status = HttpStatusCode.InternalServerError)
+        }
+
+        val client = createGcveClient(mockEngine)
+        val syncService = GcveSyncService(client, gcveRepository)
+
+        assertNull(gcveRepository.getLastSyncTimestamp())
+
+        syncService.performIncrementalSync(since = "2026-07-01T00:00:00")
+
+        assertNull(
+            gcveRepository.getLastSyncTimestamp(),
+            "Watermark must not advance when the fetch failed, or the failed window is silently skipped forever"
+        )
+    }
+
+    @Test
+    fun `should not advance watermark past a failure encountered on a later page`() = runTest {
+        val gcveRepository = InMemoryGcveRepository()
+
+        val record = json.decodeFromString<GcveCveRecord>(GcveModelsTest.CVSS_V4_RESPONSE)
+        val fullPage = (1..100).map {
+            json.encodeToString(
+                GcveCveRecord.serializer(),
+                record.copy(cveMetadata = record.cveMetadata.copy(cveId = "CVE-2026-$it"))
+            )
+        }.joinToString(",", prefix = "[", postfix = "]")
+
+        val mockEngine = MockEngine { request ->
+            val page = request.url.parameters["page"]?.toInt() ?: 1
+            when (page) {
+                1 -> respond(
+                    content = fullPage,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+                else -> respond(content = "Internal Server Error", status = HttpStatusCode.InternalServerError)
+            }
+        }
+
+        val client = createGcveClient(mockEngine)
+        val syncService = GcveSyncService(client, gcveRepository)
+
+        val count = syncService.performIncrementalSync(since = "2026-07-01T00:00:00")
+
+        // Page 1 succeeded and was upserted, but since page 2 failed, the watermark
+        // must not advance so the next run retries from the same `since`.
+        assertEquals(100, count)
+        assertNull(gcveRepository.getLastSyncTimestamp())
+    }
+
+    @Test
     fun `should handle empty sweep results`() = runTest {
         val gcveRepository = InMemoryGcveRepository()
 

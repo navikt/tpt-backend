@@ -23,9 +23,20 @@ class GcveSyncService(
 
         var page = 1
         var totalUpserted = 0
+        var fetchFailed = false
 
         while (true) {
             val records = gcveClient.getVulnerabilitiesSince(since, page = page)
+
+            if (records == null) {
+                logger.error(
+                    "GCVE incremental sync failed fetching page $page — aborting this run. " +
+                        "Sync watermark will NOT advance, next scheduled run will retry since=$since"
+                )
+                fetchFailed = true
+                break
+            }
+
             if (records.isEmpty()) break
 
             val filtered = if (trackedCveIds != null) {
@@ -50,8 +61,13 @@ class GcveSyncService(
             page++
         }
 
-        gcveRepository.updateSyncTimestamp(Instant.now())
-        logger.info("GCVE incremental sync complete. Total upserted: $totalUpserted")
+        if (fetchFailed) {
+            logger.warn("GCVE incremental sync completed WITH ERRORS. Upserted $totalUpserted CVEs before failure.")
+        } else {
+            gcveRepository.updateSyncTimestamp(Instant.now())
+            logger.info("GCVE incremental sync complete. Total upserted: $totalUpserted")
+        }
+
         return totalUpserted
     }
 }

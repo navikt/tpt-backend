@@ -103,7 +103,16 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val httpClient = HttpClient(CIO) {
         install(UserAgent) {
-            agent = "Nav TPT Backend"
+            agent = "tpt-backend (+https://github.com/navikt/tpt-backend)"
+        }
+        install(HttpTimeout) {
+            // Generous defaults: protects against slow/oversized responses (seen with
+            // GCVE before its incremental sweep was restricted to source=cvelistv5)
+            // without risking unrelated integrations. The AI streaming call sets its
+            // own longer per-request override since a full completion can run past this.
+            requestTimeoutMillis = 60_000
+            connectTimeoutMillis = 10_000
+            socketTimeoutMillis = 60_000
         }
         install(ContentNegotiation) {
             json(Json {
