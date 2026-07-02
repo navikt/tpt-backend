@@ -26,6 +26,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── kafka/                                 # Kafka consumer for GitHub repository events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── nvd/                                   # NVD database sync service and CVE data management
+│   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
 │   ├── vulnrichment/                          # CISA Vulnrichment sync (SSVC decisions from cisagov/vulnrichment)
 │   ├── remediation/                           # AI remediation cache and service implementation
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
@@ -38,6 +39,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── Kafka.kt                               # Kafka consumer lifecycle management
 │   ├── LeaderElection.kt                      # Kubernetes leader election for distributed tasks
 │   ├── NvdSync.kt                             # Scheduled NVD synchronization orchestration
+│   ├── GcveSync.kt                            # Scheduled GCVE synchronization (parallel to NVD)
 │   ├── VulnrichmentSync.kt                    # Scheduled Vulnrichment sync (initial + daily incremental, leader-elected)
 │   └── VulnerabilityDataSync.kt               # Scheduled vulnerability data sync (leader-elected)
 ├── routes/                                    # HTTP API endpoints
@@ -83,6 +85,8 @@ src/test/                                      # Test suite mirroring main struc
 - `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by Nais)
 - `AI_API_URL` - Vertex AI base URL for Gemini (e.g. `https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models`). If unset, the remediation endpoint returns 503.
 - `AI_MODEL` - Gemini model name (default: `gemini-2.5-flash`)
+- `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
+- `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
 
 Request NVD Api key at [NIST](https://nvd.nist.gov/developers/request-an-api-key) and subscribe to [NVD Technical Updates](https://www.nist.gov/itl/nvd).
 
@@ -109,6 +113,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
 - **CISA Vulnrichment** - SSVC decisions from `cisagov/vulnrichment` (PostgreSQL-backed, daily incremental sync)
+- **GCVE (db.gcve.eu)** - CVE v5 enrichment from CIRCL's Vulnerability-Lookup (PostgreSQL-backed, parallel to NVD, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives JSON data from other applications (optional)
 - **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
 
@@ -132,6 +137,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
 - **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
 - **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter. `POST /admin/vulnrichment/backfill-ssvc` triggers a one-time re-fetch of tracked CVEs from NVD to backfill NVD-embedded SSVC data ahead of a planned migration away from Vulnrichment.
+- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path. `GET /admin/gcve/comparison` shows NVD vs GCVE parity.
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`

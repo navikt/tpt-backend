@@ -105,6 +105,11 @@ fun Application.installTestDependencies(
         nvdRepository = mockNvdRepository,
     )
 
+    val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+    val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
+    val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
+    val mockGcveMissPathService = no.nav.tpt.infrastructure.gcve.GcveMissPathService(mockGcveClient, mockGcveRepository)
+
     val vulnService = VulnServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
@@ -178,6 +183,10 @@ fun Application.installTestDependencies(
         vulnrichmentRepository = mockVulnrichmentRepository,
         vulnrichmentSyncService = mockVulnrichmentSyncService,
         ssvcBackfillService = ssvcBackfillService,
+        gcveRepository = mockGcveRepository,
+        gcveSyncService = mockGcveSyncService,
+        gcveMissPathService = mockGcveMissPathService,
+        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(mockGcveRepository, mockNvdRepository),
     )
 
     attributes.put(DependenciesKey, dependencies)
