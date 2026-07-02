@@ -109,7 +109,107 @@ class GcveClientTest {
         val client = createClient(mockEngine)
         val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00", page = 1)
 
+        assertNotNull(result)
         assertEquals(2, result.size)
+    }
+
+    @Test
+    fun `should restrict incremental sweep to source=cvelistv5 by default`() = runTest {
+        val mockEngine = MockEngine { request ->
+            assertEquals("cvelistv5", request.url.parameters["source"])
+            respond(
+                content = GcveModelsTest.LIST_RESPONSE,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        client.getVulnerabilitiesSince("2026-07-01T00:00:00")
+    }
+
+    @Test
+    fun `should allow overriding the source filter for incremental sweep`() = runTest {
+        val mockEngine = MockEngine { request ->
+            assertEquals("nvd", request.url.parameters["source"])
+            respond(
+                content = "[]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        client.getVulnerabilitiesSince("2026-07-01T00:00:00", source = "nvd")
+    }
+
+    @Test
+    fun `should skip records with unexpected shape instead of failing the whole page`() = runTest {
+        // A CSAF-format security advisory (e.g. csaf_redhat), which some GCVE sources
+        // return in the bulk sweep, has a completely different top-level shape
+        // (document/product_tree/vulnerabilities) than CVE Record v5 and cannot be
+        // deserialized into GcveCveRecord.
+        val csafNoiseRecord = """
+            {
+                "document": {"category": "csaf_security_advisory", "csaf_version": "2.0"},
+                "product_tree": {},
+                "vulnerabilities": [{"cve": "CVE-2025-61726"}],
+                "containers": {}
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine {
+            respond(
+                content = "[${GcveModelsTest.LOG4J_RESPONSE}, $csafNoiseRecord]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00")
+
+        assertNotNull(result)
+        assertEquals(1, result.size)
+        assertEquals("CVE-2021-44228", result[0].cveMetadata.cveId)
+    }
+
+    @Test
+    fun `should return empty but non-null list when all records in a page have unexpected shape`() = runTest {
+        val csafNoiseRecord = """
+            {
+                "document": {"category": "csaf_security_advisory"},
+                "product_tree": {},
+                "vulnerabilities": [],
+                "containers": {}
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine {
+            respond(
+                content = "[$csafNoiseRecord]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00")
+
+        assertNotNull(result)
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `should return null for non-success status on incremental fetch`() = runTest {
+        val mockEngine = MockEngine {
+            respond(content = "Internal Server Error", status = HttpStatusCode.InternalServerError)
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00")
+
+        assertNull(result)
     }
 
     @Test
@@ -125,6 +225,7 @@ class GcveClientTest {
         val client = createClient(mockEngine)
         val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00")
 
+        assertNotNull(result)
         assertTrue(result.isEmpty())
     }
 
@@ -259,7 +360,7 @@ class GcveClientTest {
     }
 
     @Test
-    fun `should return empty list when circuit breaker is open for incremental fetch`() = runTest {
+    fun `should return null when circuit breaker is open for incremental fetch`() = runTest {
         val circuitBreaker = InMemoryCircuitBreaker(failureThreshold = 1, openDurationSeconds = 300)
         circuitBreaker.recordFailure()
 
@@ -270,7 +371,7 @@ class GcveClientTest {
         val client = createClient(mockEngine, circuitBreaker = circuitBreaker)
         val result = client.getVulnerabilitiesSince("2026-07-01T00:00:00")
 
-        assertTrue(result.isEmpty())
+        assertNull(result)
     }
 
     @Test

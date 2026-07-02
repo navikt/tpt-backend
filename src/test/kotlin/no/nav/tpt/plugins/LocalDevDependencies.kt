@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -70,6 +71,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val kafka = getOrCreateKafkaContainer()
 
     val httpClient = HttpClient(CIO) {
+        install(UserAgent) {
+            agent = "tpt-backend (+https://github.com/navikt/tpt-backend)"
+        }
         install(ContentNegotiation) {
             json(Json {
                 prettyPrint = true

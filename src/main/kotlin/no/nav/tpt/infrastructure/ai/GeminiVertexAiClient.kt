@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.ai
 
 import com.google.auth.oauth2.GoogleCredentials
 import io.ktor.client.*
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -47,6 +48,13 @@ class GeminiVertexAiClient(
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Authorization, "Bearer $token")
             setBody(request)
+            // Streaming completions can legitimately run longer than the client's
+            // default request timeout; override it here rather than raising the
+            // shared default for every integration.
+            timeout {
+                requestTimeoutMillis = 300_000
+                socketTimeoutMillis = 300_000
+            }
         }.execute { response ->
             if (!response.status.isSuccess()) {
                 val errorBody = response.bodyAsText()
