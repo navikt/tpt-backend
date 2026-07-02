@@ -1,4 +1,4 @@
-# Copilot Instructions for AppSec Guide
+# Copilot Instructions for TPT
 
 **EXTREMELY IMPORTANT**: 
 - Break up changes into smaller tasks and verify functionality before moving on. 
@@ -15,7 +15,7 @@ of the initial request.
 
 ## Project Overview
 
-AppSec Guide is an api used to help developers prioritize which security issues to fix first. 
+TittPåTing is an api used to help developers prioritize which security issues to fix first. 
 The project automatically identifies the user and available resources using OIDC and fetches available metadata
 from a wide range of sources. We then use this data to calculate a risk score (0–100 additive point model) for each vulnerability and return a prioritized list to the user.
 
