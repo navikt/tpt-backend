@@ -2,7 +2,6 @@ package no.nav.tpt.infrastructure.nais
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.timeout
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.async
@@ -763,7 +762,6 @@ class NaisApiClient(
                 contentType(ContentType.Application.Json)
                 bearerAuth(readToken())
                 setBody(request)
-                timeout { requestTimeoutMillis = 10_000 }
             }
 
             if (!response.status.isSuccess()) {
