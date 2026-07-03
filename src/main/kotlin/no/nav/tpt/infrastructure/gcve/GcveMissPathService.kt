@@ -44,17 +44,26 @@ class GcveMissPathService(
         logger.info("Fetching ${missing.size} missing CVEs via GCVE miss path (${existing.size} already cached)")
 
         var fetched = 0
+        var failed = 0
         missing.forEach { cveId ->
-            val record = gcveClient.getVulnerability(cveId)
-            if (record != null) {
-                val domainModel = GcveCveRecord.toDomainModel(record)
-                val rawResponse = json.encodeToString(GcveCveRecord.serializer(), record)
-                gcveRepository.upsertCve(domainModel, rawResponse)
-                fetched++
+            try {
+                val record = gcveClient.getVulnerability(cveId)
+                if (record != null) {
+                    val domainModel = GcveCveRecord.toDomainModel(record)
+                    val rawResponse = json.encodeToString(GcveCveRecord.serializer(), record)
+                    gcveRepository.upsertCve(domainModel, rawResponse)
+                    fetched++
+                } else {
+                    logger.debug("GCVE API returned null for $cveId")
+                    failed++
+                }
+            } catch (e: Exception) {
+                logger.warn("Failed to fetch $cveId from GCVE: ${e.message}")
+                failed++
             }
         }
 
-        logger.info("Miss path complete: fetched $fetched/${missing.size} CVEs")
+        logger.info("Miss path complete: fetched $fetched, failed $failed, total ${missing.size}")
         return fetched
     }
 }

@@ -137,7 +137,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
 - **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
 - **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter. `POST /admin/vulnrichment/backfill-ssvc` triggers a one-time re-fetch of tracked CVEs from NVD to backfill NVD-embedded SSVC data ahead of a planned migration away from Vulnrichment.
-- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path. `GET /admin/gcve/comparison` shows NVD vs GCVE parity.
+- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path when users fetch vulnerabilities (async, fire-and-forget). `POST /admin/gcve/backfill-missing` manually triggers miss-path backfill for all tracked CVEs. `GET /admin/gcve/comparison` shows NVD vs GCVE parity.
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`

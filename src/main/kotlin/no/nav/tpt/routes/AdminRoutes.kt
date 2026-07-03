@@ -91,6 +91,37 @@ fun Route.adminRoutes() {
                 }
             }
 
+            post("/gcve/backfill-missing") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                val gcveRepository = call.dependencies.gcveRepository
+                val gcveMissPathService = call.dependencies.gcveMissPathService
+                val application = call.application
+
+                application.launch {
+                    try {
+                        val trackedCveIds = gcveRepository.getTrackedCveIds()
+                            .filter { it.startsWith("CVE-", ignoreCase = true) }
+                            .toList()
+                        logger.info("Starting GCVE miss-path backfill for ${trackedCveIds.size} tracked CVEs")
+                        val fetched = gcveMissPathService.fetchMissing(trackedCveIds)
+                        logger.info("GCVE miss-path backfill complete: fetched $fetched CVEs")
+                    } catch (e: Exception) {
+                        logger.error("GCVE miss-path backfill failed: ${e.message}", e)
+                    }
+                }
+
+                call.respond(
+                    HttpStatusCode.Accepted,
+                    mapOf("message" to "GCVE miss-path backfill started. Check application logs for progress.")
+                )
+            }
+
             post("/vulnrichment/backfill-ssvc") {
                 val principal = call.principal<TokenPrincipal>()!!
                 val adminAuthService = call.dependencies.adminAuthorizationService
