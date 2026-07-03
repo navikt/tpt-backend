@@ -162,7 +162,7 @@ fun Route.adminRoutes() {
 
                 call.respond(
                     HttpStatusCode.Accepted,
-                    mapOf("message" to "Full vulnerability sync started. Check application logs for progress.")
+                    mapOf("message" to "Full vulnerability sync started on leader pod. Check application logs for progress.")
                 )
             }
         }

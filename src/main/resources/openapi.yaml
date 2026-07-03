@@ -240,6 +240,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /admin/teams/sla:
     get:
       summary: Get teams SLA report
@@ -274,6 +280,12 @@ paths:
                 $ref: '#/components/schemas/ProblemDetail'
         '503':
           description: Report not yet available - trigger a sync or report refresh first
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
           content:
             application/problem+json:
               schema:
@@ -415,6 +427,9 @@ paths:
         Starts a full re-sync of all teams from the NAIS API, followed by a refresh of the
         pre-computed admin reports. Equivalent to the scheduled sync that runs at 06:00 and
         18:00 Europe/Oslo. Runs asynchronously; returns immediately.
+        Note: the actual sync only executes on the leader pod — if this request lands on a
+        non-leader pod the job will silently no-op. In multi-pod deployments use the
+        application logs to confirm the sync ran.
         Only accessible to admin users.
       tags:
         - Admin
