@@ -143,11 +143,14 @@ fun Application.installTestDependencies(
         vulnerabilityRepository = mockVulnerabilityRepository
     )
     
+    val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
+
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
         leaderElection = mockLeaderElection,
+        adminReportRepository = mockAdminReportRepository,
         teamDelayMs = 1000
     )
     
@@ -156,7 +159,7 @@ fun Application.installTestDependencies(
     )
     
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
-        vulnerabilityRepository = mockVulnerabilityRepository
+        adminReportRepository = mockAdminReportRepository,
     )
 
     val dependencies = Dependencies(

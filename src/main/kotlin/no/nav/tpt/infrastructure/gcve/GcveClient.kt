@@ -94,7 +94,7 @@ class GcveClient(
     suspend fun getVulnerabilitiesSince(
         since: String,
         page: Int = 1,
-        perPage: Int = 100,
+        perPage: Int = 50,
         source: String? = "cvelistv5",
     ): List<GcveCveRecord>? {
         if (circuitBreaker.isOpen()) {
