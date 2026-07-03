@@ -59,8 +59,13 @@ class GcveClient(
                     null
                 }
                 response.status.isSuccess() -> {
-                    circuitBreaker.recordSuccess()
-                    response.body<GcveCveRecord>()
+                    try {
+                        circuitBreaker.recordSuccess()
+                        response.body<GcveCveRecord>()
+                    } catch (e: Exception) {
+                        logger.warn("Failed to deserialize CVE $cveId response: ${e.message}")
+                        null
+                    }
                 }
                 else -> {
                     logger.warn("GCVE API returned ${response.status.value} for $cveId")

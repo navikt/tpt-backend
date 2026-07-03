@@ -50,7 +50,7 @@ class GcveClientTest {
     }
 
     @Test
-    fun `should return null for 404 response`() = runTest {
+    fun `should return null for 404`() = runTest {
         val mockEngine = MockEngine {
             respond(content = "Not Found", status = HttpStatusCode.NotFound)
         }
@@ -58,6 +58,60 @@ class GcveClientTest {
         val client = createClient(mockEngine)
         val result = client.getVulnerability("CVE-9999-99999")
 
+        assertNull(result)
+    }
+
+    @Test
+    fun `should handle empty JSON response gracefully when status is success`() = runTest {
+        val mockEngine = MockEngine {
+            // GCVE returns {} for CVEs that don't exist but have 200 status
+            respond(
+                content = """{}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerability("CVE-2026-48758")
+
+        // Should return null instead of throwing JsonConvertException
+        assertNull(result)
+    }
+
+    @Test
+    fun `should handle malformed response JSON gracefully when status is success`() = runTest {
+        val mockEngine = MockEngine {
+            // Simulate GCVE returning a JSON object without required fields
+            respond(
+                content = """{"error": "Something went wrong"}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerability("CVE-2026-48758")
+
+        // Should return null instead of throwing JsonConvertException
+        assertNull(result)
+    }
+
+    @Test
+    fun `should handle HTML error response when status is success`() = runTest {
+        val mockEngine = MockEngine {
+            // Sometimes servers return HTML error pages even with 200 status
+            respond(
+                content = """<html><body>Temporary error</body></html>""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/html")
+            )
+        }
+
+        val client = createClient(mockEngine)
+        val result = client.getVulnerability("CVE-2026-48758")
+
+        // Should return null instead of throwing JsonConvertException
         assertNull(result)
     }
 
