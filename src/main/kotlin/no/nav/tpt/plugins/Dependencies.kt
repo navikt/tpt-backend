@@ -177,8 +177,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
-        userContextService = userContextService,
-        naisApiService = naisApiClient,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         scope = application,
         syncSemaphore = onDemandSyncSemaphore,

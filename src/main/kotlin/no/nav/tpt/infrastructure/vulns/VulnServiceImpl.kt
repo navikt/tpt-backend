@@ -84,7 +84,7 @@ class VulnServiceImpl(
             return VulnResponse(userRole = userContext.role, teams = emptyList())
         }
 
-        val vulnerabilitiesData = vulnerabilityDataService.getVulnerabilitiesForUser(email)
+        val vulnerabilitiesData = vulnerabilityDataService.getVulnerabilitiesForTeams(userContext.teams)
 
         val allCveIds = vulnerabilitiesData.teams
             .flatMap { it.workloads }

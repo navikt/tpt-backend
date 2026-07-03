@@ -86,8 +86,8 @@ fun Application.installTestDependencies(
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService, actualAdminAuthorizationService)
 
     val vulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForUser(email: String) =
-            naisApiService.getVulnerabilitiesForUser(email)
+        override suspend fun getVulnerabilitiesForTeams(teamSlugs: List<String>) =
+            naisApiService.getVulnerabilitiesForUser("test@nav.no")
         override suspend fun getVulnerabilitiesForTeam(teamSlug: String) =
             naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }

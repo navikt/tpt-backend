@@ -28,8 +28,8 @@ private fun mockVulnrichmentSyncService(): VulnrichmentSyncService {
 // Helper to create a VulnerabilityDataService that delegates to NaisApiService
 private fun mockVulnerabilityDataService(naisApiService: NaisApiService): VulnerabilityDataService {
     return object : VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForUser(email: String) =
-            naisApiService.getVulnerabilitiesForUser(email)
+        override suspend fun getVulnerabilitiesForTeams(teamSlugs: List<String>) =
+            naisApiService.getVulnerabilitiesForUser("test@nav.no")
         override suspend fun getVulnerabilitiesForTeam(teamSlug: String) =
             naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }
