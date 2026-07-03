@@ -15,6 +15,7 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class UserContextServiceImplTest {
 
@@ -496,5 +497,79 @@ class UserContextServiceImplTest {
 
         assertEquals(UserRole.ADMIN, userContext.role)
         assertEquals(listOf("dev-team"), userContext.teams)
+    }
+
+    @Test
+    fun `should return cached context on second call within TTL without hitting NAIS API again`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when (request.url.encodedPath) {
+                        "/query" -> respond(
+                            content = ByteReadChannel("""{"data":{"teams":[]}}"""),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                        else -> error("Unhandled ${request.url.encodedPath}")
+                    }
+                }
+            }
+        }
+
+        var teamMembershipCallCount = 0
+        val countingNaisApiService = object : NaisApiService by MockNaisApiService(
+            mockTeamMemberships = listOf("team-a")
+        ) {
+            override suspend fun getTeamMembershipsForUser(email: String): List<String> {
+                teamMembershipCallCount++
+                return listOf("team-a")
+            }
+        }
+
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group")
+        val userContextService = UserContextServiceImpl(
+            countingNaisApiService, teamkatalogenService, adminAuthorizationService, cacheTtlSeconds = 300
+        )
+
+        val first = userContextService.getUserContext("user@nav.no")
+        val second = userContextService.getUserContext("user@nav.no")
+
+        assertEquals(UserRole.DEVELOPER, first.role)
+        assertEquals(UserRole.DEVELOPER, second.role)
+        assertEquals(1, teamMembershipCallCount, "NAIS API should be called exactly once within TTL")
+    }
+
+    @Test
+    fun `should not reuse cached non-admin context when same email is requested with admin groups`() = runTest {
+        val mockHttpClient = HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    when (request.url.encodedPath) {
+                        "/query" -> respond(
+                            content = ByteReadChannel("""{"data":{"teams":[]}}"""),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                        else -> error("Unhandled ${request.url.encodedPath}")
+                    }
+                }
+            }
+        }
+
+        val naisApiService = MockNaisApiService(mockTeamMemberships = listOf("team-a"))
+        val teamkatalogenClient = TeamkatalogenClient(mockHttpClient, "https://teamkatalogen.nav.no")
+        val teamkatalogenService = TeamkatalogenServiceImpl(teamkatalogenClient)
+        val adminAuthorizationService = AdminAuthorizationServiceImpl("admin-group")
+        val userContextService = UserContextServiceImpl(
+            naisApiService, teamkatalogenService, adminAuthorizationService, cacheTtlSeconds = 300
+        )
+
+        val nonAdmin = userContextService.getUserContext("user@nav.no", emptyList())
+        val admin = userContextService.getUserContext("user@nav.no", listOf("admin-group"))
+
+        assertEquals(UserRole.DEVELOPER, nonAdmin.role)
+        assertEquals(UserRole.ADMIN, admin.role)
     }
 }

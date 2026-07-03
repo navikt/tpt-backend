@@ -22,14 +22,16 @@ class UserContextServiceImpl(
     private val cache = ConcurrentHashMap<String, CacheEntry>()
 
     override suspend fun getUserContext(email: String, groups: List<String>): UserContext {
-        val cached = cache[email]
+        val isAdmin = adminAuthorizationService.isAdmin(groups)
+        val cacheKey = "$email:$isAdmin"
+        val cached = cache[cacheKey]
         if (cached != null && Instant.now().isBefore(cached.expiresAt)) {
             logger.debug("UserContext cache hit for $email (role=${cached.context.role})")
             return cached.context
         }
 
         val context = resolveUserContext(email, groups)
-        cache[email] = CacheEntry(context, Instant.now().plusSeconds(cacheTtlSeconds))
+        cache[cacheKey] = CacheEntry(context, Instant.now().plusSeconds(cacheTtlSeconds))
         return context
     }
 
