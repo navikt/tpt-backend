@@ -63,6 +63,9 @@ import no.nav.tpt.infrastructure.gcve.GcveMissPathService
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
 import no.nav.tpt.infrastructure.gcve.GcveSyncService
+import no.nav.tpt.infrastructure.admin.AdminReportRepository
+import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
+import kotlinx.coroutines.sync.Semaphore
 
 @Suppress("unused")
 class Dependencies(
@@ -170,17 +173,23 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityRepository = vulnerabilityRepository
     )
 
+    val onDemandSyncSemaphore = Semaphore(permits = 3)
+
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
         userContextService = userContextService,
         naisApiService = naisApiClient,
-        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
+        scope = application,
+        syncSemaphore = onDemandSyncSemaphore,
     )
 
     val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
     val vulnrichmentClient = VulnrichmentClient(httpClient)
     val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
     val ssvcBackfillService = SsvcBackfillService(vulnrichmentRepository, nvdClient, nvdRepository)
+
+    val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
 
     val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
@@ -205,13 +214,14 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         naisApiService = naisApiClient,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         vulnerabilityRepository = vulnerabilityRepository,
-        leaderElection = leaderElection
+        leaderElection = leaderElection,
+        adminReportRepository = adminReportRepository,
     )
 
     val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
 
     val adminService = AdminServiceImpl(
-        vulnerabilityRepository = vulnerabilityRepository
+        adminReportRepository = adminReportRepository,
     )
 
     val remediationService = config.aiApiUrl?.let { apiBaseUrl ->

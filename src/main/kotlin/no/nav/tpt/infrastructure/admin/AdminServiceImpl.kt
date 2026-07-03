@@ -1,70 +1,38 @@
 package no.nav.tpt.infrastructure.admin
 
-import no.nav.tpt.domain.admin.*
-import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
+import kotlinx.serialization.json.Json
+import no.nav.tpt.domain.admin.AdminService
+import no.nav.tpt.domain.admin.TeamsOverviewResponse
+import no.nav.tpt.domain.admin.TeamsSlaReportResponse
+import no.nav.tpt.plugins.ServiceUnavailableException
 import org.slf4j.LoggerFactory
-import java.time.Instant
 
 class AdminServiceImpl(
-    private val vulnerabilityRepository: VulnerabilityRepository
+    private val adminReportRepository: AdminReportRepository,
 ) : AdminService {
     private val logger = LoggerFactory.getLogger(AdminServiceImpl::class.java)
+    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun getTeamsOverview(): TeamsOverviewResponse {
-        logger.debug("Generating teams overview report (not cached)")
-        
-        val teamCounts = vulnerabilityRepository.getTeamVulnerabilityCounts()
-        logger.debug("Aggregated ${teamCounts.size} teams from database")
-        
-        val teamOverviews = teamCounts.map { count ->
-            TeamOverview(
-                teamSlug = count.teamSlug,
-                totalVulnerabilities = count.totalCount,
-                criticalVulnerabilities = count.criticalCount,
-                highVulnerabilities = count.highCount,
-                mediumVulnerabilities = count.mediumCount,
-                lowVulnerabilities = count.lowCount,
-                unknownVulnerabilities = count.unknownCount
+        val row = adminReportRepository.getReport(REPORT_OVERVIEW)
+            ?: throw ServiceUnavailableException(
+                "Teams overview report has not been generated yet. Trigger a sync or report refresh first."
             )
-        }
-        
-        return TeamsOverviewResponse(
-            teams = teamOverviews,
-            totalTeams = teamOverviews.size,
-            totalVulnerabilities = teamCounts.sumOf { it.totalCount },
-            generatedAt = Instant.now().toString()
-        )
+        logger.debug("Serving pre-computed teams overview (generated at ${row.generatedAt})")
+        return json.decodeFromString(row.payload)
     }
-    
+
     override suspend fun getTeamsSlaReport(): TeamsSlaReportResponse {
-        logger.debug("Generating teams SLA report (not cached)")
-        
-        val teamSlaSummaries = vulnerabilityRepository.getTeamSlaSummaries()
-        logger.debug("Calculated SLA for ${teamSlaSummaries.size} teams in database")
-        
-        val teamSlaOverviews = teamSlaSummaries.map { summary ->
-            TeamSlaOverview(
-                teamSlug = summary.teamSlug,
-                totalVulnerabilities = summary.totalVulnerabilities,
-                criticalOverdue = summary.criticalOverdue,
-                nonCriticalOverdue = summary.nonCriticalOverdue,
-                criticalWithinSla = summary.criticalWithinSla,
-                nonCriticalWithinSla = summary.nonCriticalWithinSla,
-                repositoriesOutOfSla = summary.repositoriesOutOfSla,
-                maxDaysOverdue = summary.maxDaysOverdue
+        val row = adminReportRepository.getReport(REPORT_SLA)
+            ?: throw ServiceUnavailableException(
+                "Teams SLA report has not been generated yet. Trigger a sync or report refresh first."
             )
-        }
-        
-        val totalCriticalOverdue = teamSlaOverviews.sumOf { it.criticalOverdue }
-        val totalNonCriticalOverdue = teamSlaOverviews.sumOf { it.nonCriticalOverdue }
-        
-        return TeamsSlaReportResponse(
-            teams = teamSlaOverviews,
-            totalTeams = teamSlaOverviews.size,
-            totalOverdue = totalCriticalOverdue + totalNonCriticalOverdue,
-            totalCriticalOverdue = totalCriticalOverdue,
-            totalNonCriticalOverdue = totalNonCriticalOverdue,
-            generatedAt = Instant.now().toString()
-        )
+        logger.debug("Serving pre-computed teams SLA report (generated at ${row.generatedAt})")
+        return json.decodeFromString(row.payload)
+    }
+
+    companion object {
+        const val REPORT_OVERVIEW = "teams_overview"
+        const val REPORT_SLA      = "teams_sla"
     }
 }

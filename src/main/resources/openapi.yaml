@@ -207,8 +207,9 @@ paths:
     get:
       summary: Get teams vulnerability overview
       description: |
-        Returns an overview of vulnerabilities for all teams in the system.
-        Shows total vulnerabilities and severity breakdown for each team.
+        Returns the pre-computed overview of vulnerabilities for all teams.
+        The report is generated after each full sync and can be refreshed manually
+        via POST /admin/reports/refresh. Returns 503 if no report has been generated yet.
         Only accessible to admin users.
       tags:
         - Admin
@@ -233,6 +234,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Report not yet available - trigger a sync or report refresh first
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
         '500':
           description: Internal server error
           content:
@@ -243,8 +250,9 @@ paths:
     get:
       summary: Get teams SLA report
       description: |
-        Returns an SLA compliance report for all teams in the system.
-        Shows overdue vulnerabilities and SLA status for each team.
+        Returns the pre-computed SLA compliance report for all teams.
+        The report is generated after each full sync and can be refreshed manually
+        via POST /admin/reports/refresh. Returns 503 if no report has been generated yet.
         Critical vulnerabilities are overdue after 1 workday, others after 30 days.
         Only accessible to admin users.
       tags:
@@ -266,6 +274,12 @@ paths:
                 $ref: '#/components/schemas/ProblemDetail'
         '403':
           description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Report not yet available - trigger a sync or report refresh first
           content:
             application/problem+json:
               schema:
@@ -357,6 +371,82 @@ paths:
                     type: string
                 example:
                   message: "SSVC backfill started. Check application logs for progress and summary."
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /admin/reports/refresh:
+    post:
+      summary: Refresh pre-computed admin reports
+      description: |
+        Recomputes the teams overview and SLA reports from the current database state and
+        stores them for serving by GET /admin/teams/overview and GET /admin/teams/sla.
+        Does not re-sync from NAIS — use POST /admin/sync/trigger for a full re-sync.
+        Runs asynchronously; returns immediately.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Report refresh started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Admin report refresh started. Check application logs for progress."
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user does not have admin privileges
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /admin/sync/trigger:
+    post:
+      summary: Trigger a full vulnerability sync
+      description: |
+        Starts a full re-sync of all teams from the NAIS API, followed by a refresh of the
+        pre-computed admin reports. Equivalent to the scheduled sync that runs at 06:00 and
+        18:00 Europe/Oslo. Runs asynchronously; returns immediately.
+        Note: the actual sync only executes on the leader pod — if this request lands on a
+        non-leader pod the job will silently no-op. In multi-pod deployments use the
+        application logs to confirm the sync ran.
+        Only accessible to admin users.
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Full sync started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Full vulnerability sync started. Check application logs for progress."
         '401':
           description: Unauthorized - missing or invalid bearer token
           content:

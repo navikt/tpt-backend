@@ -141,11 +141,14 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilityRepository = mockVulnerabilityRepository
     )
     
+    val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
+
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
         leaderElection = leaderElection,
+        adminReportRepository = mockAdminReportRepository,
         teamDelayMs = 1000
     )
     
@@ -154,7 +157,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     )
     
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
-        vulnerabilityRepository = mockVulnerabilityRepository
+        adminReportRepository = mockAdminReportRepository,
     )
 
     val config = AppConfig(

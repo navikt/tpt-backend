@@ -18,6 +18,7 @@ class GcveSyncService(
     suspend fun performIncrementalSync(
         since: String,
         trackedCveIds: Set<String>? = null,
+        perPage: Int = 50,
     ): Int {
         logger.info("Starting GCVE incremental sync since=$since, tracked CVEs: ${trackedCveIds?.size ?: "all"}")
 
@@ -26,7 +27,7 @@ class GcveSyncService(
         var fetchFailed = false
 
         while (true) {
-            val records = gcveClient.getVulnerabilitiesSince(since, page = page)
+            val records = gcveClient.getVulnerabilitiesSince(since, page = page, perPage = perPage)
 
             if (records == null) {
                 logger.error(
@@ -57,7 +58,7 @@ class GcveSyncService(
                 logger.debug("Page $page: fetched ${records.size}, none in tracked set")
             }
 
-            if (records.size < 100) break
+            if (records.size < perPage) break
             page++
         }
 

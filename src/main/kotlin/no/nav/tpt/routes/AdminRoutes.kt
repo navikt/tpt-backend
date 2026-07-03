@@ -36,13 +36,9 @@ fun Route.adminRoutes() {
                     throw ForbiddenException("User does not have admin privileges")
                 }
                 
-                try {
-                    val adminService = call.dependencies.adminService
-                    val overview = adminService.getTeamsOverview()
-                    call.respond(HttpStatusCode.OK, overview)
-                } catch (e: Exception) {
-                    throw InternalServerException("Failed to fetch teams overview", e)
-                }
+                val adminService = call.dependencies.adminService
+                val overview = adminService.getTeamsOverview()
+                call.respond(HttpStatusCode.OK, overview)
             }
             
             get("/teams/sla") {
@@ -53,13 +49,9 @@ fun Route.adminRoutes() {
                     throw ForbiddenException("User does not have admin privileges")
                 }
                 
-                try {
-                    val adminService = call.dependencies.adminService
-                    val slaReport = adminService.getTeamsSlaReport()
-                    call.respond(HttpStatusCode.OK, slaReport)
-                } catch (e: Exception) {
-                    throw InternalServerException("Failed to fetch teams SLA report", e)
-                }
+                val adminService = call.dependencies.adminService
+                val slaReport = adminService.getTeamsSlaReport()
+                call.respond(HttpStatusCode.OK, slaReport)
             }
 
             get("/vulnerabilities/team/{teamSlug}") {
@@ -121,6 +113,56 @@ fun Route.adminRoutes() {
                 call.respond(
                     HttpStatusCode.Accepted,
                     mapOf("message" to "SSVC backfill started. Check application logs for progress and summary.")
+                )
+            }
+
+            post("/reports/refresh") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                val syncJob = call.dependencies.vulnerabilityDataSyncJob
+                val application = call.application
+
+                application.launch {
+                    try {
+                        syncJob.refreshAdminReports()
+                    } catch (e: Exception) {
+                        logger.error("Admin report refresh failed: ${e.message}", e)
+                    }
+                }
+
+                call.respond(
+                    HttpStatusCode.Accepted,
+                    mapOf("message" to "Admin report refresh started. Check application logs for progress.")
+                )
+            }
+
+            post("/sync/trigger") {
+                val principal = call.principal<TokenPrincipal>()!!
+                val adminAuthService = call.dependencies.adminAuthorizationService
+
+                if (!adminAuthService.isAdmin(principal.groups)) {
+                    throw ForbiddenException("User does not have admin privileges")
+                }
+
+                val syncJob = call.dependencies.vulnerabilityDataSyncJob
+                val application = call.application
+
+                application.launch {
+                    try {
+                        syncJob.syncAllTeams()
+                    } catch (e: Exception) {
+                        logger.error("Manual vulnerability sync failed: ${e.message}", e)
+                    }
+                }
+
+                call.respond(
+                    HttpStatusCode.Accepted,
+                    mapOf("message" to "Full vulnerability sync started on leader pod. Check application logs for progress.")
                 )
             }
         }
