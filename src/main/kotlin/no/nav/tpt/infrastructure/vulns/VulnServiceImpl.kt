@@ -14,6 +14,8 @@ import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.infrastructure.cisa.KevCatalog
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
+import no.nav.tpt.infrastructure.gcve.GcveCveData
+import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.nvd.NvdRepository
@@ -32,7 +34,9 @@ class VulnServiceImpl(
     private val riskScorer: RiskScorer,
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository,
-    private val gcveMissPathService: no.nav.tpt.infrastructure.gcve.GcveMissPathService? = null
+    private val gcveMissPathService: no.nav.tpt.infrastructure.gcve.GcveMissPathService? = null,
+    private val gcveRepository: GcveRepository? = null,
+    private val useGcveDataSource: Boolean = false,
 ) : VulnService {
     private val logger = LoggerFactory.getLogger(VulnServiceImpl::class.java)
 
@@ -41,7 +45,8 @@ class VulnServiceImpl(
         val kevRansomwareCveIds: Set<String>,
         val epssScores: Map<String, no.nav.tpt.infrastructure.epss.EpssScore>,
         val nvdData: Map<String, no.nav.tpt.infrastructure.nvd.NvdCveData>,
-        val vulnrichmentData: Map<String, no.nav.tpt.infrastructure.vulnrichment.VulnrichmentData>
+        val vulnrichmentData: Map<String, no.nav.tpt.infrastructure.vulnrichment.VulnrichmentData>,
+        val gcveData: Map<String, GcveCveData>,
     )
 
     private fun triggerGcveMissPathFetchAsync(cveIds: List<String>) {
@@ -98,8 +103,69 @@ class VulnServiceImpl(
             logger.warn("Failed to fetch Vulnrichment data, continuing without it: ${e.message}")
             emptyMap()
         }
+        val gcveData = try {
+            gcveRepository?.getCveDataBatch(cveIds) ?: emptyMap()
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch GCVE data, continuing without it: ${e.message}")
+            emptyMap()
+        }
 
-        return CveEnrichmentData(kevCveIds, kevRansomwareCveIds, epssScores, nvdData, vulnrichmentData)
+        return CveEnrichmentData(kevCveIds, kevRansomwareCveIds, epssScores, nvdData, vulnrichmentData, gcveData)
+    }
+
+    private fun buildRiskContext(
+        cveId: String,
+        severity: String,
+        ingressTypes: List<String>,
+        suppressed: Boolean,
+        environment: String?,
+        buildDate: java.time.LocalDate?,
+        enrichmentData: CveEnrichmentData,
+    ): no.nav.tpt.domain.risk.VulnerabilityRiskContext {
+        val epssScore = enrichmentData.epssScores[cveId]
+        val hasKevEntry = enrichmentData.kevCveIds.contains(cveId)
+        val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(cveId)
+
+        return if (useGcveDataSource) {
+            val gcve = enrichmentData.gcveData[cveId]
+            no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                severity = severity,
+                ingressTypes = ingressTypes,
+                hasKevEntry = gcve?.hasKevEntry ?: hasKevEntry,
+                epssScore = epssScore?.epss,
+                suppressed = suppressed,
+                environment = environment,
+                buildDate = buildDate,
+                hasExploitReference = gcve?.hasExploitReference ?: false,
+                hasPatchReference = gcve?.hasPatchReference ?: false,
+                cveDaysOld = gcve?.daysOld,
+                hasRansomwareCampaignUse = hasRansomwareCampaignUse,
+                ssvcExploitation = gcve?.ssvcExploitation,
+                ssvcAutomatable = gcve?.ssvcAutomatable,
+                ssvcTechnicalImpact = gcve?.ssvcTechnicalImpact,
+                nvdVulnStatus = null,
+            )
+        } else {
+            val cveData = enrichmentData.nvdData[cveId]
+            val vulnrichmentEntry = enrichmentData.vulnrichmentData[cveId]
+            no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                severity = severity,
+                ingressTypes = ingressTypes,
+                hasKevEntry = hasKevEntry,
+                epssScore = epssScore?.epss,
+                suppressed = suppressed,
+                environment = environment,
+                buildDate = buildDate,
+                hasExploitReference = cveData?.hasExploitReference ?: false,
+                hasPatchReference = cveData?.hasPatchReference ?: false,
+                cveDaysOld = cveData?.daysOld,
+                hasRansomwareCampaignUse = hasRansomwareCampaignUse,
+                ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
+                ssvcAutomatable = vulnrichmentEntry?.automatable,
+                ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
+                nvdVulnStatus = cveData?.vulnStatus,
+            )
+        }
     }
 
     override suspend fun fetchVulnerabilitiesForUser(email: String, groups: List<String>): VulnResponse {
@@ -131,28 +197,14 @@ class VulnServiceImpl(
                 }
 
                 val vulnerabilities = workload.vulnerabilities.map { vuln ->
-                    val epssScore = enrichmentData.epssScores[vuln.identifier]
-                    val hasKevEntry = enrichmentData.kevCveIds.contains(vuln.identifier)
-                    val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(vuln.identifier)
-                    val cveData = enrichmentData.nvdData[vuln.identifier]
-                    val vulnrichmentEntry = enrichmentData.vulnrichmentData[vuln.identifier]
-
-                    val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                    val riskContext = buildRiskContext(
+                        cveId = vuln.identifier,
                         severity = vuln.severity,
                         ingressTypes = ingressTypes,
-                        hasKevEntry = hasKevEntry,
-                        epssScore = epssScore?.epss,
                         suppressed = vuln.suppressed,
                         environment = workload.environment,
                         buildDate = buildDate,
-                        hasExploitReference = cveData?.hasExploitReference ?: false,
-                        hasPatchReference = cveData?.hasPatchReference ?: false,
-                        cveDaysOld = cveData?.daysOld,
-                        hasRansomwareCampaignUse = hasRansomwareCampaignUse,
-                        ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
-                        ssvcAutomatable = vulnrichmentEntry?.automatable,
-                        ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
-                        nvdVulnStatus = cveData?.vulnStatus,
+                        enrichmentData = enrichmentData,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -217,28 +269,14 @@ class VulnServiceImpl(
                 }
 
                 val vulnerabilities = workload.vulnerabilities.map { vuln ->
-                    val epssScore = enrichmentData.epssScores[vuln.identifier]
-                    val hasKevEntry = enrichmentData.kevCveIds.contains(vuln.identifier)
-                    val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(vuln.identifier)
-                    val cveData = enrichmentData.nvdData[vuln.identifier]
-                    val vulnrichmentEntry = enrichmentData.vulnrichmentData[vuln.identifier]
-
-                    val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                    val riskContext = buildRiskContext(
+                        cveId = vuln.identifier,
                         severity = vuln.severity,
                         ingressTypes = ingressTypes,
-                        hasKevEntry = hasKevEntry,
-                        epssScore = epssScore?.epss,
                         suppressed = vuln.suppressed,
                         environment = workload.environment,
                         buildDate = buildDate,
-                        hasExploitReference = cveData?.hasExploitReference ?: false,
-                        hasPatchReference = cveData?.hasPatchReference ?: false,
-                        cveDaysOld = cveData?.daysOld,
-                        hasRansomwareCampaignUse = hasRansomwareCampaignUse,
-                        ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
-                        ssvcAutomatable = vulnrichmentEntry?.automatable,
-                        ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
-                        nvdVulnStatus = cveData?.vulnStatus,
+                        enrichmentData = enrichmentData,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -313,36 +351,24 @@ class VulnServiceImpl(
 
                 if (cveIdentifier == null) return@mapNotNull null
 
-                val epssScore = enrichmentData.epssScores[cveIdentifier]
-                val hasKevEntry = enrichmentData.kevCveIds.contains(cveIdentifier)
-                val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(cveIdentifier)
-                val cveData = enrichmentData.nvdData[cveIdentifier]
-                val vulnrichmentEntry = enrichmentData.vulnrichmentData[cveIdentifier]
-
-                val riskContext = no.nav.tpt.domain.risk.VulnerabilityRiskContext(
+                val riskContext = buildRiskContext(
+                    cveId = cveIdentifier,
                     severity = vuln.severity,
                     ingressTypes = emptyList(),
-                    hasKevEntry = hasKevEntry,
-                    epssScore = epssScore?.epss,
                     suppressed = false,
                     environment = null,
                     buildDate = null,
-                    hasExploitReference = cveData?.hasExploitReference ?: false,
-                    hasPatchReference = cveData?.hasPatchReference ?: false,
-                    cveDaysOld = cveData?.daysOld,
-                    hasRansomwareCampaignUse = hasRansomwareCampaignUse,
-                    ssvcExploitation = vulnrichmentEntry?.exploitationStatus,
-                    ssvcAutomatable = vulnrichmentEntry?.automatable,
-                    ssvcTechnicalImpact = vulnrichmentEntry?.technicalImpact,
-                    nvdVulnStatus = cveData?.vulnStatus,
+                    enrichmentData = enrichmentData,
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
+
+                val gcveDescription = if (useGcveDataSource) enrichmentData.gcveData[cveIdentifier]?.description else null
 
                 no.nav.tpt.domain.GitHubVulnVulnerabilityDto(
                     identifier = cveIdentifier,
                     packageName = vuln.packageName,
                     packageEcosystem = vuln.packageEcosystem,
-                    description = vuln.summary ?: cveData?.description,
+                    description = vuln.summary ?: gcveDescription ?: enrichmentData.nvdData[cveIdentifier]?.description,
                     summary = vuln.summary,
                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/$cveIdentifier",
                     riskScore = riskResult.score,

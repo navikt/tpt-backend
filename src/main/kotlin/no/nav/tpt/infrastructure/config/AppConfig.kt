@@ -14,6 +14,7 @@ data class AppConfig(
     val aiModel: String = "gemini-2.5-flash",
     val gcveApiUrl: String = "https://db.gcve.eu/api",
     val gcveApiKey: String? = null,
+    val useGcveDataSource: Boolean = false,
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
@@ -51,6 +52,7 @@ data class AppConfig(
 
             val gcveApiUrl = System.getenv("GCVE_API_URL") ?: "https://db.gcve.eu/api"
             val gcveApiKey = System.getenv("GCVE_API_KEY")
+            val useGcveDataSource = System.getenv("USE_GCVE_DATA_SOURCE")?.equals("true", ignoreCase = true) ?: false
 
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
@@ -66,6 +68,7 @@ data class AppConfig(
                 aiModel = aiModel,
                 gcveApiUrl = gcveApiUrl,
                 gcveApiKey = gcveApiKey,
+                useGcveDataSource = useGcveDataSource,
             )
         }
     }

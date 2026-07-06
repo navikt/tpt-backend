@@ -197,7 +197,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
-        gcveMissPathService = gcveMissPathService
+        gcveMissPathService = gcveMissPathService,
+        gcveRepository = gcveRepository,
+        useGcveDataSource = config.useGcveDataSource,
     )
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
