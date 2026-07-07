@@ -59,9 +59,13 @@ class GcveClient(
                     null
                 }
                 response.status.isSuccess() -> {
-                    try {
+                    val bodyText = response.bodyAsText()
+                    if (bodyText.isBlank() || bodyText.trim() == "{}") {
+                        logger.debug("CVE $cveId not available in GCVE (empty response)")
+                        null
+                    } else try {
                         circuitBreaker.recordSuccess()
-                        response.body<GcveCveRecord>()
+                        lenientJson.decodeFromString(GcveCveRecord.serializer(), bodyText)
                     } catch (e: Exception) {
                         logger.warn("Failed to deserialize CVE $cveId response: ${e.message}")
                         null

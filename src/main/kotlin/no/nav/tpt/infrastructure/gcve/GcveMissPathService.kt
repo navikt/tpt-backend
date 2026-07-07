@@ -44,6 +44,7 @@ class GcveMissPathService(
         logger.info("Fetching ${missing.size} missing CVEs via GCVE miss path (${existing.size} already cached)")
 
         var fetched = 0
+        var notInGcve = 0
         var failed = 0
         missing.forEach { cveId ->
             try {
@@ -54,8 +55,8 @@ class GcveMissPathService(
                     gcveRepository.upsertCve(domainModel, rawResponse)
                     fetched++
                 } else {
-                    logger.debug("GCVE API returned null for $cveId")
-                    failed++
+                    logger.debug("CVE $cveId not available in GCVE")
+                    notInGcve++
                 }
             } catch (e: Exception) {
                 logger.warn("Failed to fetch $cveId from GCVE: ${e.message}")
@@ -63,7 +64,7 @@ class GcveMissPathService(
             }
         }
 
-        logger.info("Miss path complete: fetched $fetched, failed $failed, total ${missing.size}")
+        logger.info("Miss path complete: fetched $fetched, not in GCVE $notInGcve, errors $failed, total ${missing.size}")
         return fetched
     }
 }
