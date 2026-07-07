@@ -19,7 +19,7 @@ fun Route.vulnRoutes() {
                 ?: throw BadRequestException("preferred_username claim not found in token")
 
             try {
-                val vulnService = call.dependencies.vulnService
+                val vulnService = call.dependencies.vulnRichmentService
                 val response = vulnService.fetchVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
@@ -71,7 +71,7 @@ fun Route.vulnRoutes() {
                 ?: throw BadRequestException("preferred_username claim not found in token")
 
             try {
-                val vulnService = call.dependencies.vulnService
+                val vulnService = call.dependencies.vulnRichmentService
                 val response = vulnService.fetchGitHubVulnerabilitiesForUser(email, principal.groups)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {

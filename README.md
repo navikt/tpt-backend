@@ -25,22 +25,18 @@ src/main/kotlin/no/nav/tpt/
 │   ├── github/                                # GitHub repository metadata storage and queries
 │   ├── kafka/                                 # Kafka consumer for GitHub repository events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
-│   ├── nvd/                                   # NVD database sync service and CVE data management
 │   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
-│   ├── vulnrichment/                          # CISA Vulnrichment sync (SSVC decisions from cisagov/vulnrichment)
 │   ├── remediation/                           # AI remediation cache and service implementation
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
 │   ├── vulnerability/                         # Vulnerability data layer implementations
-│   └── vulns/                                 # Vulnerability aggregation and enrichment service
+│   └── vulnrichment/                          # Vulnerability aggregation and enrichment service
 ├── plugins/                                   # Ktor plugins and application lifecycle
 │   ├── Authentication.kt                      # JWT authentication configuration
 │   ├── Dependencies.kt                        # Dependency injection setup
 │   ├── Kafka.kt                               # Kafka consumer lifecycle management
 │   ├── LeaderElection.kt                      # Kubernetes leader election for distributed tasks
-│   ├── NvdSync.kt                             # Scheduled NVD synchronization orchestration
 │   ├── GcveSync.kt                            # Scheduled GCVE synchronization (parallel to NVD)
-│   ├── VulnrichmentSync.kt                    # Scheduled Vulnrichment sync (initial + daily incremental, leader-elected)
 │   └── VulnerabilityDataSync.kt               # Scheduled vulnerability data sync (leader-elected)
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
@@ -76,8 +72,6 @@ src/test/                                      # Test suite mirroring main struc
 - `TEAMKATALOGEN_URL` - Teamkatalogen API URL
 
 ### Optional
-- `NVD_API_URL` - NVD API URL (default: https://services.nvd.nist.gov/rest/json/cves/2.0)
-- `NVD_API_KEY` - NVD API key for higher rate limits
 - `EPSS_API_URL` - EPSS API URL (default: https://api.first.org/data/v1)
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
 - `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
@@ -87,8 +81,6 @@ src/test/                                      # Test suite mirroring main struc
 - `AI_MODEL` - Gemini model name (default: `gemini-2.5-flash`)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
-
-Request NVD Api key at [NIST](https://nvd.nist.gov/developers/request-an-api-key) and subscribe to [NVD Technical Updates](https://www.nist.gov/itl/nvd).
 
 ## Running Locally
 
@@ -109,15 +101,11 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 ## Data Sources
 
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
-- **NVD** - National Vulnerability Database (PostgreSQL-backed, syncs every 2 hours)
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
-- **CISA Vulnrichment** - SSVC decisions from `cisagov/vulnrichment` (PostgreSQL-backed, daily incremental sync)
 - **GCVE (db.gcve.eu)** - CVE v5 enrichment from CIRCL's Vulnerability-Lookup (PostgreSQL-backed, parallel to NVD, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives JSON data from other applications (optional)
 - **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
-
-Initial NVD sync takes ~1-2 hours on first deployment. Vulnerability data sync takes ~10-15 minutes per run.
 
 ### Data Persistence Strategy
 
@@ -135,8 +123,6 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 **Other Data Sources:**
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
-- **NVD CVE data**: Incremental sync every 2 hours using `lastModifiedDate` tracking
-- **Vulnrichment**: Initial sync from 2023-01-01 on empty database; daily incremental sync thereafter. `POST /admin/vulnrichment/backfill-ssvc` triggers a one-time re-fetch of tracked CVEs from NVD to backfill NVD-embedded SSVC data ahead of a planned migration away from Vulnrichment.
 - **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path when users fetch vulnerabilities (async, fire-and-forget). `POST /admin/gcve/backfill-missing` manually triggers miss-path backfill for all tracked CVEs. `GET /admin/gcve/comparison` shows NVD vs GCVE parity.
 
 ## API Endpoints

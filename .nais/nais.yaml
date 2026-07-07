@@ -29,8 +29,6 @@ spec:
         - host: console.nav.cloud.nais.io
         - host: www.cisa.gov
         - host: api.first.org
-        - host: services.nvd.nist.gov
-        - host: cveawg.mitre.org
         - host: db.gcve.eu
   gcp:
     sqlInstances:
@@ -67,10 +65,6 @@ spec:
       enabled: true
       runtime: java
   env:
-    - name: NAIS_API_URL
-      value: "https://console.nav.cloud.nais.io/graphql"
-    - name: NVD_API_URL
-      value: "https://services.nvd.nist.gov/rest/json/cves/2.0"
     - name: EPSS_API_URL
       value: "https://api.first.org/data/v1"
     - name: TEAMKATALOGEN_URL
@@ -85,7 +79,5 @@ spec:
       value: "https://europe-north1-aiplatform.googleapis.com/v1/projects/appsec-prod-624d/locations/europe-north1/publishers/google/models"
     - name: AI_MODEL
       value: "gemini-2.5-flash"
-    - name: USE_GCVE_DATA_SOURCE
-      value: "true"
   envFrom:
     - secret: tpt-backend

@@ -27,10 +27,9 @@ The docker images will use distroless images. For testing we will avoid mocking 
 ### Integrations
 - **Nais API GraphQL**: Fetch vulnerability data and application ingresses
 - **Entra ID**: Fetch username from access token claim
-- **NVD (National Vulnerability Database)**: Complete CVE dataset with CISA KEV data embedded
 - **EPSS (Exploit Prediction Scoring System)**: Probability scores for exploit likelihood
-- **CISA KEV**: Embedded in NVD data (no separate integration needed)
-- **CISA Vulnrichment** (`cisagov/vulnrichment`): SSVC decisions (exploitation, automatable, technical impact) — daily sync, leader-elected
+- **CISA KEV**: Fetched from KEV in order to use specific fields that doesn't exist in embedded data from GCVE.
+- **GCVE**: Vulnerability-Lookup enables rapid correlation of vulnerabilities across multiple sources, independent of vulnerability identifiers.
 
 ### Key Architectural Principles
 - **Clean Architecture**: Dependencies point inward (infrastructure → usecase → domain)
@@ -237,7 +236,7 @@ suspend fun <T> dbQuery(block: suspend () -> T): T =
     newSuspendedTransaction(Dispatchers.IO) { block() }
 
 // Batch operations with chunking
-suspend fun upsertCves(cves: List<NvdCveData>) {
+suspend fun upsertCves(cves: List<GcveCveData>) {
     cves.chunked(500).forEach { batch ->
         dbQuery {
             batch.forEach { cve ->
@@ -259,16 +258,16 @@ suspend fun upsertCves(cves: List<NvdCveData>) {
 
 ### Repository Pattern
 ```kotlin
-interface NvdRepository {
-    suspend fun getCveData(cveId: String): NvdCveData?
-    suspend fun upsertCves(cves: List<NvdCveData>)
+interface GcveRepository {
+    suspend fun getCveData(cveId: String): GcveCveData?
+    suspend fun upsertCves(cves: List<GcveCveData>)
     suspend fun getLastModifiedDate(): LocalDateTime?
 }
 ```
 
 ### Migration Management
 - **Location**: `src/main/resources/db/migration/`
-- **Naming**: `V{version}__{description}.sql` (e.g., `V1__create_nvd_tables.sql`)
+- **Naming**: `V{version}__{description}.sql` (e.g., `V1__create_tables.sql`)
 - **Execution**: Flyway runs migrations automatically on application startup
 - **Reversibility**: Avoid destructive changes; use new migrations to modify schema
 
