@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.vulns
+package no.nav.tpt.infrastructure.vulnrichment
 
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.*
@@ -8,7 +8,7 @@ import no.nav.tpt.domain.risk.ImpactLevel
 import no.nav.tpt.domain.user.UserRole
 import java.io.File
 
-class MockVulnService : VulnService {
+class MockVulnRichmentService : VulnRichmentService {
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true

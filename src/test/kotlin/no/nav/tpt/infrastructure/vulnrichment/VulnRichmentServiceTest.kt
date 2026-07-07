@@ -1,7 +1,5 @@
-package no.nav.tpt.infrastructure.vulns
+package no.nav.tpt.infrastructure.vulnrichment
 
-import io.ktor.client.*
-import io.ktor.client.engine.mock.*
 import kotlinx.coroutines.test.runTest
 import no.nav.tpt.domain.user.MockUserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
@@ -11,19 +9,7 @@ import no.nav.tpt.infrastructure.cisa.KevVulnerability
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.MockGitHubRepository
 import no.nav.tpt.infrastructure.nais.*
-import no.nav.tpt.infrastructure.nvd.MockNvdRepository
-import no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
-import no.nav.tpt.plugins.LeaderElection
 import kotlin.test.*
-
-private fun mockVulnrichmentSyncService(): VulnrichmentSyncService {
-    return VulnrichmentSyncService(
-        client = VulnrichmentClient(HttpClient(MockEngine { respondBadRequest() })),
-        repository = MockVulnrichmentRepository(),
-    )
-}
 
 // Helper to create a VulnerabilityDataService that delegates to NaisApiService
 private fun mockVulnerabilityDataService(naisApiService: NaisApiService): VulnerabilityDataService {
@@ -35,7 +21,7 @@ private fun mockVulnerabilityDataService(naisApiService: NaisApiService): Vulner
     }
 }
 
-class VulnServiceTest {
+class VulnRichmentServiceTest {
 
     @Test
     fun `should combine data from all sources successfully`() = runTest {
@@ -110,16 +96,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -171,16 +154,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-beta")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -212,16 +192,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-gamma")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -277,16 +254,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-delta")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -383,16 +357,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-one", "team-two")),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -430,16 +401,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = emptyList()),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
@@ -491,16 +459,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -579,16 +544,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -644,16 +606,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha", "team-beta")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -728,16 +687,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -767,16 +723,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -843,16 +796,13 @@ class VulnServiceTest {
         val vulnerabilityDataService = mockVulnerabilityDataService(
             mockNaisApiService
         )
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = vulnerabilityDataService,
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = riskScorer,
             userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
             gitHubRepository = mockGitHubRepository,
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
@@ -909,16 +859,13 @@ class VulnServiceTest {
             )
         }
 
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
             kevService = mockKevService,
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
             userContextService = MockUserContextService(mockTeams = emptyList()),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-appsec")
@@ -966,18 +913,15 @@ class VulnServiceTest {
             )
         )
 
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
             kevService = object : KevService {
                 override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
             },
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
             userContextService = MockUserContextService(mockTeams = emptyList()),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-x")
@@ -992,18 +936,15 @@ class VulnServiceTest {
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
         )
 
-        val vulnService = VulnServiceImpl(
+        val vulnService = VulnRichmentServiceImpl(
             vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
             kevService = object : KevService {
                 override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
             },
             epssService = MockEpssService(),
-            nvdRepository = MockNvdRepository(),
             riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
             userContextService = MockUserContextService(mockTeams = emptyList()),
             gitHubRepository = MockGitHubRepository(),
-            vulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository(),
-            vulnrichmentSyncService = mockVulnrichmentSyncService()
         )
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-empty")

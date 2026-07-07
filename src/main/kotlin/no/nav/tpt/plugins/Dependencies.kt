@@ -32,10 +32,6 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
-import no.nav.tpt.infrastructure.nvd.NvdClient
-import no.nav.tpt.infrastructure.nvd.NvdRepository
-import no.nav.tpt.infrastructure.nvd.NvdRepositoryImpl
-import no.nav.tpt.infrastructure.nvd.NvdSyncService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
@@ -50,13 +46,8 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
-import no.nav.tpt.infrastructure.vulns.VulnService
-import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepositoryImpl
-import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
-import no.nav.tpt.infrastructure.gcve.GcveComparisonService
+import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
+import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveMissPathService
 import no.nav.tpt.infrastructure.gcve.GcveRepository
@@ -74,11 +65,9 @@ class Dependencies(
     val kevService: KevService,
     val epssService: EpssService,
     val database: org.jetbrains.exposed.v1.jdbc.Database,
-    val nvdRepository: NvdRepository,
-    val nvdSyncService: NvdSyncService,
     val leaderElection: LeaderElection,
     val httpClient: HttpClient,
-    val vulnService: VulnService,
+    val vulnRichmentService: VulnRichmentService,
     val teamkatalogenService: TeamkatalogenService,
     val userContextService: UserContextService,
     val adminAuthorizationService: AdminAuthorizationService,
@@ -88,12 +77,8 @@ class Dependencies(
     val vulnerabilitySearchService: VulnerabilitySearchService,
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
     val remediationService: RemediationService?,
-    val vulnrichmentRepository: VulnrichmentRepository,
-    val vulnrichmentSyncService: VulnrichmentSyncService,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
-    val gcveMissPathService: GcveMissPathService,
-    val gcveComparisonService: GcveComparisonService,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -138,9 +123,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val epssRepository = EpssRepositoryImpl(database)
     val epssCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val epssService = EpssServiceImpl(epssClient, epssRepository, epssCircuitBreaker)
-    val nvdClient = NvdClient(httpClient, apiKey = config.nvdApiKey, baseUrl = config.nvdApiUrl)
-    val nvdRepository = NvdRepositoryImpl(database)
-    val nvdSyncService = NvdSyncService(nvdClient, nvdRepository)
 
     val leaderElection = LeaderElection(httpClient)
 
@@ -171,10 +153,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         syncSemaphore = onDemandSyncSemaphore,
     )
 
-    val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
-    val vulnrichmentClient = VulnrichmentClient(httpClient)
-    val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
-
     val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
 
     val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
@@ -182,21 +160,16 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveRepository = GcveRepositoryImpl(database)
     val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
     val gcveMissPathService = GcveMissPathService(gcveClient, gcveRepository)
-    val gcveComparisonService = GcveComparisonService(gcveRepository, nvdRepository)
 
-    val vulnService = VulnServiceImpl(
+    val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = epssService,
-        nvdRepository = nvdRepository,
-        vulnrichmentRepository = vulnrichmentRepository,
-        vulnrichmentSyncService = vulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
         gcveMissPathService = gcveMissPathService,
         gcveRepository = gcveRepository,
-        useGcveDataSource = config.useGcveDataSource,
     )
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
@@ -219,9 +192,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         RemediationServiceImpl(
             aiClient = aiClient,
             cacheRepository = remediationCacheRepository,
-            nvdRepository = nvdRepository,
             epssService = epssService,
-            kevService = kevService
+            kevService = kevService,
+            gcveRepository = gcveRepository
         )
     }.also {
         if (it == null) logger.warn("AI_API_URL not configured — remediation endpoint will be unavailable")
@@ -234,11 +207,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         kevService = kevService,
         epssService = epssService,
         database = database,
-        nvdRepository = nvdRepository,
-        nvdSyncService = nvdSyncService,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnService = vulnService,
+        vulnRichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
@@ -248,12 +219,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilitySearchService = vulnerabilitySearchService,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         remediationService = remediationService,
-        vulnrichmentRepository = vulnrichmentRepository,
-        vulnrichmentSyncService = vulnrichmentSyncService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
-        gcveMissPathService = gcveMissPathService,
-        gcveComparisonService = gcveComparisonService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

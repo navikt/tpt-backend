@@ -8,8 +8,8 @@ import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.infrastructure.ai.AiClient
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.epss.EpssService
-import no.nav.tpt.infrastructure.nvd.NvdCveData
-import no.nav.tpt.infrastructure.nvd.NvdRepository
+import no.nav.tpt.infrastructure.gcve.GcveCveData
+import no.nav.tpt.infrastructure.gcve.GcveRepository
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger(RemediationServiceImpl::class.java)
@@ -26,7 +26,7 @@ If authoritative remediation information is not available for this CVE, clearly 
 class RemediationServiceImpl(
     private val aiClient: AiClient,
     private val cacheRepository: RemediationCacheRepository,
-    private val nvdRepository: NvdRepository,
+    private val gcveRepository: GcveRepository,
     private val epssService: EpssService,
     private val kevService: KevService
 ) : RemediationService {
@@ -37,12 +37,7 @@ class RemediationServiceImpl(
             send(cached.remediationText)
             return@channelFlow
         }
-
-        val nvdData = try {
-            nvdRepository.getCveData(request.cveId)
-        } catch (e: Exception) {
-            throw RemediationException.DataFetchException("Failed to fetch NVD data for ${request.cveId}", e)
-        }
+        val gcveData = gcveRepository.getCveData(request.cveId)
         val epssScores = try {
             epssService.getEpssScores(listOf(request.cveId))
         } catch (e: Exception) {
@@ -56,7 +51,7 @@ class RemediationServiceImpl(
         val epssScore = epssScores[request.cveId]
         val isKev = kevCatalog.vulnerabilities.any { it.cveID == request.cveId }
 
-        val userPrompt = buildUserPrompt(request, nvdData, epssScore?.epss, epssScore?.percentile, isKev)
+        val userPrompt = buildUserPrompt(request, gcveData, epssScore?.epss, epssScore?.percentile, isKev)
 
         val accumulated = StringBuilder()
         try {
@@ -80,14 +75,14 @@ class RemediationServiceImpl(
 
     private fun buildUserPrompt(
         request: RemediationRequest,
-        nvdData: NvdCveData?,
+        gcveData: GcveCveData?,
         epssScore: String?,
         epssPercentile: String?,
         isKev: Boolean
     ): String {
-        val cvssScore = (nvdData?.cvssV31Score ?: nvdData?.cvssV30Score ?: nvdData?.cvssV2Score)
+        val cvssScore = (gcveData?.cvssV40Score ?: gcveData?.cvssV31Score)
             ?.let { String.format("%.1f", it) } ?: "N/A"
-        val description = nvdData?.description ?: "No description available."
+        val description = gcveData?.description ?: "No description available."
         val epssLine = if (epssScore != null && epssPercentile != null) {
             val percentileNum = (epssPercentile.toDoubleOrNull() ?: 0.0) * 100
             "$epssScore (${"%.0f".format(percentileNum)}th percentile — probability of exploitation within 30 days)"

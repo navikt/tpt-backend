@@ -65,60 +65,12 @@ fun Route.adminRoutes() {
                     ?: throw no.nav.tpt.plugins.BadRequestException("teamSlug path parameter is required")
 
                 try {
-                    val vulnService = call.dependencies.vulnService
+                    val vulnService = call.dependencies.vulnRichmentService
                     val response = vulnService.fetchVulnerabilitiesForTeam(teamSlug)
                     call.respond(HttpStatusCode.OK, response)
                 } catch (e: Exception) {
                     throw InternalServerException("Failed to fetch vulnerabilities for team $teamSlug", e)
                 }
-            }
-
-            get("/gcve/comparison") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
-                try {
-                    val comparisonService = call.dependencies.gcveComparisonService
-                    val report = comparisonService.compareDataCoverage()
-                    call.respond(HttpStatusCode.OK, report)
-                } catch (e: Exception) {
-                    throw InternalServerException("Failed to generate GCVE comparison report", e)
-                }
-            }
-
-            post("/gcve/backfill-missing") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
-                val gcveRepository = call.dependencies.gcveRepository
-                val gcveMissPathService = call.dependencies.gcveMissPathService
-                val application = call.application
-
-                application.launch {
-                    try {
-                        val trackedCveIds = gcveRepository.getTrackedCveIds()
-                            .filter { it.startsWith("CVE-", ignoreCase = true) }
-                            .toList()
-                        logger.info("Starting GCVE miss-path backfill for ${trackedCveIds.size} tracked CVEs")
-                        val fetched = gcveMissPathService.fetchMissing(trackedCveIds)
-                        logger.info("GCVE miss-path backfill complete: fetched $fetched CVEs")
-                    } catch (e: Exception) {
-                        logger.error("GCVE miss-path backfill failed: ${e.message}", e)
-                    }
-                }
-
-                call.respond(
-                    HttpStatusCode.Accepted,
-                    mapOf("message" to "GCVE miss-path backfill started. Check application logs for progress.")
-                )
             }
 
             post("/reports/refresh") {

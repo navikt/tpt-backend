@@ -5,8 +5,6 @@ data class AppConfig(
     val naisApiUrl: String,
     val naisTokenFilePath: String,
     val dbJdbcUrl: String,
-    val nvdApiUrl: String,
-    val nvdApiKey: String?,
     val epssApiUrl: String,
     val teamkatalogenUrl: String,
     val adminGroups: String?,
@@ -14,7 +12,6 @@ data class AppConfig(
     val aiModel: String = "gemini-2.5-flash",
     val gcveApiUrl: String = "https://db.gcve.eu/api",
     val gcveApiKey: String? = null,
-    val useGcveDataSource: Boolean = false,
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
@@ -37,10 +34,6 @@ data class AppConfig(
             val dbJdbcUrl = System.getenv("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL")
                 ?: error("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL not configured")
 
-            val nvdApiKey = System.getenv("NVD_API_KEY")
-
-            val nvdApiUrl = System.getenv("NVD_API_URL") ?: error("NVD_API_URL not configured")
-
             val epssApiUrl = System.getenv("EPSS_API_URL") ?: error("EPSS_API_URL not configured")
 
             val teamkatalogenUrl = System.getenv("TEAMKATALOGEN_URL") ?: error("TEAMKATALOGEN_URL not configured")
@@ -52,23 +45,19 @@ data class AppConfig(
 
             val gcveApiUrl = System.getenv("GCVE_API_URL") ?: "https://db.gcve.eu/api"
             val gcveApiKey = System.getenv("GCVE_API_KEY")
-            val useGcveDataSource = System.getenv("USE_GCVE_DATA_SOURCE")?.equals("true", ignoreCase = true) ?: false
 
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
                 naisApiUrl = naisApiUrl,
                 naisTokenFilePath = naisTokenFilePath,
                 dbJdbcUrl = dbJdbcUrl,
-                nvdApiKey = nvdApiKey,
-                nvdApiUrl = nvdApiUrl,
                 epssApiUrl = epssApiUrl,
                 teamkatalogenUrl = teamkatalogenUrl,
                 adminGroups = adminGroups,
                 aiApiUrl = aiApiUrl,
                 aiModel = aiModel,
                 gcveApiUrl = gcveApiUrl,
-                gcveApiKey = gcveApiKey,
-                useGcveDataSource = useGcveDataSource,
+                gcveApiKey = gcveApiKey
             )
         }
     }

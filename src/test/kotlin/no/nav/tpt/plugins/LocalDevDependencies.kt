@@ -10,11 +10,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.user.UserContextService
-import no.nav.tpt.domain.vulnerability.TeamSlaSummary
-import no.nav.tpt.domain.vulnerability.TeamVulnerabilityCount
-import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
-import no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult
-import no.nav.tpt.domain.vulnerability.VulnerabilityTrackingData
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevService
@@ -26,14 +21,10 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
-import no.nav.tpt.infrastructure.nvd.MockNvdRepository
-import no.nav.tpt.infrastructure.nvd.MockNvdSyncService
-import no.nav.tpt.infrastructure.nvd.NvdRepository
-import no.nav.tpt.infrastructure.nvd.NvdSyncService
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
-import no.nav.tpt.infrastructure.vulns.MockVulnService
+import no.nav.tpt.infrastructure.vulnrichment.MockVulnRichmentService
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.testcontainers.containers.PostgreSQLContainer
@@ -115,20 +106,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     flyway.migrate()
 
     val database = Database.connect(dataSource)
-    val nvdRepository: NvdRepository = MockNvdRepository()
-    val nvdSyncService: NvdSyncService = MockNvdSyncService()
 
     val leaderElection = LeaderElection(httpClient)
 
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
-    val vulnService = MockVulnService()
+    val vulnService = MockVulnRichmentService()
 
-    val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
-    val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
-        client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(httpClient),
-        repository = mockVulnrichmentRepository,
-    )
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
@@ -160,8 +144,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         naisApiUrl = "http://localhost:8080/mock-nais-api",
         naisTokenFilePath = "mock-token",
         dbJdbcUrl = postgres.jdbcUrl,
-        nvdApiUrl = "http://localhost:8080/mock-nvd-api",
-        nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
@@ -179,11 +161,9 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         kevService = kevService,
         epssService = epssService,
         database = database,
-        nvdRepository = nvdRepository,
-        nvdSyncService = nvdSyncService,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnService = vulnService,
+        vulnRichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
@@ -193,12 +173,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         remediationService = null,
-        vulnrichmentRepository = mockVulnrichmentRepository,
-        vulnrichmentSyncService = mockVulnrichmentSyncService,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
-        gcveMissPathService = no.nav.tpt.infrastructure.gcve.GcveMissPathService(localGcveClient, localGcveRepository),
-        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(localGcveRepository, nvdRepository),
     )
 
     application.attributes.put(DependenciesKey, dependencies)

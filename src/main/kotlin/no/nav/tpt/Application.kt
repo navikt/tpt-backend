@@ -17,10 +17,8 @@ import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureGcveSync
-import no.nav.tpt.plugins.configureNvdSync
 import no.nav.tpt.plugins.configureStatusPages
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
-import no.nav.tpt.plugins.configureVulnrichmentSync
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
@@ -71,10 +69,6 @@ fun Application.module() {
     configureAuthentication(dependencies.tokenIntrospectionService)
     configureStatusPages()
     configureVulnerabilityDataSync()
-    if (!dependencies.appConfig.useGcveDataSource) {
-        configureNvdSync()
-        configureVulnrichmentSync()
-    }
     configureGcveSync()
     configureKafka()
 

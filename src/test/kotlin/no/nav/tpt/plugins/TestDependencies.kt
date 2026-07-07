@@ -21,11 +21,10 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
-import no.nav.tpt.infrastructure.nvd.MockNvdRepository
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
-import no.nav.tpt.infrastructure.vulns.VulnServiceImpl
+import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.routes.adminRoutes
@@ -67,8 +66,6 @@ fun Application.installTestDependencies(
         naisApiUrl = "http://test-nais-api",
         naisTokenFilePath = "test-token",
         dbJdbcUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test",
-        nvdApiUrl = "http://localhost:8080/mock-nvd-api",
-        nvdApiKey = null,
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
@@ -77,10 +74,6 @@ fun Application.installTestDependencies(
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-
-    // Mock NVD services for tests (not using real database)
-    val mockNvdRepository = no.nav.tpt.infrastructure.nvd.MockNvdRepository()
-    val mockNvdSyncService = no.nav.tpt.infrastructure.nvd.MockNvdSyncService()
 
     val actualAdminAuthorizationService = adminAuthorizationService ?: no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl()
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService, actualAdminAuthorizationService)
@@ -92,25 +85,15 @@ fun Application.installTestDependencies(
             naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }
 
-    val mockVulnrichmentRepository = no.nav.tpt.infrastructure.vulnrichment.MockVulnrichmentRepository()
-
-    val mockVulnrichmentSyncService = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService(
-        client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(client),
-        repository = mockVulnrichmentRepository,
-    )
-
     val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
     val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
     val mockGcveMissPathService = no.nav.tpt.infrastructure.gcve.GcveMissPathService(mockGcveClient, mockGcveRepository)
 
-    val vulnService = VulnServiceImpl(
+    val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         kevService = kevService,
         epssService = MockEpssService(),
-        nvdRepository = MockNvdRepository(),
-        vulnrichmentRepository = mockVulnrichmentRepository,
-        vulnrichmentSyncService = mockVulnrichmentSyncService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
@@ -163,11 +146,9 @@ fun Application.installTestDependencies(
         kevService = kevService,
         epssService = epssService,
         database = stubDatabase,
-        nvdRepository = mockNvdRepository,
-        nvdSyncService = mockNvdSyncService,
         leaderElection = mockLeaderElection,
         httpClient = client,
-        vulnService = vulnService,
+        vulnRichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = actualUserContextService,
         adminAuthorizationService = actualAdminAuthorizationService,
@@ -177,12 +158,8 @@ fun Application.installTestDependencies(
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         remediationService = remediationService,
-        vulnrichmentRepository = mockVulnrichmentRepository,
-        vulnrichmentSyncService = mockVulnrichmentSyncService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
-        gcveMissPathService = mockGcveMissPathService,
-        gcveComparisonService = no.nav.tpt.infrastructure.gcve.GcveComparisonService(mockGcveRepository, mockNvdRepository),
     )
 
     attributes.put(DependenciesKey, dependencies)

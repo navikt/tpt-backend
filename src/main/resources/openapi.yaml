@@ -415,36 +415,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /admin/gcve/comparison:
-    get:
-      summary: Compare NVD and GCVE data coverage
-      description: |
-        Returns a parity report comparing NVD and GCVE data for tracked CVEs.
-        Shows coverage counts, a sample of missing CVEs, and CVSS score discrepancies.
-        Only accessible to admin users.
-      tags:
-        - Admin
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: GCVE comparison report
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GcveComparisonReport'
-        '401':
-          description: Unauthorized - missing or invalid bearer token
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '403':
-          description: Forbidden - user does not have admin privileges
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/remediation:
     post:
       summary: Stream AI-generated remediation guide for a vulnerability
