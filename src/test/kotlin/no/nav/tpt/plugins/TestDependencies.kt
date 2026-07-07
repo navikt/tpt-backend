@@ -99,12 +99,6 @@ fun Application.installTestDependencies(
         repository = mockVulnrichmentRepository,
     )
 
-    val ssvcBackfillService = no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService(
-        vulnrichmentRepository = mockVulnrichmentRepository,
-        nvdClient = no.nav.tpt.infrastructure.nvd.NvdClient(client, apiKey = null, baseUrl = testConfig.nvdApiUrl),
-        nvdRepository = mockNvdRepository,
-    )
-
     val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
     val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
@@ -185,7 +179,6 @@ fun Application.installTestDependencies(
         remediationService = remediationService,
         vulnrichmentRepository = mockVulnrichmentRepository,
         vulnrichmentSyncService = mockVulnrichmentSyncService,
-        ssvcBackfillService = ssvcBackfillService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         gcveMissPathService = mockGcveMissPathService,

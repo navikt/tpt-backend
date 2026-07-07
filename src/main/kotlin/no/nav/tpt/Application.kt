@@ -70,9 +70,11 @@ fun Application.module() {
 
     configureAuthentication(dependencies.tokenIntrospectionService)
     configureStatusPages()
-    configureNvdSync()
     configureVulnerabilityDataSync()
-    configureVulnrichmentSync()
+    if (!dependencies.appConfig.useGcveDataSource) {
+        configureNvdSync()
+        configureVulnrichmentSync()
+    }
     configureGcveSync()
     configureKafka()
 

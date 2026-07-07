@@ -129,11 +129,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         client = no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient(httpClient),
         repository = mockVulnrichmentRepository,
     )
-    val ssvcBackfillService = no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService(
-        vulnrichmentRepository = mockVulnrichmentRepository,
-        nvdClient = no.nav.tpt.infrastructure.nvd.NvdClient(httpClient, apiKey = null, baseUrl = "http://localhost:8080/mock-nvd-api"),
-        nvdRepository = nvdRepository,
-    )
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
@@ -200,7 +195,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         remediationService = null,
         vulnrichmentRepository = mockVulnrichmentRepository,
         vulnrichmentSyncService = mockVulnrichmentSyncService,
-        ssvcBackfillService = ssvcBackfillService,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
         gcveMissPathService = no.nav.tpt.infrastructure.gcve.GcveMissPathService(localGcveClient, localGcveRepository),

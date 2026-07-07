@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.vulns
 
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import no.nav.tpt.domain.DependencyCategory
 import no.nav.tpt.domain.VulnResponse
 import no.nav.tpt.domain.VulnTeamDto
@@ -91,24 +92,20 @@ class VulnServiceImpl(
             .map { it.cveID }
             .toSet()
         val epssScores = epssService.getEpssScores(cveIds)
-        val nvdData = nvdRepository.getCveDataBatch(cveIds)
-        try {
+        val nvdData = if (!useGcveDataSource) emptyMap() else nvdRepository.getCveDataBatch(cveIds)
+        val vulnrichmentData = if (!useGcveDataSource) emptyMap() else try {
             vulnrichmentSyncService.ensureCached(cveIds)
-        } catch (e: Exception) {
-            logger.warn("Failed to ensure Vulnrichment cache, continuing without it: ${e.message}")
-        }
-        val vulnrichmentData = try {
             vulnrichmentRepository.getVulnrichmentDataBatch(cveIds)
         } catch (e: Exception) {
             logger.warn("Failed to fetch Vulnrichment data, continuing without it: ${e.message}")
             emptyMap()
         }
-        val gcveData = try {
+        val gcveData = if (useGcveDataSource) try {
             gcveRepository?.getCveDataBatch(cveIds) ?: emptyMap()
         } catch (e: Exception) {
             logger.warn("Failed to fetch GCVE data, continuing without it: ${e.message}")
             emptyMap()
-        }
+        } else emptyMap()
 
         return CveEnrichmentData(kevCveIds, kevRansomwareCveIds, epssScores, nvdData, vulnrichmentData, gcveData)
     }

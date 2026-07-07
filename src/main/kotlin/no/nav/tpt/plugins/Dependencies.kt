@@ -56,7 +56,6 @@ import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentClient
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepository
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentRepositoryImpl
 import no.nav.tpt.infrastructure.vulnrichment.VulnrichmentSyncService
-import no.nav.tpt.infrastructure.vulnrichment.SsvcBackfillService
 import no.nav.tpt.infrastructure.gcve.GcveComparisonService
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveMissPathService
@@ -91,7 +90,6 @@ class Dependencies(
     val remediationService: RemediationService?,
     val vulnrichmentRepository: VulnrichmentRepository,
     val vulnrichmentSyncService: VulnrichmentSyncService,
-    val ssvcBackfillService: SsvcBackfillService,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
     val gcveMissPathService: GcveMissPathService,
@@ -176,7 +174,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnrichmentRepository = VulnrichmentRepositoryImpl(database)
     val vulnrichmentClient = VulnrichmentClient(httpClient)
     val vulnrichmentSyncService = VulnrichmentSyncService(vulnrichmentClient, vulnrichmentRepository)
-    val ssvcBackfillService = SsvcBackfillService(vulnrichmentRepository, nvdClient, nvdRepository)
 
     val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
 
@@ -253,7 +250,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         remediationService = remediationService,
         vulnrichmentRepository = vulnrichmentRepository,
         vulnrichmentSyncService = vulnrichmentSyncService,
-        ssvcBackfillService = ssvcBackfillService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
         gcveMissPathService = gcveMissPathService,

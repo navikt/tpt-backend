@@ -1,7 +1,6 @@
 package no.nav.tpt.routes
 
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -119,31 +118,6 @@ fun Route.adminRoutes() {
                 call.respond(
                     HttpStatusCode.Accepted,
                     mapOf("message" to "GCVE miss-path backfill started. Check application logs for progress.")
-                )
-            }
-
-            post("/vulnrichment/backfill-ssvc") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
-                val ssvcBackfillService = call.dependencies.ssvcBackfillService
-                val application = call.application
-
-                application.launch {
-                    try {
-                        ssvcBackfillService.run()
-                    } catch (e: Exception) {
-                        logger.error("SSVC backfill failed: ${e.message}", e)
-                    }
-                }
-
-                call.respond(
-                    HttpStatusCode.Accepted,
-                    mapOf("message" to "SSVC backfill started. Check application logs for progress and summary.")
                 )
             }
 
