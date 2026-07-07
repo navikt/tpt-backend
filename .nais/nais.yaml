@@ -65,6 +65,8 @@ spec:
       enabled: true
       runtime: java
   env:
+    - name: NAIS_API_URL
+      value: "https://console.nav.cloud.nais.io/graphql"
     - name: EPSS_API_URL
       value: "https://api.first.org/data/v1"
     - name: TEAMKATALOGEN_URL
