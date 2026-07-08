@@ -27,7 +27,7 @@ jobs:
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@f8bc7437f7549c2b08197152d781b98f8727a08a
+        uses: nais/docker-build-push@31c3a7321909bcb20799fdf46153fec721fd9512
         id: docker-push
         with:
           team: appsec
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@5fdd91aaf69bb0d6dd5e5118cdacb639f487b93b
+      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb
         env:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
