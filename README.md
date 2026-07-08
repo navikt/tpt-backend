@@ -1,6 +1,7 @@
 # Titt-På-Ting Backend
 
-API to help developers prioritize which security issues to fix first. Fetches vulnerability data from Nais, enriches with external data, and returns prioritized results.
+API to help developers prioritize which security issues to fix first.
+Fetches vulnerability data from Nais, enriches with external data, and returns prioritized results.
 The API uses the preferred_username claim of a valid bearer token to fetch vulnerability data for the user's teams. 
 User Role is set depending on how the user is linked to one or more namespaces.
 
@@ -123,7 +124,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 **Other Data Sources:**
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
-- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path when users fetch vulnerabilities (async, fire-and-forget). `POST /admin/gcve/backfill-missing` manually triggers miss-path backfill for all tracked CVEs. `GET /admin/gcve/comparison` shows NVD vs GCVE parity.
+- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path when users fetch vulnerabilities (async, fire-and-forget).
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`
