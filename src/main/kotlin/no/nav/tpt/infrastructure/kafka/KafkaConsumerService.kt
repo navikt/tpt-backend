@@ -17,16 +17,17 @@ open class KafkaConsumerService(
     private val logger = LoggerFactory.getLogger(KafkaConsumerService::class.java)
     protected var consumer: KafkaConsumer<String, String>? = null
     private var consumerJob: Job? = null
-
-    // Single-threaded dispatcher — KafkaConsumer is only ever touched from this thread.
-    private val consumerThread = newSingleThreadContext("kafka-consumer-$groupId")
+    private var consumerThread: ExecutorCoroutineDispatcher? = null
 
     protected var isHealthyFlag = true
 
     open fun start(scope: CoroutineScope) {
         logger.info("Starting Kafka consumer (group=$groupId) for topic: ${kafkaConfig.topic}")
 
-        consumerJob = scope.launch(consumerThread) {
+        val dispatcher = newSingleThreadContext("kafka-consumer-$groupId")
+        consumerThread = dispatcher
+
+        consumerJob = scope.launch(dispatcher) {
             try {
                 consumer = createConsumer()
                 consumer?.subscribe(listOf(kafkaConfig.topic))
@@ -72,9 +73,8 @@ open class KafkaConsumerService(
 
     open fun stop() {
         logger.info("Stopping Kafka consumer (group=$groupId)")
-        // Cancel the job; the finally block in start() closes the consumer on the consumer thread.
         consumerJob?.cancel()
-        consumerThread.close()
+        consumerThread?.close()
     }
 
     open fun isHealthy(): Boolean = isHealthyFlag
