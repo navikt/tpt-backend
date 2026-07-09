@@ -4,10 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import no.nav.tpt.infrastructure.kafka.GitHubRepositoryKafkaConsumer
-import no.nav.tpt.infrastructure.kafka.KafkaConfig
-import no.nav.tpt.infrastructure.kafka.KafkaConsumerService
-import no.nav.tpt.infrastructure.kafka.KafkaProducerService
+import no.nav.tpt.infrastructure.kafka.*
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("KafkaPlugin")
@@ -20,35 +17,46 @@ fun Application.configureKafka() {
         return
     }
 
-    logger.info("Initializing Kafka consumer and producer for topic: ${kafkaConfig.topic}")
+    logger.info("Initializing Kafka producer and consumers for topic: ${kafkaConfig.topic}")
 
     val producer = KafkaProducerService(kafkaConfig)
     attributes.put(KafkaProducerServiceKey, producer)
 
-    val kafkaScope = CoroutineScope(SupervisorJob())
-    val consumerService = GitHubRepositoryKafkaConsumer(
-        kafkaConfig = kafkaConfig,
-        repository = dependencies.gitHubRepository,
-        vulnerabilityTeamSyncService = dependencies.vulnerabilityTeamSyncService,
-        vulnerabilityDataSyncJob = dependencies.vulnerabilityDataSyncJob,
-        gcveSyncService = dependencies.gcveSyncService,
-        gcveRepository = dependencies.gcveRepository,
-        sseEventBus = dependencies.sseEventBus,
+    val consumers = listOf(
+        RepositoryDataConsumer(
+            kafkaConfig = kafkaConfig,
+            repository = dependencies.gitHubRepository,
+        ),
+        TeamSyncConsumer(
+            kafkaConfig = kafkaConfig,
+            vulnerabilityTeamSyncService = dependencies.vulnerabilityTeamSyncService,
+            sseEventBus = dependencies.sseEventBus,
+        ),
+        VulnerabilityDataSyncConsumer(
+            kafkaConfig = kafkaConfig,
+            vulnerabilityDataSyncJob = dependencies.vulnerabilityDataSyncJob,
+        ),
+        GcveSyncConsumer(
+            kafkaConfig = kafkaConfig,
+            gcveSyncService = dependencies.gcveSyncService,
+            gcveRepository = dependencies.gcveRepository,
+            sseEventBus = dependencies.sseEventBus,
+        ),
     )
 
-    consumerService.start(kafkaScope)
+    consumers.forEach { it.start(CoroutineScope(SupervisorJob())) }
 
     monitor.subscribe(ApplicationStopping) {
-        logger.info("Application stopping, shutting down Kafka consumer and producer")
-        consumerService.stop()
+        logger.info("Application stopping, shutting down Kafka consumers and producer")
+        consumers.forEach { it.stop() }
         producer.close()
     }
 
-    attributes.put(KafkaConsumerServiceKey, consumerService)
+    attributes.put(KafkaConsumersKey, consumers)
 }
 
-val KafkaConsumerServiceKey = AttributeKey<KafkaConsumerService>("KafkaConsumerService")
+val KafkaConsumersKey = AttributeKey<List<KafkaConsumerService>>("KafkaConsumers")
 val KafkaProducerServiceKey = AttributeKey<KafkaProducerService>("KafkaProducerService")
 
-val Application.kafkaConsumerService: KafkaConsumerService?
-    get() = attributes.getOrNull(KafkaConsumerServiceKey)
+val Application.kafkaConsumers: List<KafkaConsumerService>?
+    get() = attributes.getOrNull(KafkaConsumersKey)
