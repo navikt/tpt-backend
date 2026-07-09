@@ -415,6 +415,39 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /events:
+    get:
+      summary: Subscribe to real-time sync events
+      description: |
+        Server-Sent Events (SSE) stream that broadcasts sync lifecycle events.
+        Clients can use this to know when vulnerability data has been updated and re-fetch.
+
+        Event types:
+        - `team_sync_started`: A background sync for a specific team has been triggered (e.g. stale data detected on user fetch).
+        - `team_sync_complete`: A team sync has finished — fresh data is available.
+        - `gcve_sync_complete`: A GCVE incremental sync has finished.
+
+        Each event `data` field is a JSON object matching the event type.
+      tags:
+        - Events
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: SSE stream opened successfully
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Stream of Server-Sent Events. Each event has an `event` field (the type)
+                  and a `data` field (JSON payload).
+        '401':
+          description: Unauthorized - missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/remediation:
     post:
       summary: Stream AI-generated remediation guide for a vulnerability

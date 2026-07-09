@@ -23,13 +23,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class GitHubRepositoryKafkaConsumerIntegrationTest {
+class RepositoryDataConsumerIntegrationTest {
 
     private lateinit var postgresContainer: PostgreSQLContainer<*>
     private lateinit var kafkaContainer: KafkaContainer
     private lateinit var database: Database
     private lateinit var repository: GitHubRepository
-    private lateinit var kafkaConsumer: GitHubRepositoryKafkaConsumer
+    private lateinit var kafkaConsumer: RepositoryDataConsumer
     private lateinit var kafkaProducer: KafkaProducer<String, String>
 
     private val testTopic = "test-github-repo-topic"
@@ -88,7 +88,7 @@ class GitHubRepositoryKafkaConsumerIntegrationTest {
             topic = testTopic
         )
 
-        kafkaConsumer = GitHubRepositoryKafkaConsumer(kafkaConfig, repository)
+        kafkaConsumer = RepositoryDataConsumer(kafkaConfig, repository)
 
         val producerProps = mapOf(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:$kafkaPort",

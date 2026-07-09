@@ -1,19 +1,16 @@
 package no.nav.tpt.infrastructure.kafka
 
-import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
-import java.time.Duration
 
-class GitHubRepositoryKafkaConsumer(
+class RepositoryDataConsumer(
     kafkaConfig: KafkaConfig,
     private val repository: GitHubRepository,
-    groupId: String = "tpt-backend"
-) : KafkaConsumerService(kafkaConfig, groupId) {
+) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend", autoCommit = true) {
 
-    private val logger = LoggerFactory.getLogger(GitHubRepositoryKafkaConsumer::class.java)
+    private val logger = LoggerFactory.getLogger(RepositoryDataConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
     private var messageCount = 0
     private var lastLogTime = System.currentTimeMillis()
@@ -22,18 +19,19 @@ class GitHubRepositoryKafkaConsumer(
         try {
             when (record.key()) {
                 "dockerfile_features" -> processDockerfileFeatures(record)
+                "team_sync", "vuln_data_sync", "gcve_sync" -> return
                 else -> processRepositoryMessage(record)
             }
-            
+
             messageCount++
             val now = System.currentTimeMillis()
             if (now - lastLogTime >= 60000 && messageCount > 0) {
-                logger.info("Processed $messageCount GitHub repository messages in the last minute")
+                logger.info("Processed $messageCount repository messages in the last minute")
                 messageCount = 0
                 lastLogTime = now
             }
         } catch (e: Exception) {
-            logger.error("Error processing message with key ${record.key()}: ${record.value()}", e)
+            logger.error("Error processing repository message with key ${record.key()}", e)
         }
     }
 
@@ -43,10 +41,10 @@ class GitHubRepositoryKafkaConsumer(
             try {
                 repository.upsertRepositoryData(message)
             } catch (e: Exception) {
-                logger.error("Error upserting GitHub repository data for ${message.getRepositoryIdentifier()}", e)
+                logger.error("Error upserting repository data for ${message.getRepositoryIdentifier()}", e)
             }
         } catch (e: Exception) {
-            logger.error("Error parsing GitHub repository message: ${record.value()}", e)
+            logger.error("Error parsing repository message: ${record.value()}", e)
         }
     }
 

@@ -9,6 +9,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
+import io.ktor.server.sse.SSE
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
@@ -21,6 +22,7 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
@@ -31,6 +33,7 @@ import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.remediationRoutes
+import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
@@ -99,8 +102,6 @@ fun Application.installTestDependencies(
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
     )
 
-    // Stub database for tests - creates a minimal database instance that won't actually be used
-    // Real database tests use testcontainers in specific integration tests
     val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
         url = "jdbc:postgresql://stub:5432/stub",
         driver = "org.postgresql.Driver",
@@ -108,36 +109,36 @@ fun Application.installTestDependencies(
         password = "stub"
     )
 
-    // Mock leader election - always returns true in tests
     val mockLeaderElection = LeaderElection(client)
 
     val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(stubDatabase)
 
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository()
-    
+
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
         naisApiService = naisApiService,
         vulnerabilityRepository = mockVulnerabilityRepository
     )
-    
+
     val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
 
     val mockVulnerabilityDataSyncJob = no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob(
         naisApiService = naisApiService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
-        leaderElection = mockLeaderElection,
         adminReportRepository = mockAdminReportRepository,
         teamDelayMs = 1000
     )
-    
+
     val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
         vulnerabilityRepository = mockVulnerabilityRepository
     )
-    
+
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
         adminReportRepository = mockAdminReportRepository,
     )
+
+    val sseEventBus = SseEventBus()
 
     val dependencies = Dependencies(
         appConfig = testConfig,
@@ -160,6 +161,8 @@ fun Application.installTestDependencies(
         remediationService = remediationService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
+        sseEventBus = sseEventBus,
+        kafkaProducerService = null,
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -175,6 +178,7 @@ fun Application.testModule(
 ) {
     installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService)
 
+    install(SSE)
     install(ServerContentNegotiation) {
         json(Json {
             prettyPrint = true
@@ -200,6 +204,7 @@ fun Application.testModule(
         vulnRoutes()
         vulnerabilitySearchRoutes()
         adminRoutes()
+        sseRoutes(dependencies.sseEventBus)
     }
 }
 
@@ -209,6 +214,7 @@ fun Application.remediationTestModule(
 ) {
     installTestDependencies(tokenIntrospectionService, remediationService = remediationService)
 
+    install(SSE)
     install(ServerContentNegotiation) {
         json(Json { prettyPrint = true; isLenient = true })
     }
@@ -220,4 +226,3 @@ fun Application.remediationTestModule(
         remediationRoutes()
     }
 }
-
