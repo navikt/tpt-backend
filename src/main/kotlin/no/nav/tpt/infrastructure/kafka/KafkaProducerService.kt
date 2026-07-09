@@ -37,7 +37,6 @@ open class KafkaProducerService(private val kafkaConfig: KafkaConfig) : SyncPubl
             put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             put(ProducerConfig.ACKS_CONFIG, "all")
             put(ProducerConfig.RETRIES_CONFIG, 3)
-            put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true)
 
             if (kafkaConfig.keystorePath.isNotEmpty()) {
                 put("security.protocol", "SSL")
