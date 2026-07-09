@@ -21,6 +21,7 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
@@ -126,7 +127,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         naisApiService = naisApiService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         vulnerabilityRepository = mockVulnerabilityRepository,
-        leaderElection = leaderElection,
         adminReportRepository = mockAdminReportRepository,
         teamDelayMs = 1000
     )
@@ -153,6 +153,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
+    val sseEventBus = SseEventBus()
 
     val dependencies = Dependencies(
         appConfig = config,
@@ -175,6 +176,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         remediationService = null,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
+        sseEventBus = sseEventBus,
+        kafkaProducerService = null,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

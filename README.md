@@ -24,7 +24,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── database/                              # Database factory and connection management
 │   ├── epss/                                  # EPSS API client with circuit breaker and PostgreSQL cache
 │   ├── github/                                # GitHub repository metadata storage and queries
-│   ├── kafka/                                 # Kafka consumer for GitHub repository events
+│   ├── kafka/                                 # Kafka consumer + producer for sync commands and GitHub events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
 │   ├── remediation/                           # AI remediation cache and service implementation
@@ -35,10 +35,10 @@ src/main/kotlin/no/nav/tpt/
 ├── plugins/                                   # Ktor plugins and application lifecycle
 │   ├── Authentication.kt                      # JWT authentication configuration
 │   ├── Dependencies.kt                        # Dependency injection setup
-│   ├── Kafka.kt                               # Kafka consumer lifecycle management
-│   ├── LeaderElection.kt                      # Kubernetes leader election for distributed tasks
-│   ├── GcveSync.kt                            # Scheduled GCVE synchronization (parallel to NVD)
-│   └── VulnerabilityDataSync.kt               # Scheduled vulnerability data sync (leader-elected)
+│   ├── Kafka.kt                               # Kafka consumer + producer lifecycle management
+│   ├── LeaderElection.kt                      # Kubernetes leader election (used by sync schedulers as publishers)
+│   ├── GcveSync.kt                            # Scheduled GCVE sync (leader publishes Kafka command)
+│   └── VulnerabilityDataSync.kt               # Scheduled vuln sync (leader publishes Kafka command)
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
@@ -105,7 +105,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 - **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
 - **GCVE (db.gcve.eu)** - CVE v5 enrichment from CIRCL's Vulnerability-Lookup (PostgreSQL-backed, parallel to NVD, incremental sync every 2 hours + targeted miss-path fetches)
-- **Kafka** - Receives JSON data from other applications (optional)
+- **Kafka** - Receives GitHub repository/vulnerability data; also used to dispatch sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
 - **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
 
 ### Data Persistence Strategy
@@ -113,7 +113,8 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
-- Synced at 6am and 6pm Oslo time from Nais API (leader-elected)
+- Synced at 6am and 6pm Oslo time from Nais API — leader publishes a Kafka command, consumer executes
+- On user request, stale teams trigger a `team_sync` Kafka command; SSE event `team_sync_started` is sent immediately, `team_sync_complete` when done
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)
   - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)
@@ -124,7 +125,12 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 **Other Data Sources:**
 - **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
 - **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
-- **GCVE data**: Incremental sync every 2 hours using `since=` sweep (only tracked CVEs). Missing CVEs fetched on demand via miss path when users fetch vulnerabilities (async, fire-and-forget).
+- **GCVE data**: Incremental sync every 2 hours — leader publishes `gcve_sync` Kafka command, consumer executes. Missing CVEs fetched on demand via miss path (async, fire-and-forget).
+
+**SSE Events (`GET /events`, authenticated):**
+- `team_sync_started` — backend is fetching fresh vulnerability data for a team
+- `team_sync_complete` — team data is updated and ready to fetch
+- `gcve_sync_complete` — GCVE incremental sync finished
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`

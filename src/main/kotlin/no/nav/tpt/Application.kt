@@ -9,6 +9,7 @@ import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.swagger.swaggerUI
+import io.ktor.server.sse.SSE
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.request.*
 import kotlinx.serialization.json.Json
@@ -24,6 +25,7 @@ import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.remediationRoutes
+import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
@@ -36,6 +38,7 @@ fun main() {
 
 fun Application.module() {
     install(DependenciesPlugin)
+    install(SSE)
 
     install(CallLogging) {
         level = Level.INFO
@@ -80,6 +83,7 @@ fun Application.module() {
         vulnerabilitySearchRoutes()
         remediationRoutes()
         adminRoutes()
+        sseRoutes(dependencies.sseEventBus)
     }
 }
 

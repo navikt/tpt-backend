@@ -8,13 +8,16 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import no.nav.tpt.domain.admin.AdminService
+import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
+import no.nav.tpt.infrastructure.admin.AdminReportRepository
+import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
 import no.nav.tpt.infrastructure.admin.AdminServiceImpl
+import no.nav.tpt.infrastructure.ai.GeminiVertexAiClient
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevClient
@@ -28,34 +31,33 @@ import no.nav.tpt.infrastructure.epss.EpssRepositoryImpl
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.EpssServiceImpl
 import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
+import no.nav.tpt.infrastructure.gcve.GcveClient
+import no.nav.tpt.infrastructure.gcve.GcveMissPathService
+import no.nav.tpt.infrastructure.gcve.GcveRepository
+import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
+import no.nav.tpt.infrastructure.gcve.GcveSyncService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
+import no.nav.tpt.infrastructure.kafka.KafkaConfig
+import no.nav.tpt.infrastructure.kafka.KafkaProducerService
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
+import no.nav.tpt.infrastructure.remediation.RemediationCacheRepositoryImpl
+import no.nav.tpt.infrastructure.remediation.RemediationServiceImpl
+import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
 import no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
-import no.nav.tpt.domain.remediation.RemediationService
-import no.nav.tpt.infrastructure.ai.GeminiVertexAiClient
-import no.nav.tpt.infrastructure.remediation.RemediationCacheRepositoryImpl
-import no.nav.tpt.infrastructure.remediation.RemediationServiceImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
-import no.nav.tpt.infrastructure.gcve.GcveClient
-import no.nav.tpt.infrastructure.gcve.GcveMissPathService
-import no.nav.tpt.infrastructure.gcve.GcveRepository
-import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
-import no.nav.tpt.infrastructure.gcve.GcveSyncService
-import no.nav.tpt.infrastructure.admin.AdminReportRepository
-import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
-import kotlinx.coroutines.sync.Semaphore
+import org.slf4j.LoggerFactory
 
 @Suppress("unused")
 class Dependencies(
@@ -79,6 +81,8 @@ class Dependencies(
     val remediationService: RemediationService?,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
+    val sseEventBus: SseEventBus,
+    val kafkaProducerService: KafkaProducerService?,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -96,8 +100,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
                 prettyPrint = true
                 isLenient = true
                 ignoreUnknownKeys = true
-                explicitNulls = false  // Treat missing fields as null for nullable properties
-                coerceInputValues = true  // Coerce unexpected values to defaults
+                explicitNulls = false
+                coerceInputValues = true
             })
         }
     }
@@ -144,13 +148,14 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityRepository = vulnerabilityRepository
     )
 
-    val onDemandSyncSemaphore = Semaphore(permits = 3)
+    val sseEventBus = SseEventBus()
+
+    val kafkaProducerService = KafkaConfig.fromEnvironment()?.let { KafkaProducerService(it) }
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
-        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
-        scope = application,
-        syncSemaphore = onDemandSyncSemaphore,
+        kafkaProducer = kafkaProducerService,
+        sseEventBus = sseEventBus,
     )
 
     val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
@@ -176,7 +181,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         naisApiService = naisApiClient,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         vulnerabilityRepository = vulnerabilityRepository,
-        leaderElection = leaderElection,
         adminReportRepository = adminReportRepository,
     )
 
@@ -221,6 +225,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         remediationService = remediationService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
+        sseEventBus = sseEventBus,
+        kafkaProducerService = kafkaProducerService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)
@@ -231,4 +237,3 @@ val Application.dependencies: Dependencies
 
 val ApplicationCall.dependencies: Dependencies
     get() = application.dependencies
-
