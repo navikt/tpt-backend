@@ -41,16 +41,15 @@ class SseRoutesTest {
             followRedirects = false
         }
 
-        val response = client.prepareGet("/events") {
+        val (status, contentType) = client.prepareGet("/events") {
             header(HttpHeaders.Authorization, "Bearer valid-token")
             header(HttpHeaders.Accept, "text/event-stream")
             timeout { requestTimeoutMillis = 500 }
         }.execute { resp ->
-            resp
+            resp.status to resp.headers[HttpHeaders.ContentType]
         }
 
-        assertEquals(HttpStatusCode.OK, response.status)
-        val contentType = response.headers[HttpHeaders.ContentType]
+        assertEquals(HttpStatusCode.OK, status)
         assertEquals("text/event-stream", contentType?.substringBefore(";")?.trim())
     }
 }

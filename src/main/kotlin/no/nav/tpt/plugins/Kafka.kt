@@ -17,10 +17,12 @@ fun Application.configureKafka() {
         return
     }
 
-    logger.info("Initializing Kafka producer and consumers for topic: ${kafkaConfig.topic}")
+    val producer = dependencies.kafkaProducerService ?: run {
+        logger.warn("Kafka is configured but kafkaProducerService is null — skipping Kafka initialization")
+        return
+    }
 
-    val producer = KafkaProducerService(kafkaConfig)
-    attributes.put(KafkaProducerServiceKey, producer)
+    logger.info("Initializing Kafka consumers for topic: ${kafkaConfig.topic}")
 
     val consumers = listOf(
         RepositoryDataConsumer(
@@ -56,7 +58,6 @@ fun Application.configureKafka() {
 }
 
 val KafkaConsumersKey = AttributeKey<List<KafkaConsumerService>>("KafkaConsumers")
-val KafkaProducerServiceKey = AttributeKey<KafkaProducerService>("KafkaProducerService")
 
 val Application.kafkaConsumers: List<KafkaConsumerService>?
     get() = attributes.getOrNull(KafkaConsumersKey)

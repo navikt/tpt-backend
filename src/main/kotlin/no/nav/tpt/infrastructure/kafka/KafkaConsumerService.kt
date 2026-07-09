@@ -89,6 +89,12 @@ open class KafkaConsumerService(
             put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString())
             if (autoCommit) {
                 put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000")
+            } else {
+                // One record at a time: prevents committing unprocessed records in the batch.
+                // Extended poll interval: long-running jobs (e.g. full team sync) can exceed
+                // the default 5 minutes without triggering an unwanted rebalance.
+                put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1")
+                put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "${2 * 60 * 60 * 1000}") // 2 hours
             }
 
             if (kafkaConfig.keystorePath.isNotEmpty()) {
