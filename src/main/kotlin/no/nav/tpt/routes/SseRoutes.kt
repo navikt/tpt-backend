@@ -13,6 +13,7 @@ import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.dependencies
+import kotlin.time.Duration.Companion.seconds
 
 fun Route.sseRoutes(sseEventBus: SseEventBus) {
     val json = Json { ignoreUnknownKeys = true }
@@ -24,6 +25,11 @@ fun Route.sseRoutes(sseEventBus: SseEventBus) {
 
             val userContext = call.dependencies.userContextService.getUserContext(email, principal.groups)
             val userTeamSlugs = userContext.teams.toSet()
+
+            heartbeat {
+                period = 15.seconds
+                event = ServerSentEvent(comments = "heartbeat")
+            }
 
             sseEventBus.events
                 .filter { event ->
