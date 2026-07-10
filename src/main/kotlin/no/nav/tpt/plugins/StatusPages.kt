@@ -5,6 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.serialization.SerializationException
 import no.nav.tpt.domain.ProblemDetail
 import org.slf4j.LoggerFactory
@@ -126,6 +127,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<Exception> { call, cause ->
+            if (cause is ClosedWriteChannelException) return@exception
             logger.error("Unhandled exception for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
             call.respond(
                 HttpStatusCode.InternalServerError,

@@ -5,6 +5,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.sse.ServerSentEvent
+import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.onEach
@@ -31,23 +32,27 @@ fun Route.sseRoutes(sseEventBus: SseEventBus) {
                 event = ServerSentEvent(comments = "heartbeat")
             }
 
-            sseEventBus.events
-                .filter { event ->
-                    when (event) {
-                        is SseEvent.TeamSyncStarted -> event.teamSlug in userTeamSlugs
-                        is SseEvent.TeamSyncComplete -> event.teamSlug in userTeamSlugs
-                        is SseEvent.GcveSyncComplete -> true
+            try {
+                sseEventBus.events
+                    .filter { event ->
+                        when (event) {
+                            is SseEvent.TeamSyncStarted -> event.teamSlug in userTeamSlugs
+                            is SseEvent.TeamSyncComplete -> event.teamSlug in userTeamSlugs
+                            is SseEvent.GcveSyncComplete -> true
+                        }
                     }
-                }
-                .onEach { event ->
-                    val eventType = when (event) {
-                        is SseEvent.TeamSyncStarted -> "team_sync_started"
-                        is SseEvent.TeamSyncComplete -> "team_sync_complete"
-                        is SseEvent.GcveSyncComplete -> "gcve_sync_complete"
+                    .onEach { event ->
+                        val eventType = when (event) {
+                            is SseEvent.TeamSyncStarted -> "team_sync_started"
+                            is SseEvent.TeamSyncComplete -> "team_sync_complete"
+                            is SseEvent.GcveSyncComplete -> "gcve_sync_complete"
+                        }
+                        send(ServerSentEvent(data = json.encodeToString(SseEvent.serializer(), event), event = eventType))
                     }
-                    send(ServerSentEvent(data = json.encodeToString(SseEvent.serializer(), event), event = eventType))
-                }
-                .collect()
+                    .collect()
+            } catch (_: ClosedWriteChannelException) {
+                // Client disconnected — normal for SSE when the browser tab is closed or refreshed.
+            }
         }
     }
 }
