@@ -28,7 +28,6 @@ class VulnRichmentServiceImpl(
     private val riskScorer: RiskScorer,
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository,
-    private val gcveMissPathService: no.nav.tpt.infrastructure.gcve.GcveMissPathService? = null,
     private val gcveRepository: GcveRepository? = null,
     private val useGcveDataSource: Boolean = false,
 ) : VulnRichmentService {
@@ -40,28 +39,6 @@ class VulnRichmentServiceImpl(
         val epssScores: Map<String, no.nav.tpt.infrastructure.epss.EpssScore>,
         val gcveData: Map<String, GcveCveData>,
     )
-
-    private fun triggerGcveMissPathFetchAsync(cveIds: List<String>) {
-        if (gcveMissPathService == null) {
-            logger.debug("GCVE miss-path service not available, skipping async fetch")
-            return
-        }
-
-        if (cveIds.isEmpty()) {
-            return
-        }
-
-        // Fire and forget: don't block on this
-        GlobalScope.launch {
-            try {
-                logger.debug("Async GCVE miss-path fetch triggered for ${cveIds.size} CVEs")
-                val fetched = gcveMissPathService.fetchMissing(cveIds)
-                logger.info("Async GCVE miss-path fetch completed: $fetched/${cveIds.size} CVEs fetched")
-            } catch (e: Exception) {
-                logger.warn("Async GCVE miss-path fetch failed: ${e.message}", e)
-            }
-        }
-    }
 
     private suspend fun fetchCveEnrichmentData(cveIds: List<String>): CveEnrichmentData {
         val kevCatalog = try {
@@ -137,7 +114,6 @@ class VulnRichmentServiceImpl(
             .filter { it.startsWith("CVE-", ignoreCase = true) }
             .distinct()
 
-        triggerGcveMissPathFetchAsync(allCveIds)
         val enrichmentData = fetchCveEnrichmentData(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
@@ -211,7 +187,6 @@ class VulnRichmentServiceImpl(
             .filter { it.startsWith("CVE-", ignoreCase = true) }
             .distinct()
 
-        triggerGcveMissPathFetchAsync(allCveIds)
         val enrichmentData = fetchCveEnrichmentData(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
@@ -289,7 +264,6 @@ class VulnRichmentServiceImpl(
             .map { it.value }
             .distinct()
 
-        triggerGcveMissPathFetchAsync(allCveIds)
         val enrichmentData = fetchCveEnrichmentData(allCveIds)
 
         val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.GitHubVulnRepositoryDto>>()

@@ -32,7 +32,6 @@ import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.EpssServiceImpl
 import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
 import no.nav.tpt.infrastructure.gcve.GcveClient
-import no.nav.tpt.infrastructure.gcve.GcveMissPathService
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
 import no.nav.tpt.infrastructure.gcve.GcveSyncService
@@ -164,7 +163,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
     val gcveRepository = GcveRepositoryImpl(database)
     val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
-    val gcveMissPathService = GcveMissPathService(gcveClient, gcveRepository)
 
     val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
@@ -173,7 +171,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
-        gcveMissPathService = gcveMissPathService,
         gcveRepository = gcveRepository,
     )
 
