@@ -13,6 +13,8 @@ data class GcveCveRecord(
     val dataVersion: String,
     val cveMetadata: GcveCveMetadata,
     val containers: GcveContainers,
+    @SerialName("vulnerability-lookup:meta")
+    val meta: GcveVulnMeta? = null,
 ) {
     companion object {
         fun toDomainModel(record: GcveCveRecord): GcveCveData {
@@ -71,6 +73,15 @@ data class GcveCveRecord(
             val lastUpdatedDate = record.cveMetadata.dateUpdated?.let { parseTimestamp(it) }
             val now = LocalDateTime.now()
 
+            val affectedProducts = cna.affected?.map { affected ->
+                GcveAffectedProduct(
+                    vendor = affected.vendor,
+                    product = affected.product,
+                    defaultStatus = affected.defaultStatus,
+                    versions = affected.versions ?: emptyList(),
+                )
+            } ?: emptyList()
+
             return GcveCveData(
                 cveId = record.cveMetadata.cveId,
                 cnaSource = cna.providerMetadata?.shortName,
@@ -94,6 +105,8 @@ data class GcveCveRecord(
                 kevDateAdded = kevMetric?.dateAdded,
                 daysOld = publishedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
                 daysSinceModified = lastUpdatedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
+                affectedProducts = affectedProducts,
+                epssScore = record.meta?.epss,
             )
         }
 
@@ -266,6 +279,21 @@ data class GcveEpssData(
     val date: String,
 )
 
+@Serializable
+data class GcveVulnMeta(
+    val epss: GcveEpssData? = null,
+)
+
+// Domain model for affected product/version info from CNA
+
+@Serializable
+data class GcveAffectedProduct(
+    val vendor: String?,
+    val product: String?,
+    val defaultStatus: String?,
+    val versions: List<GcveVersion>,
+)
+
 // Domain model (what we store in the database)
 
 data class GcveCveData(
@@ -291,4 +319,6 @@ data class GcveCveData(
     val kevDateAdded: String?,
     val daysOld: Long,
     val daysSinceModified: Long,
+    val affectedProducts: List<GcveAffectedProduct> = emptyList(),
+    val epssScore: GcveEpssData? = null,
 )

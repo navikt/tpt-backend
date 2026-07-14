@@ -1,7 +1,6 @@
 package no.nav.tpt.infrastructure.gcve
 
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -49,6 +48,7 @@ class GcveClient(
         return try {
             val response = executeWithRetry {
                 httpClient.get("$baseUrl/vulnerability/$cveId") {
+                    parameter("with_meta", "true")
                     applyCommonHeaders()
                 }
             } ?: return null
@@ -103,7 +103,7 @@ class GcveClient(
     suspend fun getVulnerabilitiesSince(
         since: String,
         page: Int = 1,
-        perPage: Int = 50,
+        perPage: Int = 25,
         source: String? = "cvelistv5",
     ): List<GcveCveRecord>? {
         if (circuitBreaker.isOpen()) {
@@ -118,6 +118,7 @@ class GcveClient(
                     parameter("per_page", perPage)
                     parameter("page", page)
                     parameter("date_sort", "updated")
+                    parameter("with_meta", "true")
                     source?.let { parameter("source", it) }
                     applyCommonHeaders()
                 }
@@ -171,39 +172,6 @@ class GcveClient(
         }
 
         return records
-    }
-
-    suspend fun getEpssScore(cveId: String): GcveEpssData? {
-        if (circuitBreaker.isOpen()) {
-            logger.warn("Circuit breaker is OPEN - skipping GCVE EPSS fetch for $cveId")
-            return null
-        }
-
-        return try {
-            val response = executeWithRetry {
-                httpClient.get("$baseUrl/epss/$cveId") {
-                    applyCommonHeaders()
-                }
-            } ?: return null
-
-            when {
-                response.status == HttpStatusCode.NotFound -> null
-                response.status.isSuccess() -> {
-                    circuitBreaker.recordSuccess()
-                    val epssResponse = response.body<GcveEpssResponse>()
-                    epssResponse.data.firstOrNull()
-                }
-                else -> {
-                    logger.warn("GCVE EPSS returned ${response.status.value} for $cveId")
-                    circuitBreaker.recordFailure()
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("Failed to fetch EPSS score from GCVE for $cveId: ${e::class.simpleName}: ${e.message}", e)
-            circuitBreaker.recordFailure()
-            null
-        }
     }
 
     private suspend fun executeWithRetry(request: suspend () -> HttpResponse): HttpResponse? {

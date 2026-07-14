@@ -50,6 +50,18 @@ object PurlParser {
         return type.lowercase().takeIf { it.isNotBlank() }
     }
 
+    fun extractVersion(purl: String?): String? {
+        if (purl.isNullOrBlank()) return null
+        if (!purl.startsWith("pkg:")) return null
+
+        val withoutScheme = purl.substringAfter("pkg:").trimStart('/')
+        val pathPart = withoutScheme.substringBefore('?').substringBefore('#')
+        val lastSegment = pathPart.split('/').lastOrNull() ?: return null
+        val atIndex = lastSegment.lastIndexOf('@')
+        if (atIndex < 0) return null
+        return lastSegment.substring(atIndex + 1).takeIf { it.isNotBlank() }
+    }
+
     private fun percentDecode(value: String): String {
         return try {
             URLDecoder.decode(value, StandardCharsets.UTF_8.name())

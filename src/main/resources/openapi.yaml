@@ -781,6 +781,7 @@ components:
         - totalScore
         - factors
         - suppressed
+        - vexNotAffected
       properties:
         factors:
           type: array
@@ -795,6 +796,10 @@ components:
         suppressed:
           type: boolean
           description: Whether the score was reduced by the suppression multiplier (0.2x). When true, totalScore = sum(factor.points) * 0.2
+          example: false
+        vexNotAffected:
+          type: boolean
+          description: Whether the package version was confirmed outside all affected version ranges (VEX). When true, score is further reduced by 0.5x
           example: false
     RiskFactorExplanation:
       type: object

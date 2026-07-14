@@ -34,7 +34,7 @@ class GcveClientTest {
     @Test
     fun `should fetch single vulnerability by CVE ID`() = runTest {
         val mockEngine = MockEngine { request ->
-            assertEquals("$mockBaseUrl/vulnerability/CVE-2021-44228", request.url.toString())
+            assertEquals("$mockBaseUrl/vulnerability/CVE-2021-44228?with_meta=true", request.url.toString())
             respond(
                 content = GcveModelsTest.LOG4J_RESPONSE,
                 status = HttpStatusCode.OK,
@@ -151,7 +151,8 @@ class GcveClientTest {
             val url = request.url.toString()
             assertTrue(url.contains("vulnerability/"))
             assertTrue(url.contains("since=2026-07-01T00%3A00%3A00") || url.contains("since=2026-07-01T00:00:00"))
-            assertTrue(url.contains("per_page=50"))
+            assertTrue(url.contains("per_page=25"))
+            assertTrue(url.contains("with_meta=true"))
             assertTrue(url.contains("date_sort=updated"))
             respond(
                 content = GcveModelsTest.LIST_RESPONSE,
@@ -440,37 +441,6 @@ class GcveClientTest {
 
         val client = createClient(mockEngine)
         val result = client.getVulnerability("CVE-2021-44228")
-
-        assertNull(result)
-    }
-
-    @Test
-    fun `should fetch EPSS score for a vulnerability`() = runTest {
-        val mockEngine = MockEngine { request ->
-            assertEquals("$mockBaseUrl/epss/CVE-2021-44228", request.url.toString())
-            respond(
-                content = GcveModelsTest.EPSS_RESPONSE,
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
-        val client = createClient(mockEngine)
-        val result = client.getEpssScore("CVE-2021-44228")
-
-        assertNotNull(result)
-        assertEquals("CVE-2021-44228", result.cve)
-        assertEquals("0.99999", result.epss)
-    }
-
-    @Test
-    fun `should return null EPSS for 404`() = runTest {
-        val mockEngine = MockEngine {
-            respond(content = "Not Found", status = HttpStatusCode.NotFound)
-        }
-
-        val client = createClient(mockEngine)
-        val result = client.getEpssScore("CVE-9999-99999")
 
         assertNull(result)
     }

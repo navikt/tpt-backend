@@ -186,5 +186,42 @@ class PurlParserTest {
     fun `should return null for non-PURL string in extractPackageType`() {
         assertNull(PurlParser.extractPackageType("https://example.com/package"))
     }
+
+    // extractVersion tests
+
+    @Test
+    fun `should extract version from maven PURL`() {
+        assertEquals("2.13.0", PurlParser.extractVersion("pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.0"))
+    }
+
+    @Test
+    fun `should extract version from npm PURL`() {
+        assertEquals("15.0.0", PurlParser.extractVersion("pkg:npm/%40angular/core@15.0.0"))
+    }
+
+    @Test
+    fun `should extract version from pypi PURL`() {
+        assertEquals("1.11.1", PurlParser.extractVersion("pkg:pypi/django@1.11.1"))
+    }
+
+    @Test
+    fun `should extract version ignoring qualifiers`() {
+        assertEquals("2.0", PurlParser.extractVersion("pkg:maven/org.apache/log4j@2.0?packaging=jar"))
+    }
+
+    @Test
+    fun `should return null when no version in PURL`() {
+        assertNull(PurlParser.extractVersion("pkg:npm/foobar"))
+    }
+
+    @Test
+    fun `should return null for null input in extractVersion`() {
+        assertNull(PurlParser.extractVersion(null))
+    }
+
+    @Test
+    fun `should return null for non-PURL in extractVersion`() {
+        assertNull(PurlParser.extractVersion("https://example.com"))
+    }
 }
 

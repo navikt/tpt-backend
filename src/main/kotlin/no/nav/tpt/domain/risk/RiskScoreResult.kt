@@ -13,6 +13,7 @@ data class RiskScoreBreakdown(
     val totalScore: Double,
     val factors: List<RiskFactorExplanation>,
     val suppressed: Boolean = false,
+    val vexNotAffected: Boolean = false,
 )
 
 @Serializable

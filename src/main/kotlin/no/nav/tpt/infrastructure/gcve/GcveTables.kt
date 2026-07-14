@@ -33,6 +33,8 @@ object GcveCves : Table("gcve_cves") {
     val hasKevEntry = bool("has_kev_entry").default(false)
     val kevDateAdded = varchar("kev_date_added", 20).nullable()
 
+    val affectedProducts = text("affected_products").nullable()
+
     val rawResponse = text("raw_response").nullable()
 
     val fetchedAt = timestamp("fetched_at").defaultExpression(CurrentTimestamp)

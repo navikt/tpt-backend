@@ -1,12 +1,15 @@
 package no.nav.tpt.infrastructure.gcve
 
 import kotlinx.serialization.json.Json
+import no.nav.tpt.infrastructure.epss.EpssRepository
+import no.nav.tpt.infrastructure.epss.EpssScore
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
 class GcveSyncService(
     private val gcveClient: GcveClient,
     private val gcveRepository: GcveRepository,
+    private val epssRepository: EpssRepository? = null,
 ) {
     private val logger = LoggerFactory.getLogger(GcveSyncService::class.java)
     private val json = Json {
@@ -54,6 +57,8 @@ class GcveSyncService(
                 val stats = gcveRepository.upsertCves(domainModels, rawResponses)
                 totalUpserted += stats.added + stats.updated
                 logger.info("Page $page: fetched ${records.size}, filtered to ${filtered.size}, upserted (added: ${stats.added}, updated: ${stats.updated})")
+
+                upsertEpssFromMeta(domainModels)
             } else {
                 logger.debug("Page $page: fetched ${records.size}, none in tracked set")
             }
@@ -70,5 +75,16 @@ class GcveSyncService(
         }
 
         return totalUpserted
+    }
+
+    private suspend fun upsertEpssFromMeta(domainModels: List<GcveCveData>) {
+        if (epssRepository == null) return
+        val scores = domainModels.mapNotNull { it.epssScore }.map { epss ->
+            EpssScore(cve = epss.cve, epss = epss.epss, percentile = epss.percentile, date = epss.date)
+        }
+        if (scores.isNotEmpty()) {
+            epssRepository.upsertEpssScores(scores)
+            logger.debug("Upserted ${scores.size} EPSS scores from GCVE meta")
+        }
     }
 }

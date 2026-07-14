@@ -569,5 +569,85 @@ class DefaultRiskScorerTest {
             "Suppressed critical vulnerability should score below low threshold (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), but got ${result.score}"
         )
     }
+
+    @Test
+    fun `should apply vexNotAffected multiplier and reduce score by half`() {
+        val baseScore = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = false,
+                environment = null,
+                buildDate = null,
+            )
+        ).score
+
+        val vexScore = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = false,
+                environment = null,
+                buildDate = null,
+                vexNotAffected = true,
+            )
+        ).score
+
+        assertEquals(baseScore * config.vexNotAffectedMultiplier, vexScore, 0.001)
+        assertTrue(vexScore < baseScore)
+    }
+
+    @Test
+    fun `should set vexNotAffected flag in breakdown`() {
+        val result = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = false,
+                environment = null,
+                buildDate = null,
+                vexNotAffected = true,
+            )
+        )
+
+        assertTrue(result.breakdown?.vexNotAffected == true)
+    }
+
+    @Test
+    fun `should stack vexNotAffected and suppressed multipliers`() {
+        val baseScore = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = false,
+                environment = null,
+                buildDate = null,
+            )
+        ).score
+
+        val stackedScore = riskScorer.calculateRiskScore(
+            VulnerabilityRiskContext(
+                severity = "HIGH",
+                ingressTypes = listOf("EXTERNAL"),
+                hasKevEntry = false,
+                epssScore = null,
+                suppressed = true,
+                environment = null,
+                buildDate = null,
+                vexNotAffected = true,
+            )
+        ).score
+
+        val expected = baseScore * config.suppressedMultiplier * config.vexNotAffectedMultiplier
+        assertEquals(expected, stackedScore, 0.001)
+    }
 }
 

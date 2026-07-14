@@ -86,6 +86,7 @@ class GcveRepositoryImpl(
                     this[GcveCves.ssvcTechnicalImpact] = cveData.ssvcTechnicalImpact
                     this[GcveCves.hasKevEntry] = cveData.hasKevEntry
                     this[GcveCves.kevDateAdded] = cveData.kevDateAdded
+                    this[GcveCves.affectedProducts] = json.encodeToString<List<GcveAffectedProduct>>(cveData.affectedProducts)
                     this[GcveCves.rawResponse] = rawResponses[cveData.cveId]
                     this[GcveCves.fetchedAt] = Instant.now()
                     this[GcveCves.updatedAt] = Instant.now()
@@ -167,6 +168,8 @@ class GcveRepositoryImpl(
             kevDateAdded = row[GcveCves.kevDateAdded],
             daysOld = publishedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
             daysSinceModified = lastUpdatedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
+            affectedProducts = row[GcveCves.affectedProducts]
+                ?.let { json.decodeFromString<List<GcveAffectedProduct>>(it) } ?: emptyList(),
         )
     }
 }

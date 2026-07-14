@@ -1,7 +1,5 @@
 package no.nav.tpt.infrastructure.vulnrichment
 
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import no.nav.tpt.domain.DependencyCategory
 import no.nav.tpt.domain.VulnResponse
 import no.nav.tpt.domain.VulnTeamDto
@@ -19,6 +17,7 @@ import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.nais.ImageTagParser
 import no.nav.tpt.infrastructure.vulnrichment.utils.PurlParser
+import no.nav.tpt.infrastructure.vulnrichment.utils.VersionMatcher
 import org.slf4j.LoggerFactory
 
 class VulnRichmentServiceImpl(
@@ -73,6 +72,7 @@ class VulnRichmentServiceImpl(
         environment: String?,
         buildDate: java.time.LocalDate?,
         enrichmentData: CveEnrichmentData,
+        packageName: String? = null,
     ): no.nav.tpt.domain.risk.VulnerabilityRiskContext {
         val epssScore = enrichmentData.epssScores[cveId]
         val hasKevEntry = enrichmentData.kevCveIds.contains(cveId)
@@ -95,6 +95,13 @@ class VulnRichmentServiceImpl(
             ssvcAutomatable = gcveData?.ssvcAutomatable,
             ssvcTechnicalImpact = gcveData?.ssvcTechnicalImpact,
             hasCvssScore = gcveData != null && (gcveData.cvssV31Score != null || gcveData.cvssV40Score != null),
+            vexNotAffected = run {
+                val version = PurlParser.extractVersion(packageName)
+                val type = PurlParser.extractPackageType(packageName)
+                if (version != null && type != null && gcveData != null) {
+                    VersionMatcher.isNotAffected(gcveData.affectedProducts, type, version)
+                } else false
+            },
         )
     }
 
@@ -134,6 +141,7 @@ class VulnRichmentServiceImpl(
                         environment = workload.environment,
                         buildDate = buildDate,
                         enrichmentData = enrichmentData,
+                        packageName = vuln.packageName,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -205,6 +213,7 @@ class VulnRichmentServiceImpl(
                         environment = workload.environment,
                         buildDate = buildDate,
                         enrichmentData = enrichmentData,
+                        packageName = vuln.packageName,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
 
@@ -286,6 +295,7 @@ class VulnRichmentServiceImpl(
                     environment = null,
                     buildDate = null,
                     enrichmentData = enrichmentData,
+                    packageName = vuln.packageName,
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
 

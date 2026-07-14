@@ -162,7 +162,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
     val gcveRepository = GcveRepositoryImpl(database)
-    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
+    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository, epssRepository)
 
     val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
