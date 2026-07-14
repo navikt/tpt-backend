@@ -13,14 +13,14 @@ class ActionabilityCalculatorTest {
     private fun context(
         hasPatchReference: Boolean = false,
         hasRansomwareCampaignUse: Boolean = false,
-        nvdVulnStatus: String? = "Analyzed",
+        hasCvssScore: Boolean = true,
     ) = VulnerabilityRiskContext(
         severity = "HIGH", ingressTypes = emptyList(),
         hasKevEntry = false, epssScore = null, suppressed = false,
         environment = null, buildDate = null,
         hasPatchReference = hasPatchReference,
         hasRansomwareCampaignUse = hasRansomwareCampaignUse,
-        nvdVulnStatus = nvdVulnStatus,
+        hasCvssScore = hasCvssScore,
     )
 
     @Test
@@ -45,26 +45,14 @@ class ActionabilityCalculatorTest {
     }
 
     @Test
-    fun `should return penalty points when NVD is analyzed and neither patch nor ransomware`() {
-        val result = calculator.calculate(context(nvdVulnStatus = "Analyzed"))
+    fun `should return penalty points when CVSS score is present and neither patch nor ransomware`() {
+        val result = calculator.calculate(context(hasCvssScore = true))
         assertEquals(config.actionabilityNoPatchPenalty, result.points)
     }
 
     @Test
-    fun `should return penalty points when NVD is modified and neither patch nor ransomware`() {
-        val result = calculator.calculate(context(nvdVulnStatus = "Modified"))
-        assertEquals(config.actionabilityNoPatchPenalty, result.points)
-    }
-
-    @Test
-    fun `should not penalize when NVD analysis is pending`() {
-        val result = calculator.calculate(context(nvdVulnStatus = "Awaiting Analysis"))
-        assertEquals(0, result.points)
-    }
-
-    @Test
-    fun `should not penalize when NVD status is null`() {
-        val result = calculator.calculate(context(nvdVulnStatus = null))
+    fun `should not penalize when CVSS score is absent`() {
+        val result = calculator.calculate(context(hasCvssScore = false))
         assertEquals(0, result.points)
     }
 

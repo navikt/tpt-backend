@@ -28,6 +28,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
 │   ├── remediation/                           # AI remediation cache and service implementation
+│   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
 │   ├── vulnerability/                         # Vulnerability data layer implementations
@@ -51,7 +52,6 @@ src/main/kotlin/no/nav/tpt/
 
 src/main/resources/
 ├── db/migration/                              # Flyway database migrations
-├── graphql/                                   # GraphQL queries for Nais API
 ├── logback.xml                                # Logging configuration
 └── openapi.yaml                               # OpenAPI specification
 

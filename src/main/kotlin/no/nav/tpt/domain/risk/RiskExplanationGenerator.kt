@@ -75,13 +75,13 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             val hasPatch = factor.metadata["hasPatch"] as? Boolean ?: false
             val hasRansomware = factor.metadata["hasRansomwareCampaignUse"] as? Boolean ?: false
             val penalty = factor.metadata["noPatchPenalty"] as? Int ?: 0
-            val nvdAnalysisComplete = factor.metadata["nvdAnalysisComplete"] as? Boolean ?: false
+            val hasCvssScore = factor.metadata["hasCvssScore"] as? Boolean ?: false
             val penaltySuffix = if (penalty < 0) " (no fix available — deprioritized)" else ""
             when {
                 hasPatch && hasRansomware -> "Patch available; linked to ransomware campaigns"
                 hasPatch -> "Patch is available"
                 hasRansomware -> "Linked to known ransomware campaigns"
-                !nvdAnalysisComplete -> "Patch status unknown (NVD analysis pending)"
+                !hasCvssScore -> "Patch status unknown (no CVSS score available)"
                 else -> "No patch or ransomware data$penaltySuffix"
             }
         }

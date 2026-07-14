@@ -94,7 +94,7 @@ class VulnRichmentServiceImpl(
             ssvcExploitation = gcveData?.ssvcExploitation,
             ssvcAutomatable = gcveData?.ssvcAutomatable,
             ssvcTechnicalImpact = gcveData?.ssvcTechnicalImpact,
-            nvdVulnStatus = null,
+            hasCvssScore = gcveData != null && (gcveData.cvssV31Score != null || gcveData.cvssV40Score != null),
         )
     }
 

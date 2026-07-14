@@ -11,10 +11,9 @@ class ActionabilityCalculator(private val config: RiskScoringConfig) : FactorCal
     override val maxPoints = config.actionabilityPatchAvailablePoints + config.actionabilityRansomwarePoints
 
     override fun calculate(context: VulnerabilityRiskContext): RiskFactor {
-        val nvdAnalysisComplete = context.nvdVulnStatus == "Analyzed" || context.nvdVulnStatus == "Modified"
         val patchPoints = if (context.hasPatchReference) config.actionabilityPatchAvailablePoints else 0
         val ransomwarePoints = if (context.hasRansomwareCampaignUse) config.actionabilityRansomwarePoints else 0
-        val noPatchPenalty = if (!context.hasPatchReference && !context.hasRansomwareCampaignUse && nvdAnalysisComplete)
+        val noPatchPenalty = if (!context.hasPatchReference && !context.hasRansomwareCampaignUse && context.hasCvssScore)
             config.actionabilityNoPatchPenalty else 0
         val total = patchPoints + ransomwarePoints + noPatchPenalty
 
@@ -26,7 +25,7 @@ class ActionabilityCalculator(private val config: RiskScoringConfig) : FactorCal
                 "hasPatch" to context.hasPatchReference,
                 "hasRansomwareCampaignUse" to context.hasRansomwareCampaignUse,
                 "noPatchPenalty" to noPatchPenalty,
-                "nvdAnalysisComplete" to nvdAnalysisComplete,
+                "hasCvssScore" to context.hasCvssScore,
             )
         )
     }
