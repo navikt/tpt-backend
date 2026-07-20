@@ -8,8 +8,6 @@ data class AppConfig(
     val epssApiUrl: String,
     val teamkatalogenUrl: String,
     val adminGroups: String?,
-    val aiApiUrl: String?,
-    val aiModel: String = "gemini-2.5-flash",
     val gcveApiUrl: String = "https://db.gcve.eu/api",
     val gcveApiKey: String? = null,
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
@@ -40,9 +38,6 @@ data class AppConfig(
 
             val adminGroups = System.getenv("ADMIN_GROUPS")
 
-            val aiApiUrl = System.getenv("AI_API_URL")
-            val aiModel = System.getenv("AI_MODEL") ?: "gemini-2.5-flash"
-
             val gcveApiUrl = System.getenv("GCVE_API_URL") ?: "https://db.gcve.eu/api"
             val gcveApiKey = System.getenv("GCVE_API_KEY")
 
@@ -54,8 +49,6 @@ data class AppConfig(
                 epssApiUrl = epssApiUrl,
                 teamkatalogenUrl = teamkatalogenUrl,
                 adminGroups = adminGroups,
-                aiApiUrl = aiApiUrl,
-                aiModel = aiModel,
                 gcveApiUrl = gcveApiUrl,
                 gcveApiKey = gcveApiKey
             )

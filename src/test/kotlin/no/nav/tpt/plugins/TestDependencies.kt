@@ -28,11 +28,9 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
 import no.nav.tpt.domain.user.UserContextService
-import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
-import no.nav.tpt.routes.remediationRoutes
 import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
@@ -46,8 +44,7 @@ fun Application.installTestDependencies(
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
-    httpClient: HttpClient? = null,
-    remediationService: RemediationService? = null
+    httpClient: HttpClient? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -72,8 +69,6 @@ fun Application.installTestDependencies(
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
-        aiModel = "gpt-null",
-        aiApiUrl = null
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
@@ -157,7 +152,6 @@ fun Application.installTestDependencies(
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = remediationService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
@@ -204,24 +198,5 @@ fun Application.testModule(
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
-    }
-}
-
-fun Application.remediationTestModule(
-    tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
-    remediationService: RemediationService? = null
-) {
-    installTestDependencies(tokenIntrospectionService, remediationService = remediationService)
-
-    install(SSE)
-    install(ServerContentNegotiation) {
-        json(Json { prettyPrint = true; isLenient = true })
-    }
-
-    configureAuthentication(dependencies.tokenIntrospectionService)
-    configureStatusPages()
-
-    routing {
-        remediationRoutes()
     }
 }

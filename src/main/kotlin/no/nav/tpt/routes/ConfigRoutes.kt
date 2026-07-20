@@ -30,7 +30,6 @@ fun Route.configRoutes() {
                 actionabilityMax = defaultScoringConfig.actionabilityPatchAvailablePoints +
                         defaultScoringConfig.actionabilityRansomwarePoints,
             ),
-            aiEnabled = call.dependencies.remediationService != null
         )
         call.respond(response)
     }

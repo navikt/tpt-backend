@@ -29,7 +29,6 @@ class ConfigRoutesTest {
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_CRITICAL, config.thresholds.critical)
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_HIGH, config.thresholds.high)
         assertEquals(AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM, config.thresholds.medium)
-        assertEquals(false, config.aiEnabled)
         assertEquals(25, config.scoring.severityMax)
         assertEquals(30, config.scoring.exploitationMax)
         assertEquals(25, config.scoring.exposureMax) // 20 external + 5 automatable bonus

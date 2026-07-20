@@ -147,8 +147,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
-        aiModel = "",
-        aiApiUrl = null
     )
 
     val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
@@ -173,7 +171,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
-        remediationService = null,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
         sseEventBus = sseEventBus,

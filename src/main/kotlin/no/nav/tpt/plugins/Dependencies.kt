@@ -9,7 +9,6 @@ import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.admin.AdminService
-import no.nav.tpt.domain.remediation.RemediationService
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
@@ -17,7 +16,6 @@ import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.admin.AdminReportRepository
 import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
 import no.nav.tpt.infrastructure.admin.AdminServiceImpl
-import no.nav.tpt.infrastructure.ai.GeminiVertexAiClient
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevClient
@@ -41,8 +39,6 @@ import no.nav.tpt.infrastructure.kafka.KafkaConfig
 import no.nav.tpt.infrastructure.kafka.KafkaProducerService
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
-import no.nav.tpt.infrastructure.remediation.RemediationCacheRepositoryImpl
-import no.nav.tpt.infrastructure.remediation.RemediationServiceImpl
 import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
@@ -77,7 +73,6 @@ class Dependencies(
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
-    val remediationService: RemediationService?,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
     val sseEventBus: SseEventBus,
@@ -187,20 +182,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         adminReportRepository = adminReportRepository,
     )
 
-    val remediationService = config.aiApiUrl?.let { apiBaseUrl ->
-        val aiClient = GeminiVertexAiClient(httpClient, apiBaseUrl, config.aiModel)
-        val remediationCacheRepository = RemediationCacheRepositoryImpl(database)
-        RemediationServiceImpl(
-            aiClient = aiClient,
-            cacheRepository = remediationCacheRepository,
-            epssService = epssService,
-            kevService = kevService,
-            gcveRepository = gcveRepository
-        )
-    }.also {
-        if (it == null) logger.warn("AI_API_URL not configured — remediation endpoint will be unavailable")
-    }
-
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -219,7 +200,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
-        remediationService = remediationService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
         sseEventBus = sseEventBus,
