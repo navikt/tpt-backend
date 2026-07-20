@@ -17,7 +17,6 @@ src/main/kotlin/no/nav/tpt/
 │   └── vulnerability/                         # Vulnerability domain models and repository interface
 ├── infrastructure/                            # External integrations and technical implementations
 │   ├── admin/                                 # Admin data aggregation and queries
-│   ├── ai/                                    # AI client abstraction (Gemini on Vertex AI)
 │   ├── auth/                                  # Token introspection and authentication
 │   ├── cisa/                                  # CISA KEV catalog integration (PostgreSQL-backed)
 │   ├── config/                                # Application configuration
@@ -27,7 +26,6 @@ src/main/kotlin/no/nav/tpt/
 │   ├── kafka/                                 # Kafka consumer + producer for sync commands and GitHub events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
-│   ├── remediation/                           # AI remediation cache and service implementation
 │   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
@@ -46,7 +44,6 @@ src/main/kotlin/no/nav/tpt/
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── ResponseHelpers.kt                     # RFC 9457 Problem Details error responses
 │   ├── VulnRoutes.kt                          # Vulnerability query endpoints
-│   ├── RemediationRoutes.kt                   # AI-powered remediation guide endpoint (SSE)
 │   └── VulnerabilitySearchRoutes.kt           # Vulnerability search and SLA endpoints
 └── Application.kt                             # Application entry point
 
@@ -78,8 +75,6 @@ src/test/                                      # Test suite mirroring main struc
 - `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
 - `KAFKA_TOPICS` - Comma-separated list of topics to consume
 - `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by Nais)
-- `AI_API_URL` - Vertex AI base URL for Gemini (e.g. `https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models`). If unset, the remediation endpoint returns 503.
-- `AI_MODEL` - Gemini model name (default: `gemini-2.5-flash`)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
 
@@ -106,7 +101,6 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 - **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
 - **GCVE (db.gcve.eu)** - CVE v5 enrichment from CIRCL's Vulnerability-Lookup (PostgreSQL-backed, parallel to NVD, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives GitHub repository/vulnerability data; also used to dispatch sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
-- **Vertex AI (Gemini)** - Generates AI remediation guides on demand (optional, requires `AI_API_URL`)
 
 ### Data Persistence Strategy
 

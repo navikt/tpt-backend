@@ -82,7 +82,6 @@ class Dependencies(
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
 
 val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
-    val logger = LoggerFactory.getLogger("Dependencies")
     val config = AppConfig.fromEnvironment()
 
     val httpClient = HttpClient(CIO) {
