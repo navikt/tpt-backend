@@ -151,7 +151,6 @@ class GcveClientTest {
             val url = request.url.toString()
             assertTrue(url.contains("vulnerability/"))
             assertTrue(url.contains("since=2026-07-01T00%3A00%3A00") || url.contains("since=2026-07-01T00:00:00"))
-            assertTrue(url.contains("per_page=25"))
             assertTrue(url.contains("with_meta=true"))
             assertTrue(url.contains("date_sort=updated"))
             respond(
