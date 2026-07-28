@@ -16,7 +16,7 @@ jobs:
     outputs:
       image: ${{ steps.docker-push.outputs.image }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
@@ -45,7 +45,7 @@ jobs:
       id-token: write
     needs: test-build
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb
@@ -73,6 +73,6 @@ jobs:
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+      - uses: github/codeql-action/upload-sarif@e0647621c2984b5ed2f768cb892365bf2a616ad1 # v4.37.2
         with:
           sarif_file: 'trivy.sarif'
