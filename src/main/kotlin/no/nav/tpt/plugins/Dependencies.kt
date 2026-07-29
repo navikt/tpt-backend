@@ -1,12 +1,14 @@
 package no.nav.tpt.plugins
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.util.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.UserAgent
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createApplicationPlugin
+import io.ktor.util.AttributeKey
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.admin.AdminService
 import no.nav.tpt.domain.user.AdminAuthorizationService
@@ -24,6 +26,8 @@ import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.cisa.KevServiceImpl
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
+import no.nav.tpt.infrastructure.datacollector.DataCollector
+import no.nav.tpt.infrastructure.datacollector.RealDataCollector
 import no.nav.tpt.infrastructure.epss.EpssClient
 import no.nav.tpt.infrastructure.epss.EpssRepositoryImpl
 import no.nav.tpt.infrastructure.epss.EpssService
@@ -52,7 +56,6 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
-import org.slf4j.LoggerFactory
 
 @Suppress("unused")
 class Dependencies(
@@ -77,6 +80,7 @@ class Dependencies(
     val gcveSyncService: GcveSyncService,
     val sseEventBus: SseEventBus,
     val kafkaProducerService: KafkaProducerService?,
+    val dataCollector: DataCollector
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -181,6 +185,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         adminReportRepository = adminReportRepository,
     )
 
+    val dataCollector =
+        RealDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -203,6 +210,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         gcveSyncService = gcveSyncService,
         sseEventBus = sseEventBus,
         kafkaProducerService = kafkaProducerService,
+        dataCollector = dataCollector,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

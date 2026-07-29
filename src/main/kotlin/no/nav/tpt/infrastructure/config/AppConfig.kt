@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.config
 
 data class AppConfig(
     val naisTokenIntrospectionEndpoint: String,
+    val naisTokenRetrievalEndpoint: String,
     val naisApiUrl: String,
     val naisTokenFilePath: String,
     val dbJdbcUrl: String,
@@ -23,6 +24,9 @@ data class AppConfig(
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
                 ?: error("NAIS_TOKEN_INTROSPECTION_ENDPOINT not configured")
 
+            val tokenRetrievalEndpoint = System.getenv("NAIS_TOKEN_ENDPOINT")
+                ?: "DoesNotMatterOutsideOfCluster"
+
             val naisApiUrl = System.getenv("NAIS_API_URL")
                 ?: error("NAIS_API_URL not configured")
 
@@ -43,6 +47,7 @@ data class AppConfig(
 
             return AppConfig(
                 naisTokenIntrospectionEndpoint = introspectionEndpoint,
+                naisTokenRetrievalEndpoint = tokenRetrievalEndpoint,
                 naisApiUrl = naisApiUrl,
                 naisTokenFilePath = naisTokenFilePath,
                 dbJdbcUrl = dbJdbcUrl,
