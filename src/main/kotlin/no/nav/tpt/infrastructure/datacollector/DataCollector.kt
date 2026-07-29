@@ -14,6 +14,7 @@ import io.ktor.http.HttpMethod.Companion.Post
 import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.net.URI
 
 interface DataCollector {
     suspend fun collectDataFor(teamSlug: String): List<CheckResult>
@@ -25,7 +26,7 @@ class RealDataCollector(
 ): DataCollector {
     override suspend fun collectDataFor(teamSlug: String): List<CheckResult> {
         val authToken = retrieveAccessToken()
-        val url = "http://tpt-data-collector/team/$teamSlug"
+        val url = URI("http", "tpt-data-collector", "/team/$teamSlug", null).toString()
         val tptResponse: List<CheckResult> = makeHttpRequest(httpMethod = Get, url = url, authToken = authToken)
         return tptResponse
     }
