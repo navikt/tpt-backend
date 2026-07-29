@@ -1,21 +1,26 @@
 package no.nav.tpt
 
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.plugins.calllogging.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.application.log
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
-import io.ktor.server.plugins.ratelimit.*
+import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.swagger.swaggerUI
-import io.ktor.server.request.*
-import io.ktor.server.routing.*
-import kotlinx.serialization.json.Json
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.uri
+import io.ktor.server.routing.routing
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.LocalDevDependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
+import no.nav.tpt.routes.dataCollectorRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
@@ -65,6 +70,7 @@ fun Application.localDevModule() {
         configRoutes()
         vulnerabilitySearchRoutes()
         vulnRoutes()
+        dataCollectorRoutes(dependencies.dataCollector)
     }
 
     log.info("=".repeat(80))

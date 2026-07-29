@@ -35,6 +35,8 @@ import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
+import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
+import no.nav.tpt.routes.dataCollectorRoutes
 
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
@@ -69,6 +71,7 @@ fun Application.installTestDependencies(
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
+        naisTokenRetrievalEndpoint = "http://localhost:8080/token"
     )
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
@@ -134,6 +137,8 @@ fun Application.installTestDependencies(
 
     val sseEventBus = SseEventBus()
 
+    val dataCollector = FakeDataCollector()
+
     val dependencies = Dependencies(
         appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -156,6 +161,7 @@ fun Application.installTestDependencies(
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
+        dataCollector = dataCollector
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -198,5 +204,6 @@ fun Application.testModule(
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
+        dataCollectorRoutes(dependencies.dataCollector)
     }
 }

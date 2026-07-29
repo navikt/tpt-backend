@@ -29,6 +29,7 @@ import no.nav.tpt.routes.vulnRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
+import no.nav.tpt.routes.dataCollectorRoutes
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -82,6 +83,7 @@ fun Application.module() {
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
+        dataCollectorRoutes(dependencies.dataCollector)
     }
 }
 

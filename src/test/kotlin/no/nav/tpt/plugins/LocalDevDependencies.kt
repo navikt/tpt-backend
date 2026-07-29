@@ -15,6 +15,7 @@ import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.cisa.KevService
 import no.nav.tpt.infrastructure.cisa.MockKevService
 import no.nav.tpt.infrastructure.config.AppConfig
+import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
@@ -147,11 +148,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
+        naisTokenRetrievalEndpoint = "http://localhost:8080/token",
     )
 
     val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
     val sseEventBus = SseEventBus()
+    val dataCollector = FakeDataCollector()
 
     val dependencies = Dependencies(
         appConfig = config,
@@ -175,6 +178,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
+        dataCollector = dataCollector,
     )
 
     application.attributes.put(DependenciesKey, dependencies)
