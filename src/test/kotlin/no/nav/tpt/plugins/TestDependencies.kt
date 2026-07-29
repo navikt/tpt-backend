@@ -204,6 +204,6 @@ fun Application.testModule(
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
-        dataCollectorRoutes(dependencies.dataCollector)
+        dataCollectorRoutes()
     }
 }

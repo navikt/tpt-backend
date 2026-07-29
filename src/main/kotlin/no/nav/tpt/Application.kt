@@ -83,7 +83,7 @@ fun Application.module() {
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
-        dataCollectorRoutes(dependencies.dataCollector)
+        dataCollectorRoutes()
     }
 }
 

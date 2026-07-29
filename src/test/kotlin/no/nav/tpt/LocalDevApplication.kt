@@ -70,7 +70,7 @@ fun Application.localDevModule() {
         configRoutes()
         vulnerabilitySearchRoutes()
         vulnRoutes()
-        dataCollectorRoutes(dependencies.dataCollector)
+        dataCollectorRoutes()
     }
 
     log.info("=".repeat(80))

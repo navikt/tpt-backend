@@ -5,9 +5,9 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import no.nav.tpt.infrastructure.datacollector.DataCollector
+import no.nav.tpt.plugins.dependencies
 
-fun Route.dataCollectorRoutes(dataCollector: DataCollector) {
+fun Route.dataCollectorRoutes() {
     authenticate("auth-bearer") {
         get("/datacollector/{teamSlug}") {
             val teamSlug = call.pathParameters["teamSlug"] ?: ""
@@ -15,7 +15,7 @@ fun Route.dataCollectorRoutes(dataCollector: DataCollector) {
                 call.respond(HttpStatusCode.BadRequest)
                 return@get
             }
-            call.respond(dataCollector.collectDataFor(teamSlug))
+            call.respond(call.dependencies.dataCollector.collectDataFor(teamSlug))
         }
     }
 }
