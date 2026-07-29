@@ -43,8 +43,9 @@ class RepositoryDataConsumer(
             } catch (e: Exception) {
                 logger.error("Error upserting repository data for ${message.getRepositoryIdentifier()}", e)
             }
-        } catch (e: Exception) {
-            logger.warn("Error parsing repository message: ${record.value()}", e)
+        } catch (_: Exception) {
+            // Ignore these until we continue the work here.
+            //logger.warn("Error parsing repository message: ${record.value()}", e)
         }
     }
 
