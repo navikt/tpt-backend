@@ -36,7 +36,7 @@ class DataCollectorTest {
         }
 
         val dataCollector = RealDataCollector(naisTokenEndpoint = "http://localhost:8080/token", httpClient = httpClient)
-        val checkResults = dataCollector.collectDataFor("tulleteam")
+        val checkResults = dataCollector.collectDataFor(listOf("tulleteam"))
 
         assertTrue { checkResults.isNotEmpty() }
     }

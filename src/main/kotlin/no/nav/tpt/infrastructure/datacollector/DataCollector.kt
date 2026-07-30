@@ -15,20 +15,31 @@ import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.net.URI
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 interface DataCollector {
-    suspend fun collectDataFor(teamSlug: String): List<CheckResult>
+    suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult>
 }
 
 class RealDataCollector(
     val naisTokenEndpoint: String,
     val httpClient: HttpClient = HttpClient(CIO)
 ): DataCollector {
-    override suspend fun collectDataFor(teamSlug: String): List<CheckResult> {
-        val authToken = retrieveAccessToken()
-        val url = URI("http", "tpt-data-collector", "/team/$teamSlug", null).toString()
-        val tptResponse: List<CheckResult> = makeHttpRequest(httpMethod = Get, url = url, authToken = authToken)
-        return tptResponse
+    override suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult> {
+        val allResults = coroutineScope {
+            val authToken = retrieveAccessToken()
+            val responses = teamSlugs.map { slug ->
+                val url = URI("http", "tpt-data-collector", "/team/$slug", null).toString()
+                val deferred: Deferred<List<CheckResult>> =
+                    async { makeHttpRequest(httpMethod = Get, url = url, authToken = authToken) }
+                deferred
+            }.awaitAll()
+            responses.flatten()
+        }
+        return allResults
     }
 
     private suspend fun retrieveAccessToken(): String {
