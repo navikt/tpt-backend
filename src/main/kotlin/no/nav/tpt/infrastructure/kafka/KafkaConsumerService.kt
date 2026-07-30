@@ -21,6 +21,7 @@ open class KafkaConsumerService(
 
     protected var isHealthyFlag = true
 
+    @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     open fun start(scope: CoroutineScope) {
         logger.info("Starting Kafka consumer (group=$groupId) for topic: ${kafkaConfig.topic}")
 

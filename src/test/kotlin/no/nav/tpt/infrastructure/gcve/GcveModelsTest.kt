@@ -40,13 +40,13 @@ class GcveModelsTest {
         val cisaAdp = adpContainers.find { it.providerMetadata?.shortName == "CISA-ADP" }
         assertNotNull(cisaAdp, "CISA-ADP container should be present")
 
-        val cvss = cisaAdp.metrics?.mapNotNull { it.cvssV3_1 }?.firstOrNull()
+        val cvss = cisaAdp.metrics?.firstNotNullOfOrNull { it.cvssV3_1 }
         assertNotNull(cvss, "CVSS v3.1 should be present in CISA-ADP container")
         assertEquals(10.0, cvss.baseScore)
         assertEquals("CRITICAL", cvss.baseSeverity)
         assertEquals("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H", cvss.vectorString)
 
-        val ssvc = cisaAdp.metrics?.mapNotNull { it.other }?.find { it.type == "ssvc" }
+        val ssvc = cisaAdp.metrics.mapNotNull { it.other }.find { it.type == "ssvc" }
         assertNotNull(ssvc, "SSVC metric should be present")
         val ssvcContent = ssvc.content
         assertNotNull(ssvcContent)
@@ -56,7 +56,7 @@ class GcveModelsTest {
         assertTrue(options.any { it.containsKey("Automatable") && it["Automatable"] == "yes" })
         assertTrue(options.any { it.containsKey("Technical Impact") && it["Technical Impact"] == "total" })
 
-        val kev = cisaAdp.metrics?.mapNotNull { it.other }?.find { it.type == "kev" }
+        val kev = cisaAdp.metrics.mapNotNull { it.other }.find { it.type == "kev" }
         assertNotNull(kev, "KEV metric should be present")
         val kevContent = kev.content
         assertNotNull(kevContent)
@@ -78,7 +78,7 @@ class GcveModelsTest {
         assertTrue(cna.descriptions.any { it.lang == "en" && it.value.contains("xz") })
 
         val cnaMetrics = cna.metrics ?: emptyList()
-        val cnaCvss = cnaMetrics.mapNotNull { it.cvssV3_1 }.firstOrNull()
+        val cnaCvss = cnaMetrics.firstNotNullOfOrNull { it.cvssV3_1 }
         assertNotNull(cnaCvss, "CNA should provide CVSS v3.1")
         assertEquals(10.0, cnaCvss.baseScore)
 
@@ -105,7 +105,7 @@ class GcveModelsTest {
         assertNotNull(cna)
 
         val cnaMetrics = cna.metrics ?: emptyList()
-        val cvssV4 = cnaMetrics.mapNotNull { it.cvssV4_0 }.firstOrNull()
+        val cvssV4 = cnaMetrics.firstNotNullOfOrNull { it.cvssV4_0 }
         assertNotNull(cvssV4, "CVSS v4.0 should be present")
         assertEquals(5.1, cvssV4.baseScore)
         assertEquals("MEDIUM", cvssV4.baseSeverity)

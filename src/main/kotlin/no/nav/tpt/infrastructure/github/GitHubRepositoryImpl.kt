@@ -72,7 +72,6 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             it[GitHubRepositories.usesDistroless] = usesDistroless
             it[updatedAt] = Instant.now()
         }
-        Unit
     }
 
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
