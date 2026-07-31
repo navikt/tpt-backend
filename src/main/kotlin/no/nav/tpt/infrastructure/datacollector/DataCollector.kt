@@ -12,13 +12,14 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpMethod.Companion.Get
 import io.ktor.http.HttpMethod.Companion.Post
 import io.ktor.http.contentType
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import java.net.URI
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
 interface DataCollector {
     suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult>
@@ -28,6 +29,8 @@ class RealDataCollector(
     val naisTokenEndpoint: String,
     val httpClient: HttpClient = HttpClient(CIO)
 ): DataCollector {
+    private val logger = LoggerFactory.getLogger(RealDataCollector::class.java)
+
     override suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult> {
         val allResults = coroutineScope {
             val authToken = retrieveAccessToken()
@@ -45,7 +48,9 @@ class RealDataCollector(
     private suspend fun retrieveAccessToken(): String {
         val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
         val requestBody = TokenRequest("entra_id", "api://$cluster.appsec.tpt-data-collector/.default")
+        logger.info("Retrieving token: {}", requestBody)
         val tokenResponse = makeHttpRequest<TokenResponse>(httpMethod = Post, url = naisTokenEndpoint, requestBody = requestBody)
+        logger.info("Got token response, expires in: {}", tokenResponse.expiresIn)
         return tokenResponse.accessToken
     }
 
@@ -73,4 +78,6 @@ private data class TokenRequest(
 private data class TokenResponse(
     @SerialName("access_token")
     val accessToken: String,
+    @SerialName("expires_in")
+    val expiresIn: Int,
 )
