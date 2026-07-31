@@ -3,6 +3,7 @@ package no.nav.tpt.infrastructure.datacollector
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -57,7 +58,10 @@ class RealDataCollector(
     private suspend inline fun <reified T> makeHttpRequest(httpMethod: HttpMethod, url: String, authToken: String? = null, requestBody: Any? = null): T =
         httpClient.request(url) {
             method = httpMethod
-            authToken?.let { header("Authorization", "Bearer $it") }
+            authToken?.let {
+                logger.info("Adding Bearer token of length ${it.length} to request")
+                bearerAuth(it)
+            }
             header(Accept, "application/json")
             requestBody?.let {
                 contentType(Json)
