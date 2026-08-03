@@ -17,6 +17,7 @@ class UnauthorizedException(message: String) : Exception(message)
 class ForbiddenException(message: String) : Exception(message)
 class ServiceUnavailableException(message: String) : Exception(message)
 class InternalServerException(val context: String, cause: Throwable) : Exception("$context: ${cause.message}", cause)
+class NaisApiException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 fun Application.configureStatusPages() {
     install(StatusPages) {
@@ -86,6 +87,20 @@ fun Application.configureStatusPages() {
         }
 
         exception<ServiceUnavailableException> { call, cause ->
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Service Unavailable",
+                    status = HttpStatusCode.ServiceUnavailable.value,
+                    detail = cause.message,
+                    instance = call.request.uri
+                )
+            )
+        }
+
+        exception<NaisApiException> { call, cause ->
+            logger.error("Nais API error for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
             call.respond(
                 HttpStatusCode.ServiceUnavailable,
                 ProblemDetail(
