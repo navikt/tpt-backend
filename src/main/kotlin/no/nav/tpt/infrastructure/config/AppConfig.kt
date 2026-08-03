@@ -14,11 +14,15 @@ data class AppConfig(
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
+    val slaCriticalWorkdays: Int = DEFAULT_SLA_CRITICAL_WORKDAYS,
+    val slaNonCriticalMonths: Long = DEFAULT_SLA_NON_CRITICAL_MONTHS,
 ) {
     companion object {
         const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
         const val DEFAULT_RISK_THRESHOLD_HIGH = 50.0
         const val DEFAULT_RISK_THRESHOLD_MEDIUM = 30.0
+        const val DEFAULT_SLA_CRITICAL_WORKDAYS = 1
+        const val DEFAULT_SLA_NON_CRITICAL_MONTHS = 3L
 
         fun fromEnvironment(): AppConfig {
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
@@ -55,7 +59,9 @@ data class AppConfig(
                 teamkatalogenUrl = teamkatalogenUrl,
                 adminGroups = adminGroups,
                 gcveApiUrl = gcveApiUrl,
-                gcveApiKey = gcveApiKey
+                gcveApiKey = gcveApiKey,
+                slaCriticalWorkdays = System.getenv("SLA_CRITICAL_WORKDAYS")?.toIntOrNull() ?: DEFAULT_SLA_CRITICAL_WORKDAYS,
+                slaNonCriticalMonths = System.getenv("SLA_NON_CRITICAL_MONTHS")?.toLongOrNull() ?: DEFAULT_SLA_NON_CRITICAL_MONTHS,
             )
         }
     }
