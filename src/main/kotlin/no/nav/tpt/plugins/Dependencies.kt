@@ -2,7 +2,6 @@ package no.nav.tpt.plugins
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -14,6 +13,8 @@ import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.admin.AdminService
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
+import no.nav.tpt.domain.vulnerability.SlaConfig
+import no.nav.tpt.domain.vulnerability.SlaPolicy
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.admin.AdminReportRepository
@@ -55,8 +56,6 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
-import no.nav.tpt.domain.vulnerability.SlaConfig
-import no.nav.tpt.domain.vulnerability.SlaPolicy
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
 
@@ -103,10 +102,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
                 explicitNulls = false
                 coerceInputValues = true
             })
-        }
-
-        install(HttpTimeout) {
-            requestTimeoutMillis = 60 * 1000
         }
     }
 
