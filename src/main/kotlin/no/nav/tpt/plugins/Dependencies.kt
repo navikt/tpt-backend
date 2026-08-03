@@ -20,19 +20,11 @@ import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
 import no.nav.tpt.infrastructure.admin.AdminServiceImpl
 import no.nav.tpt.infrastructure.auth.NaisTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.infrastructure.cisa.KevClient
-import no.nav.tpt.infrastructure.cisa.KevRepositoryImpl
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.KevServiceImpl
+import no.nav.tpt.infrastructure.common.InMemoryCircuitBreaker
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.datacollector.DataCollector
 import no.nav.tpt.infrastructure.datacollector.RealDataCollector
-import no.nav.tpt.infrastructure.epss.EpssClient
-import no.nav.tpt.infrastructure.epss.EpssRepositoryImpl
-import no.nav.tpt.infrastructure.epss.EpssService
-import no.nav.tpt.infrastructure.epss.EpssServiceImpl
-import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
@@ -64,8 +56,6 @@ class Dependencies(
     val appConfig: AppConfig,
     val tokenIntrospectionService: TokenIntrospectionService,
     val naisApiService: NaisApiService,
-    val kevService: KevService,
-    val epssService: EpssService,
     val database: org.jetbrains.exposed.v1.jdbc.Database,
     val leaderElection: LeaderElection,
     val httpClient: HttpClient,
@@ -118,15 +108,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val database = DatabaseFactory.init(config)
 
-    val kevClient = KevClient(httpClient)
-    val kevRepository = KevRepositoryImpl(database)
-    val kevService = KevServiceImpl(kevClient, kevRepository)
-
-    val epssClient = EpssClient(httpClient, baseUrl = config.epssApiUrl)
-    val epssRepository = EpssRepositoryImpl(database)
-    val epssCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
-    val epssService = EpssServiceImpl(epssClient, epssRepository, epssCircuitBreaker)
-
     val leaderElection = LeaderElection(httpClient)
 
     val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
@@ -167,12 +148,10 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
     val gcveRepository = GcveRepositoryImpl(database)
-    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository, epssRepository)
+    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
 
     val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
-        kevService = kevService,
-        epssService = epssService,
         riskScorer = riskScorer,
         userContextService = userContextService,
         gitHubRepository = gitHubRepository,
@@ -199,8 +178,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiClient,
-        kevService = kevService,
-        epssService = epssService,
         database = database,
         leaderElection = leaderElection,
         httpClient = httpClient,

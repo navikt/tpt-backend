@@ -11,7 +11,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
+import no.nav.tpt.infrastructure.common.InMemoryCircuitBreaker
 import org.slf4j.LoggerFactory
 
 class GcveClient(

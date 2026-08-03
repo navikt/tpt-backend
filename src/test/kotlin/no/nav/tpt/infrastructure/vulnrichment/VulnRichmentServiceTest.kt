@@ -3,15 +3,11 @@ package no.nav.tpt.infrastructure.vulnrichment
 import kotlinx.coroutines.test.runTest
 import no.nav.tpt.domain.user.MockUserContextService
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
-import no.nav.tpt.infrastructure.cisa.KevCatalog
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.KevVulnerability
-import no.nav.tpt.infrastructure.epss.MockEpssService
+import no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepository
 import no.nav.tpt.infrastructure.nais.*
 import kotlin.test.*
 
-// Helper to create a VulnerabilityDataService that delegates to NaisApiService
 private fun mockVulnerabilityDataService(naisApiService: NaisApiService): VulnerabilityDataService {
     return object : VulnerabilityDataService {
         override suspend fun getVulnerabilitiesForTeams(teamSlugs: List<String>) =
@@ -20,6 +16,18 @@ private fun mockVulnerabilityDataService(naisApiService: NaisApiService): Vulner
             naisApiService.getVulnerabilitiesForTeam(teamSlug)
     }
 }
+
+private fun buildService(
+    naisApiService: NaisApiService = MockNaisApiService(shouldSucceed = true),
+    mockTeams: List<String> = emptyList(),
+    gitHubRepository: MockGitHubRepository = MockGitHubRepository(),
+): VulnRichmentServiceImpl = VulnRichmentServiceImpl(
+    vulnerabilityDataService = mockVulnerabilityDataService(naisApiService),
+    riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+    userContextService = MockUserContextService(mockTeams = mockTeams),
+    gitHubRepository = gitHubRepository,
+    gcveRepository = InMemoryGcveRepository(),
+)
 
 class VulnRichmentServiceTest {
 
@@ -66,44 +74,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog(): KevCatalog {
-                return KevCatalog(
-                    title = "Test KEV Catalog",
-                    catalogVersion = "1.0",
-                    dateReleased = "2023-01-01",
-                    count = 1,
-                    vulnerabilities = listOf(
-                        KevVulnerability(
-                            cveID = "CVE-2023-12345",
-                            vendorProject = "Test Vendor",
-                            product = "Test Product",
-                            vulnerabilityName = "Test Vulnerability",
-                            dateAdded = "2023-01-01",
-                            shortDescription = "Test description",
-                            requiredAction = "Test action",
-                            dueDate = "2023-12-31",
-                            knownRansomwareCampaignUse = "Unknown",
-                            notes = "Test notes",
-                            cwes = emptyList()
-                        )
-                    )
-                )
-            }
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = listOf("team-alpha"))
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(1, result.teams.size)
@@ -140,28 +111,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-beta")),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = listOf("team-beta"))
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertTrue(result.teams.isEmpty())
@@ -178,28 +128,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-gamma")),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = listOf("team-gamma"))
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertTrue(result.teams.isEmpty())
@@ -240,28 +169,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-delta")),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = listOf("team-delta"))
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(1, result.teams.size)
@@ -329,42 +237,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 1,
-                vulnerabilities = listOf(
-                    KevVulnerability(
-                        cveID = "CVE-2023-22222",
-                        vendorProject = "Test Vendor",
-                        product = "Test Product",
-                        vulnerabilityName = "Test Vulnerability",
-                        dateAdded = "2023-01-01",
-                        shortDescription = "Test description",
-                        requiredAction = "Test action",
-                        dueDate = "2023-12-31",
-                        knownRansomwareCampaignUse = "Unknown",
-                        notes = "Test notes",
-                        cwes = emptyList()
-                    )
-                )
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-one", "team-two")),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = listOf("team-one", "team-two"))
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(2, result.teams.size)
@@ -387,28 +260,7 @@ class VulnRichmentServiceTest {
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = emptyList()),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService, mockTeams = emptyList())
         val result = vulnService.fetchVulnerabilitiesForUser("test@example.com")
 
         assertEquals(0, result.teams.size)
@@ -444,27 +296,8 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
+        val vulnService = buildService(
+            mockTeams = listOf("team-alpha"),
             gitHubRepository = mockGitHubRepository,
         )
 
@@ -529,27 +362,8 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
+        val vulnService = buildService(
+            mockTeams = listOf("team-alpha"),
             gitHubRepository = mockGitHubRepository,
         )
 
@@ -591,27 +405,8 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha", "team-beta")),
+        val vulnService = buildService(
+            mockTeams = listOf("team-alpha", "team-beta"),
             gitHubRepository = mockGitHubRepository,
         )
 
@@ -672,27 +467,8 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
+        val vulnService = buildService(
+            mockTeams = listOf("team-alpha"),
             gitHubRepository = mockGitHubRepository,
         )
 
@@ -706,31 +482,7 @@ class VulnRichmentServiceTest {
 
     @Test
     fun `should return empty response when user has no GitHub repositories`() = runTest {
-        val mockGitHubRepository = MockGitHubRepository()
-
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
-            gitHubRepository = mockGitHubRepository,
-        )
+        val vulnService = buildService(mockTeams = listOf("team-alpha"))
 
         val result = vulnService.fetchGitHubVulnerabilitiesForUser("test@example.com")
 
@@ -738,7 +490,7 @@ class VulnRichmentServiceTest {
     }
 
     @Test
-    fun `should calculate risk scores for GitHub vulnerabilities using enrichment data`() = runTest {
+    fun `should calculate risk scores for GitHub vulnerabilities`() = runTest {
         val mockGitHubRepository = MockGitHubRepository(
             mockRepositories = listOf(
                 no.nav.tpt.infrastructure.github.GitHubRepositoryData(
@@ -767,41 +519,8 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 1,
-                vulnerabilities = listOf(
-                    KevVulnerability(
-                        cveID = "CVE-2024-88888",
-                        vendorProject = "Test Vendor",
-                        product = "Test Product",
-                        vulnerabilityName = "Test Vulnerability",
-                        dateAdded = "2023-01-01",
-                        shortDescription = "Test description",
-                        requiredAction = "Test action",
-                        dueDate = "2023-12-31",
-                        knownRansomwareCampaignUse = "Known",
-                        notes = "Test notes",
-                        cwes = emptyList()
-                    )
-                )
-            )
-        }
-
-        val riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer()
-        val mockNaisApiService = MockNaisApiService(shouldSucceed = true)
-        val vulnerabilityDataService = mockVulnerabilityDataService(
-            mockNaisApiService
-        )
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = vulnerabilityDataService,
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = riskScorer,
-            userContextService = MockUserContextService(mockTeams = listOf("team-alpha")),
+        val vulnService = buildService(
+            mockTeams = listOf("team-alpha"),
             gitHubRepository = mockGitHubRepository,
         )
 
@@ -849,24 +568,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val mockKevService = object : KevService {
-            override suspend fun getKevCatalog() = KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
-            kevService = mockKevService,
-            epssService = MockEpssService(),
-            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
-            userContextService = MockUserContextService(mockTeams = emptyList()),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService)
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-appsec")
 
@@ -913,16 +615,7 @@ class VulnRichmentServiceTest {
             )
         )
 
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
-            kevService = object : KevService {
-                override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
-            },
-            epssService = MockEpssService(),
-            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
-            userContextService = MockUserContextService(mockTeams = emptyList()),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService)
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-x")
 
@@ -936,16 +629,7 @@ class VulnRichmentServiceTest {
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
         )
 
-        val vulnService = VulnRichmentServiceImpl(
-            vulnerabilityDataService = mockVulnerabilityDataService(mockNaisApiService),
-            kevService = object : KevService {
-                override suspend fun getKevCatalog() = KevCatalog("", "1.0", "", 0, emptyList())
-            },
-            epssService = MockEpssService(),
-            riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
-            userContextService = MockUserContextService(mockTeams = emptyList()),
-            gitHubRepository = MockGitHubRepository(),
-        )
+        val vulnService = buildService(mockNaisApiService)
 
         val result = vulnService.fetchVulnerabilitiesForTeam("team-empty")
 

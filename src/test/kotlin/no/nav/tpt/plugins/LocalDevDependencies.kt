@@ -12,12 +12,7 @@ import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.MockKevService
 import no.nav.tpt.infrastructure.config.AppConfig
-import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
-import no.nav.tpt.infrastructure.epss.EpssService
-import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
@@ -82,8 +77,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val naisApiService: NaisApiService = MockNaisApiService(
         mockTeamMemberships = listOf("team-lokal-utvikler", "team-b", "team-c")
     )
-    val kevService: KevService = MockKevService()
-    val epssService: EpssService = MockEpssService()
     val teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService()
     val adminAuthorizationService = no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl()
     val userContextService: UserContextService = UserContextServiceImpl(naisApiService, teamkatalogenService, adminAuthorizationService)
@@ -146,7 +139,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         naisApiUrl = "http://localhost:8080/mock-nais-api",
         naisTokenFilePath = "mock-token",
         dbJdbcUrl = postgres.jdbcUrl,
-        epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
         naisTokenRetrievalEndpoint = "http://localhost:8080/token",
@@ -161,8 +153,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
-        kevService = kevService,
-        epssService = epssService,
         database = database,
         leaderElection = leaderElection,
         httpClient = httpClient,
