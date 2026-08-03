@@ -13,6 +13,7 @@ import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.config.AppConfig
+import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
