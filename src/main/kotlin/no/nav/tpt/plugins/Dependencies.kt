@@ -2,6 +2,7 @@ package no.nav.tpt.plugins
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -102,6 +103,10 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
                 explicitNulls = false
                 coerceInputValues = true
             })
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60 * 1000
         }
     }
 
