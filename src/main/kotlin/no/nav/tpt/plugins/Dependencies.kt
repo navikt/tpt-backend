@@ -54,6 +54,8 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
+import no.nav.tpt.domain.vulnerability.SlaConfig
+import no.nav.tpt.domain.vulnerability.SlaPolicy
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
 import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
 
@@ -138,7 +140,12 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val gitHubRepository = GitHubRepositoryImpl(database)
 
-    val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl()
+    val slaPolicy = SlaPolicy(SlaConfig(
+        criticalWorkdays = config.slaCriticalWorkdays,
+        nonCriticalMonths = config.slaNonCriticalMonths,
+    ))
+
+    val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl(slaPolicy)
 
     val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
         naisApiService = naisApiClient,
@@ -179,7 +186,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         adminReportRepository = adminReportRepository,
     )
 
-    val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
+    val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository, slaPolicy)
 
     val adminService = AdminServiceImpl(
         adminReportRepository = adminReportRepository,

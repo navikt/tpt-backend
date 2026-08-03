@@ -133,7 +133,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     )
     
     val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
-        vulnerabilityRepository = mockVulnerabilityRepository
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        slaPolicy = no.nav.tpt.domain.vulnerability.SlaPolicy(),
     )
     
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
