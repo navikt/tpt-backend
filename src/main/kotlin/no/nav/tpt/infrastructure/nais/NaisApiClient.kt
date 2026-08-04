@@ -264,7 +264,7 @@ class NaisApiClient(
                         var hasMoreWorkloads = connection.pageInfo.hasNextPage
 
                         while (hasMoreWorkloads) {
-                            val workloadResponse: WorkloadVulnerabilitiesResponse = try {
+                            val workloadHttpResponse = try {
                                 httpClient.post(apiUrl) {
                                     contentType(ContentType.Application.Json)
                                     bearerAuth(readToken())
@@ -281,7 +281,19 @@ class NaisApiClient(
                                             )
                                         )
                                     )
-                                }.body()
+                                }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                throw NaisApiException("HTTP transport error fetching more $workloadType for team $teamSlug", e)
+                            }
+
+                            if (!workloadHttpResponse.status.isSuccess()) {
+                                throw NaisApiException("HTTP ${workloadHttpResponse.status.value} fetching more $workloadType for team $teamSlug")
+                            }
+
+                            val workloadResponse: WorkloadVulnerabilitiesResponse = try {
+                                workloadHttpResponse.body()
                             } catch (e: kotlinx.coroutines.CancellationException) {
                                 throw e
                             } catch (e: Exception) {
@@ -380,11 +392,16 @@ class NaisApiClient(
 
         while (hasMoreVulns) {
             val response: Res = try {
-                httpClient.post(apiUrl) {
+                val httpResponse = httpClient.post(apiUrl) {
                     contentType(ContentType.Application.Json)
                     bearerAuth(readToken())
                     setBody(buildVulnRequest(vulnCursor))
-                }.body()
+                }
+                if (!httpResponse.status.isSuccess()) {
+                    logger.error("HTTP ${httpResponse.status.value} fetching vulnerabilities for workload ${workload.id}")
+                    break
+                }
+                httpResponse.body()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
