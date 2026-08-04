@@ -1,7 +1,9 @@
 package no.nav.tpt.infrastructure.kafka
 
 import kotlinx.serialization.json.Json
+import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
+import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 

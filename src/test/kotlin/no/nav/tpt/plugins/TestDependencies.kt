@@ -14,21 +14,23 @@ import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.config.AppConfig
+import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentServiceImpl
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
-import no.nav.tpt.infrastructure.nais.MockNaisApiService
+import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
-import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
+import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.sseRoutes
-import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
@@ -83,12 +85,18 @@ fun Application.installTestDependencies(
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
     val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
 
-    val vulnService = VulnRichmentServiceImpl(
+    val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
+        gcveRepository = mockGcveRepository,
+    )
+
+    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository(),
         gcveRepository = mockGcveRepository,
+        userContextService = actualUserContextService,
+        riskScorer = riskScorer,
     )
 
     val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
@@ -139,12 +147,13 @@ fun Application.installTestDependencies(
         database = stubDatabase,
         leaderElection = mockLeaderElection,
         httpClient = client,
-        vulnRichmentService = vulnService,
+        vulnerabilityEnrichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = actualUserContextService,
         adminAuthorizationService = actualAdminAuthorizationService,
         adminService = mockAdminService,
         gitHubRepository = gitHubRepository,
+        gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
@@ -189,7 +198,8 @@ fun Application.testModule(
     routing {
         healthRoutes()
         configRoutes()
-        vulnRoutes()
+        vulnerabilityRoutes()
+        gitHubVulnerabilityRoutes()
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)

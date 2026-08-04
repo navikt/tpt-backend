@@ -65,8 +65,8 @@ fun Route.adminRoutes() {
                     ?: throw no.nav.tpt.plugins.BadRequestException("teamSlug path parameter is required")
 
                 try {
-                    val vulnService = call.dependencies.vulnRichmentService
-                    val response = vulnService.fetchVulnerabilitiesForTeam(teamSlug)
+                    val enrichmentService = call.dependencies.vulnerabilityEnrichmentService
+                    val response = enrichmentService.enrichVulnerabilitiesForTeam(teamSlug)
                     call.respond(HttpStatusCode.OK, response)
                 } catch (e: Exception) {
                     throw InternalServerException("Failed to fetch vulnerabilities for team $teamSlug", e)

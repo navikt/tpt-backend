@@ -1,6 +1,6 @@
 package no.nav.tpt.infrastructure.nais
 
-import no.nav.tpt.infrastructure.vulnrichment.utils.PurlParser
+import no.nav.tpt.infrastructure.common.PurlParser
 
 internal fun WorkloadVulnerabilitiesResponse.toData(): UserVulnerabilitiesData {
     val teams = data?.user?.teams?.nodes?.map { teamNode ->

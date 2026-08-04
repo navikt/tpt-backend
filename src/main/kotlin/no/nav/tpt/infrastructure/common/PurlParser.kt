@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.vulnrichment.utils
+package no.nav.tpt.infrastructure.common
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets

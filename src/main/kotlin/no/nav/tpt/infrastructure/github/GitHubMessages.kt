@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.kafka
+package no.nav.tpt.infrastructure.github
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

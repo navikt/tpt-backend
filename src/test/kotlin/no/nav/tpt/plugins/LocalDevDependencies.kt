@@ -22,7 +22,8 @@ import no.nav.tpt.infrastructure.sse.SseEventBus
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
-import no.nav.tpt.infrastructure.vulnrichment.MockVulnRichmentService
+import no.nav.tpt.infrastructure.enrichment.MockVulnerabilityEnrichmentService
+import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.testcontainers.containers.PostgreSQLContainer
@@ -107,7 +108,14 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
-    val vulnService = MockVulnRichmentService()
+    val vulnService = MockVulnerabilityEnrichmentService()
+
+    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
+        gitHubRepository = gitHubRepository,
+        gcveRepository = localGcveRepository,
+        userContextService = userContextService,
+        riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+    )
 
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
@@ -157,12 +165,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         database = database,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnRichmentService = vulnService,
+        vulnerabilityEnrichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
         adminService = mockAdminService,
         gitHubRepository = gitHubRepository,
+        gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
