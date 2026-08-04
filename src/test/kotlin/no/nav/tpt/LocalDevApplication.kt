@@ -22,7 +22,8 @@ import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
 import no.nav.tpt.routes.healthRoutes
-import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 
@@ -69,7 +70,8 @@ fun Application.localDevModule() {
         healthRoutes()
         configRoutes()
         vulnerabilitySearchRoutes()
-        vulnRoutes()
+        vulnerabilityRoutes()
+        gitHubVulnerabilityRoutes()
         dataCollectorRoutes()
     }
 

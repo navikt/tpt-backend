@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.vulnrichment.utils
+package no.nav.tpt.infrastructure.common
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -224,4 +224,3 @@ class PurlParserTest {
         assertNull(PurlParser.extractVersion("https://example.com"))
     }
 }
-

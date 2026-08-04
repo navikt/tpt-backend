@@ -3,9 +3,9 @@ package no.nav.tpt.infrastructure.github
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.runBlocking
-import no.nav.tpt.infrastructure.kafka.GitHubIdentifierMessage
-import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
-import no.nav.tpt.infrastructure.kafka.GitHubVulnerabilityMessage
+import no.nav.tpt.infrastructure.github.GitHubIdentifierMessage
+import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
+import no.nav.tpt.infrastructure.github.GitHubVulnerabilityMessage
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll

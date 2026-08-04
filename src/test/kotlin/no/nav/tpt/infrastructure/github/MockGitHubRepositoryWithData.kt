@@ -1,6 +1,6 @@
 package no.nav.tpt.infrastructure.github
 
-import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
+import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import java.time.Instant
 
 class MockGitHubRepositoryWithData : GitHubRepository {

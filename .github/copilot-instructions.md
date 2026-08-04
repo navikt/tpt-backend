@@ -159,7 +159,7 @@ fun `should reject request with invalid preset`() = testApplication {
 ### OpenAPI Spec
 - **Location**: `src/main/resources/openapi.yaml`
 - **Always keep the spec in sync** with code changes. When adding, removing, or modifying routes, request/response fields, or status codes, update `openapi.yaml` in the same PR/commit.
-- This is especially critical when editing route handlers directly (e.g., `VulnRoutes.kt`, `AdminRoutes.kt`).
+- This is especially critical when editing route handlers directly (e.g., `VulnerabilityRoutes.kt`, `GitHubVulnerabilityRoutes.kt`, `AdminRoutes.kt`).
 
 ### RESTful Conventions
 - **Endpoints**: Descriptive nouns (`/snap` for image generation)

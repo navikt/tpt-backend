@@ -31,9 +31,12 @@ import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
 import no.nav.tpt.infrastructure.gcve.GcveSyncService
+import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentService
+import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentServiceImpl
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
-import no.nav.tpt.infrastructure.kafka.KafkaConfig
+import no.nav.tpt.infrastructure.github.GitHubVulnerabilityService
+import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import no.nav.tpt.infrastructure.kafka.KafkaProducerService
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
@@ -48,8 +51,7 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
-import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentService
-import no.nav.tpt.infrastructure.vulnrichment.VulnRichmentServiceImpl
+import no.nav.tpt.infrastructure.kafka.KafkaConfig
 
 @Suppress("unused")
 class Dependencies(
@@ -59,12 +61,13 @@ class Dependencies(
     val database: org.jetbrains.exposed.v1.jdbc.Database,
     val leaderElection: LeaderElection,
     val httpClient: HttpClient,
-    val vulnRichmentService: VulnRichmentService,
+    val vulnerabilityEnrichmentService: VulnerabilityEnrichmentService,
     val teamkatalogenService: TeamkatalogenService,
     val userContextService: UserContextService,
     val adminAuthorizationService: AdminAuthorizationService,
     val adminService: AdminService,
     val gitHubRepository: GitHubRepository,
+    val gitHubVulnerabilityService: GitHubVulnerabilityService,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
@@ -150,12 +153,18 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveRepository = GcveRepositoryImpl(database)
     val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
 
-    val vulnService = VulnRichmentServiceImpl(
+    val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         riskScorer = riskScorer,
         userContextService = userContextService,
+        gcveRepository = gcveRepository,
+    )
+
+    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = gitHubRepository,
         gcveRepository = gcveRepository,
+        userContextService = userContextService,
+        riskScorer = riskScorer,
     )
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(
@@ -181,12 +190,13 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         database = database,
         leaderElection = leaderElection,
         httpClient = httpClient,
-        vulnRichmentService = vulnService,
+        vulnerabilityEnrichmentService = vulnService,
         teamkatalogenService = teamkatalogenService,
         userContextService = userContextService,
         adminAuthorizationService = adminAuthorizationService,
         adminService = adminService,
         gitHubRepository = gitHubRepository,
+        gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,

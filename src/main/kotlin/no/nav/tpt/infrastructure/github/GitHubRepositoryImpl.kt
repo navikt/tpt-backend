@@ -1,6 +1,6 @@
 package no.nav.tpt.infrastructure.github
 
-import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
+
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*

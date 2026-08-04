@@ -70,7 +70,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VulnResponse'
+                $ref: '#/components/schemas/VulnerabilityResponse'
         '400':
           description: Bad request - preferred_username claim not found in token
           content:
@@ -103,7 +103,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GitHubVulnResponse'
+                $ref: '#/components/schemas/GitHubVulnerabilityResponse'
         '400':
           description: Bad request - preferred_username claim not found in token
           content:
@@ -314,7 +314,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VulnResponse'
+                $ref: '#/components/schemas/VulnerabilityResponse'
         '400':
           description: Bad request - missing teamSlug parameter
           content:
@@ -530,7 +530,7 @@ components:
         gcveSeverity:
           type: string
           nullable: true
-    VulnResponse:
+    VulnerabilityResponse:
       type: object
       required:
         - userRole
@@ -550,8 +550,8 @@ components:
         teams:
           type: array
           items:
-            $ref: '#/components/schemas/VulnTeamDto'
-    VulnTeamDto:
+            $ref: '#/components/schemas/VulnerabilityTeamDto'
+    VulnerabilityTeamDto:
       type: object
       required:
         - team
@@ -563,9 +563,9 @@ components:
         workloads:
           type: array
           items:
-            $ref: '#/components/schemas/VulnWorkloadDto'
+            $ref: '#/components/schemas/VulnerabilityWorkloadDto'
           description: Kubernetes workloads (NAIS applications and jobs) with their vulnerabilities
-    VulnWorkloadDto:
+    VulnerabilityWorkloadDto:
       type: object
       required:
         - id
@@ -597,8 +597,8 @@ components:
         vulnerabilities:
           type: array
           items:
-            $ref: '#/components/schemas/VulnVulnerabilityDto'
-    VulnVulnerabilityDto:
+            $ref: '#/components/schemas/VulnerabilityDto'
+    VulnerabilityDto:
       type: object
       required:
         - identifier
@@ -827,7 +827,7 @@ components:
           type: integer
           description: Maximum points for the actionability category (patch available + ransomware use)
           example: 10
-    GitHubVulnResponse:
+    GitHubVulnerabilityResponse:
       type: object
       required:
         - userRole
@@ -847,8 +847,8 @@ components:
         teams:
           type: array
           items:
-            $ref: '#/components/schemas/GitHubVulnTeamDto'
-    GitHubVulnTeamDto:
+            $ref: '#/components/schemas/GitHubVulnerabilityTeamDto'
+    GitHubVulnerabilityTeamDto:
       type: object
       required:
         - team
@@ -861,9 +861,9 @@ components:
         repositories:
           type: array
           items:
-            $ref: '#/components/schemas/GitHubVulnRepositoryDto'
+            $ref: '#/components/schemas/GitHubVulnerabilityRepositoryDto'
           description: GitHub repositories with their vulnerabilities
-    GitHubVulnRepositoryDto:
+    GitHubVulnerabilityRepositoryDto:
       type: object
       required:
         - nameWithOwner
@@ -881,9 +881,9 @@ components:
         vulnerabilities:
           type: array
           items:
-            $ref: '#/components/schemas/GitHubVulnVulnerabilityDto'
+            $ref: '#/components/schemas/GitHubVulnerabilityDto'
           description: Vulnerabilities found in the GitHub repository
-    GitHubVulnVulnerabilityDto:
+    GitHubVulnerabilityDto:
       type: object
       required:
         - identifier

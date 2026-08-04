@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.vulnrichment.utils
+package no.nav.tpt.infrastructure.common
 
 import no.nav.tpt.infrastructure.gcve.GcveAffectedProduct
 import no.nav.tpt.infrastructure.gcve.GcveVersion

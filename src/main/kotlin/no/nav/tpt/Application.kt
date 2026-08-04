@@ -25,7 +25,8 @@ import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.healthRoutes
 import no.nav.tpt.routes.sseRoutes
-import no.nav.tpt.routes.vulnRoutes
+import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
@@ -79,7 +80,8 @@ fun Application.module() {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")
         healthRoutes()
         configRoutes()
-        vulnRoutes()
+        vulnerabilityRoutes()
+        gitHubVulnerabilityRoutes()
         vulnerabilitySearchRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)

@@ -21,15 +21,15 @@ src/main/kotlin/no/nav/tpt/
 │   ├── common/                                # Shared infrastructure utilities (InMemoryCircuitBreaker)
 │   ├── config/                                # Application configuration
 │   ├── database/                              # Database factory and connection management
-│   ├── github/                                # GitHub repository metadata storage and queries
-│   ├── kafka/                                 # Kafka consumer + producer for sync commands and GitHub events
+│   ├── github/                                # GitHub repository metadata, Kafka messages, vulnerability service
+│   ├── kafka/                                 # Kafka consumer + producer for sync commands
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
+│   ├── enrichment/                            # Vulnerability aggregation and enrichment service (VulnerabilityEnrichmentService)
 │   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
-│   ├── vulnerability/                         # Vulnerability data layer implementations
-│   └── vulnrichment/                          # Vulnerability aggregation and enrichment service
+│   └── vulnerability/                         # Vulnerability data layer implementations
 ├── plugins/                                   # Ktor plugins and application lifecycle
 │   ├── Authentication.kt                      # JWT authentication configuration
 │   ├── Dependencies.kt                        # Dependency injection setup
@@ -42,7 +42,8 @@ src/main/kotlin/no/nav/tpt/
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── ResponseHelpers.kt                     # RFC 9457 Problem Details error responses
-│   ├── VulnRoutes.kt                          # Vulnerability query endpoints
+│   ├── VulnerabilityRoutes.kt                 # NAIS vulnerability query endpoints
+│   ├── GitHubVulnerabilityRoutes.kt           # GitHub Dependabot vulnerability endpoints
 │   └── VulnerabilitySearchRoutes.kt           # Vulnerability search and SLA endpoints
 └── Application.kt                             # Application entry point
 

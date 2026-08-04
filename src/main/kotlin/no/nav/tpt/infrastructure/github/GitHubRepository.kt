@@ -1,6 +1,6 @@
 package no.nav.tpt.infrastructure.github
 
-import no.nav.tpt.infrastructure.kafka.GitHubRepositoryMessage
+
 
 interface GitHubRepository {
     suspend fun upsertRepositoryData(message: GitHubRepositoryMessage)
