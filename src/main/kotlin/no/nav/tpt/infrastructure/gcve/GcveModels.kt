@@ -104,7 +104,7 @@ data class GcveCveRecord(
                 hasKevEntry = kevMetric != null,
                 kevDateAdded = kevMetric?.dateAdded,
                 hasRansomwareCampaignUse = record.meta?.cisaKnownExploited?.knownRansomwareCampaignUse
-                    .equals("Known", ignoreCase = true),
+                    ?.equals("Known", ignoreCase = true) == true,
                 daysOld = publishedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
                 daysSinceModified = lastUpdatedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
                 affectedProducts = affectedProducts,
