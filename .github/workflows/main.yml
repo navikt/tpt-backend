@@ -40,6 +40,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    concurrency:
+      cancel-in-progress: true
+      group: production
     permissions:
       contents: read
       id-token: write
