@@ -11,7 +11,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.assertDoesNotThrow
 
 class DataCollectorTest {
 
@@ -22,7 +22,7 @@ class DataCollectorTest {
                 content = if (req.url.encodedPath.contains("token")) {
                     tokenResponse
                 } else {
-                    dataResponse
+                    ""
                 },
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
@@ -36,9 +36,7 @@ class DataCollectorTest {
         }
 
         val dataCollector = RealDataCollector(naisTokenEndpoint = "http://localhost:8080/token", httpClient = httpClient)
-        val checkResults = dataCollector.collectDataFor(listOf("tulleteam"))
-
-        assertTrue { checkResults.isNotEmpty() }
+        assertDoesNotThrow { dataCollector.startCollectingDataFor(listOf("tulleteam")) }
     }
 
 }
@@ -49,24 +47,4 @@ val tokenResponse = """
         "expires_in": 3599,
         "token_type": "Bearer"
     }
-""".trimIndent()
-
-val dataResponse = """
-    [
-        {
-            "type": "no.nav.tpt.infrastructure.datacollector.CheckResult.AllGood",
-            "name": "TulleCheck",
-            "repo": "tullerepo",
-            "whenChecked": "2026-07-29T08:49:43.931831Z"
-        },
-        {
-            "type": "no.nav.tpt.infrastructure.datacollector.CheckResult.NeedsWork",
-            "name": "YoloCheck",
-            "repo": "yolorepo",
-            "whenChecked": "2026-07-29T08:49:43.932327Z",
-            "reasons": [
-                "It has issues"
-            ]
-        }
-    ]
 """.trimIndent()

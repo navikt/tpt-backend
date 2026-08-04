@@ -7,14 +7,14 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType.Application.Json
 import io.ktor.http.HttpHeaders.Accept
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpMethod.Companion.Get
 import io.ktor.http.HttpMethod.Companion.Post
 import io.ktor.http.contentType
 import java.net.URI
-import kotlinx.coroutines.Deferred
+import kotlin.time.measureTimedValue
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -23,39 +23,43 @@ import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 
 interface DataCollector {
-    suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult>
+    suspend fun startCollectingDataFor(teamSlugs: List<String>)
 }
 
 class RealDataCollector(
     val naisTokenEndpoint: String,
     val httpClient: HttpClient = HttpClient(CIO)
-): DataCollector {
+) : DataCollector {
     private val logger = LoggerFactory.getLogger(RealDataCollector::class.java)
 
-    override suspend fun collectDataFor(teamSlugs: List<String>): List<CheckResult> {
-        val allResults = coroutineScope {
+    override suspend fun startCollectingDataFor(teamSlugs: List<String>) =
+        coroutineScope {
             val authToken = retrieveAccessToken()
-            val responses = teamSlugs.map { slug ->
-                val url = URI("http", "tpt-data-collector", "/team/$slug", null).toString()
-                val deferred: Deferred<List<CheckResult>> =
-                    async { makeHttpRequest(httpMethod = Get, url = url, authToken = authToken) }
-                deferred
-            }.awaitAll()
-            responses.flatten()
+            val responses = measureTimedValue {
+                teamSlugs.map { slug ->
+                    val url = URI("http", "tpt-data-collector", "/team/$slug", null).toString()
+                    async { makeHttpRequest<HttpResponse>(httpMethod = Post, url = url, authToken = authToken) }
+                }.awaitAll()
+            }
+            logger.info("Collected ${responses.value.size} responses for ${teamSlugs.size} teams in ${responses.duration}")
         }
-        return allResults
-    }
 
     private suspend fun retrieveAccessToken(): String {
         val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
         val requestBody = TokenRequest("entra_id", "api://$cluster.appsec.tpt-data-collector/.default")
         logger.info("Retrieving token: {}", requestBody)
-        val tokenResponse = makeHttpRequest<TokenResponse>(httpMethod = Post, url = naisTokenEndpoint, requestBody = requestBody)
+        val tokenResponse =
+            makeHttpRequest<TokenResponse>(httpMethod = Post, url = naisTokenEndpoint, requestBody = requestBody)
         logger.info("Got token response, expires in: {}", tokenResponse.expiresIn)
         return tokenResponse.accessToken
     }
 
-    private suspend inline fun <reified T> makeHttpRequest(httpMethod: HttpMethod, url: String, authToken: String? = null, requestBody: Any? = null): T =
+    private suspend inline fun <reified T> makeHttpRequest(
+        httpMethod: HttpMethod,
+        url: String,
+        authToken: String? = null,
+        requestBody: Any? = null
+    ): T =
         httpClient.request(url) {
             method = httpMethod
             authToken?.let {
