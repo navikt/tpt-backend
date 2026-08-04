@@ -98,6 +98,7 @@ class GcveRepositoryIntegrationTest {
         ssvcTechnicalImpact = ssvcTechnicalImpact,
         hasKevEntry = hasKevEntry,
         kevDateAdded = kevDateAdded,
+        hasRansomwareCampaignUse = false,
         daysOld = 0,
         daysSinceModified = 0,
     )

@@ -42,7 +42,7 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             when {
                 ssvc?.equals("active", ignoreCase = true) == true ->
                     "Active exploitation confirmed (SSVC/Vulnrichment)"
-                hasKev -> "Active exploitation confirmed (CISA KEV)"
+                hasKev -> "Active exploitation confirmed (KEV via GCVE)"
                 ssvc?.equals("poc", ignoreCase = true) == true ->
                     "Exploit PoC confirmed (SSVC/Vulnrichment)"
                 hasPoc && epssExplanation != null ->

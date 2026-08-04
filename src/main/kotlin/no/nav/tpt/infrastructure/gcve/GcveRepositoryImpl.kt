@@ -86,6 +86,9 @@ class GcveRepositoryImpl(
                     this[GcveCves.ssvcTechnicalImpact] = cveData.ssvcTechnicalImpact
                     this[GcveCves.hasKevEntry] = cveData.hasKevEntry
                     this[GcveCves.kevDateAdded] = cveData.kevDateAdded
+                    this[GcveCves.hasRansomwareCampaignUse] = cveData.hasRansomwareCampaignUse
+                    this[GcveCves.epssScore] = cveData.epssScore?.epss?.toDoubleOrNull()
+                    this[GcveCves.epssPercentile] = cveData.epssScore?.percentile
                     this[GcveCves.affectedProducts] = json.encodeToString<List<GcveAffectedProduct>>(cveData.affectedProducts)
                     this[GcveCves.rawResponse] = rawResponses[cveData.cveId]
                     this[GcveCves.fetchedAt] = Instant.now()
@@ -166,10 +169,19 @@ class GcveRepositoryImpl(
             ssvcTechnicalImpact = row[GcveCves.ssvcTechnicalImpact],
             hasKevEntry = row[GcveCves.hasKevEntry],
             kevDateAdded = row[GcveCves.kevDateAdded],
+            hasRansomwareCampaignUse = row[GcveCves.hasRansomwareCampaignUse],
             daysOld = publishedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
             daysSinceModified = lastUpdatedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
             affectedProducts = row[GcveCves.affectedProducts]
                 ?.let { json.decodeFromString<List<GcveAffectedProduct>>(it) } ?: emptyList(),
+            epssScore = row[GcveCves.epssScore]?.let { score ->
+                GcveEpssData(
+                    cve = row[GcveCves.cveId],
+                    epss = score.toString(),
+                    percentile = row[GcveCves.epssPercentile] ?: "",
+                    date = "",
+                )
+            },
         )
     }
 }

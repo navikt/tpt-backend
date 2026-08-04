@@ -103,6 +103,8 @@ data class GcveCveRecord(
                 ssvcTechnicalImpact = ssvcTechnicalImpact,
                 hasKevEntry = kevMetric != null,
                 kevDateAdded = kevMetric?.dateAdded,
+                hasRansomwareCampaignUse = record.meta?.cisaKnownExploited?.knownRansomwareCampaignUse
+                    ?.equals("Known", ignoreCase = true) == true,
                 daysOld = publishedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
                 daysSinceModified = lastUpdatedDate?.let { ChronoUnit.DAYS.between(it, now) } ?: 0,
                 affectedProducts = affectedProducts,
@@ -280,8 +282,16 @@ data class GcveEpssData(
 )
 
 @Serializable
+data class GcveCisaKevMeta(
+    val dateAdded: String? = null,
+    val knownRansomwareCampaignUse: String? = null,
+)
+
+@Serializable
 data class GcveVulnMeta(
     val epss: GcveEpssData? = null,
+    @SerialName("cisa_known_exploited")
+    val cisaKnownExploited: GcveCisaKevMeta? = null,
 )
 
 // Domain model for affected product/version info from CNA
@@ -317,6 +327,7 @@ data class GcveCveData(
     val ssvcTechnicalImpact: String?,
     val hasKevEntry: Boolean,
     val kevDateAdded: String?,
+    val hasRansomwareCampaignUse: Boolean,
     val daysOld: Long,
     val daysSinceModified: Long,
     val affectedProducts: List<GcveAffectedProduct> = emptyList(),

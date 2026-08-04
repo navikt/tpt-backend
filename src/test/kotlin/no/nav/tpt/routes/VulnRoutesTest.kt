@@ -8,16 +8,9 @@ import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.ProblemDetail
 import no.nav.tpt.domain.VulnResponse
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
-import no.nav.tpt.infrastructure.cisa.KevCatalog
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.KevVulnerability
 import no.nav.tpt.infrastructure.nais.*
 import no.nav.tpt.plugins.testModule
 import kotlin.test.*
-
-class MockKevService(private val catalog: KevCatalog) : KevService {
-    override suspend fun getKevCatalog() = catalog
-}
 
 class VulnRoutesTest {
     @Test
@@ -143,18 +136,8 @@ class VulnRoutesTest {
             )
         )
 
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        )
-
         application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
+            testModule(tokenIntrospectionService, naisApiService)
         }
 
         val response = client.get("/vulnerabilities/user") {
@@ -198,18 +181,8 @@ class VulnRoutesTest {
             mockUserVulnerabilitiesData = UserVulnerabilitiesData(teams = emptyList())
         )
 
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        )
-
         application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
+            testModule(tokenIntrospectionService, naisApiService)
         }
 
         val response = client.get("/vulnerabilities/user") {
@@ -287,18 +260,8 @@ class VulnRoutesTest {
             )
         )
 
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        )
-
         application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
+            testModule(tokenIntrospectionService, naisApiService)
         }
 
         val response = client.get("/vulnerabilities/user") {
@@ -315,7 +278,7 @@ class VulnRoutesTest {
     }
 
     @Test
-    fun `should return 200 and include KEV flag when vulnerability is in KEV catalog`() = testApplication {
+    fun `should return 200 and include exploitation_evidence factor in risk score breakdown`() = testApplication {
         val tokenIntrospectionService = MockTokenIntrospectionService(
             shouldSucceed = true,
             navIdent = "test-ident",
@@ -343,7 +306,7 @@ class VulnRoutesTest {
                                         identifier = "CVE-2023-99999",
                                         severity = "CRITICAL",
                                         packageName = "vulnerable-lib",
-                                        description = "KEV vulnerability",
+                                        description = "Known exploited vulnerability",
                                         vulnerabilityDetailsLink = null,
                                         suppressed = false
                                     )
@@ -355,32 +318,8 @@ class VulnRoutesTest {
             )
         )
 
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test KEV",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 1,
-                vulnerabilities = listOf(
-                    KevVulnerability(
-                        cveID = "CVE-2023-99999",
-                        vendorProject = "Test",
-                        product = "Test Product",
-                        vulnerabilityName = "Test Vuln",
-                        dateAdded = "2023-01-01",
-                        shortDescription = "Test",
-                        requiredAction = "Patch",
-                        dueDate = "2023-12-31",
-                        knownRansomwareCampaignUse = "Unknown",
-                        notes = "",
-                        cwes = emptyList()
-                    )
-                )
-            )
-        )
-
         application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
+            testModule(tokenIntrospectionService, naisApiService)
         }
 
         val response = client.get("/vulnerabilities/user") {
@@ -393,8 +332,8 @@ class VulnRoutesTest {
         assertEquals("CVE-2023-99999", vuln.identifier)
         val breakdown = assertNotNull(vuln.riskScoreBreakdown)
 
-        val hasKevFactor = breakdown.factors.any { it.name == "exploitation_evidence" }
-        assertTrue(hasKevFactor, "Expected exploitation_evidence factor in risk score breakdown")
+        val hasExploitationFactor = breakdown.factors.any { it.name == "exploitation_evidence" }
+        assertTrue(hasExploitationFactor, "Expected exploitation_evidence factor in risk score breakdown")
     }
 
     @Test
@@ -458,18 +397,8 @@ class VulnRoutesTest {
             )
         )
 
-        val kevService = MockKevService(
-            KevCatalog(
-                title = "Test KEV Catalog",
-                catalogVersion = "1.0",
-                dateReleased = "2023-01-01",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        )
-
         application {
-            testModule(tokenIntrospectionService, naisApiService, kevService)
+            testModule(tokenIntrospectionService, naisApiService)
         }
 
         val response = client.get("/vulnerabilities/user") {
@@ -499,4 +428,3 @@ class VulnRoutesTest {
         assertEquals("ghcr.io/navikt/test-job", jobWorkload.repository)
     }
 }
-

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Titt-På-Ting Backend API
-  description: API to help developers prioritize which security issues to fix first. Fetches vulnerability data from NAIS, enriches with CISA KEV catalog, and returns prioritized results.
+  description: API to help developers prioritize which security issues to fix first. Fetches vulnerability data from NAIS, enriches with KEV/EPSS data via GCVE, and returns prioritized results.
   version: 0.0.1
   contact:
     name: Appsec
@@ -733,7 +733,7 @@ components:
         explanation:
           type: string
           description: Human-readable explanation of the factor
-          example: "Listed in CISA KEV catalog"
+          example: "Active exploitation confirmed (KEV via GCVE)"
         impact:
           type: string
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
@@ -813,7 +813,7 @@ components:
           example: 25
         exploitationMax:
           type: integer
-          description: Maximum points for the exploitation evidence category (KEV, SSVC, EPSS, PoC)
+          description: Maximum points for the exploitation evidence category (KEV, SSVC, EPSS via GCVE, PoC)
           example: 30
         exposureMax:
           type: integer

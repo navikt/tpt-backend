@@ -6,7 +6,6 @@ data class AppConfig(
     val naisApiUrl: String,
     val naisTokenFilePath: String,
     val dbJdbcUrl: String,
-    val epssApiUrl: String,
     val teamkatalogenUrl: String,
     val adminGroups: String?,
     val gcveApiUrl: String = "https://db.gcve.eu/api",
@@ -40,8 +39,6 @@ data class AppConfig(
             val dbJdbcUrl = System.getenv("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL")
                 ?: error("NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL not configured")
 
-            val epssApiUrl = System.getenv("EPSS_API_URL") ?: error("EPSS_API_URL not configured")
-
             val teamkatalogenUrl = System.getenv("TEAMKATALOGEN_URL") ?: error("TEAMKATALOGEN_URL not configured")
 
             val adminGroups = System.getenv("ADMIN_GROUPS")
@@ -55,7 +52,6 @@ data class AppConfig(
                 naisApiUrl = naisApiUrl,
                 naisTokenFilePath = naisTokenFilePath,
                 dbJdbcUrl = dbJdbcUrl,
-                epssApiUrl = epssApiUrl,
                 teamkatalogenUrl = teamkatalogenUrl,
                 adminGroups = adminGroups,
                 gcveApiUrl = gcveApiUrl,

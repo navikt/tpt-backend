@@ -32,6 +32,10 @@ object GcveCves : Table("gcve_cves") {
 
     val hasKevEntry = bool("has_kev_entry").default(false)
     val kevDateAdded = varchar("kev_date_added", 20).nullable()
+    val hasRansomwareCampaignUse = bool("has_ransomware_campaign_use").default(false)
+
+    val epssScore = double("epss_score").nullable()
+    val epssPercentile = varchar("epss_percentile", 20).nullable()
 
     val affectedProducts = text("affected_products").nullable()
 

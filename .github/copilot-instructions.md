@@ -27,9 +27,7 @@ The docker images will use distroless images. For testing we will avoid mocking 
 ### Integrations
 - **Nais API GraphQL**: Fetch vulnerability data and application ingresses
 - **Entra ID**: Fetch username from access token claim
-- **EPSS (Exploit Prediction Scoring System)**: Probability scores for exploit likelihood
-- **CISA KEV**: Fetched from KEV in order to use specific fields that doesn't exist in embedded data from GCVE.
-- **GCVE**: Vulnerability-Lookup enables rapid correlation of vulnerabilities across multiple sources, independent of vulnerability identifiers.
+- **GCVE (db.gcve.eu)**: Single enrichment source for all CVE metadata — KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, ransomware campaign signal, affected products. Replaces standalone CISA KEV and EPSS integrations.
 
 ### Key Architectural Principles
 - **Clean Architecture**: Dependencies point inward (infrastructure → usecase → domain)

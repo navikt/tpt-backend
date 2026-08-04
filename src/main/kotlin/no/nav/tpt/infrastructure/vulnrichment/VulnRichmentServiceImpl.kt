@@ -9,9 +9,6 @@ import no.nav.tpt.domain.risk.RiskScorer
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.user.UserRole
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
-import no.nav.tpt.infrastructure.cisa.KevCatalog
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.epss.EpssService
 import no.nav.tpt.infrastructure.gcve.GcveCveData
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
@@ -22,47 +19,15 @@ import org.slf4j.LoggerFactory
 
 class VulnRichmentServiceImpl(
     private val vulnerabilityDataService: VulnerabilityDataService,
-    private val kevService: KevService,
-    private val epssService: EpssService,
     private val riskScorer: RiskScorer,
     private val userContextService: UserContextService,
     private val gitHubRepository: GitHubRepository,
-    private val gcveRepository: GcveRepository? = null,
-    private val useGcveDataSource: Boolean = false,
+    private val gcveRepository: GcveRepository,
 ) : VulnRichmentService {
     private val logger = LoggerFactory.getLogger(VulnRichmentServiceImpl::class.java)
 
-    private data class CveEnrichmentData(
-        val kevCveIds: Set<String>,
-        val kevRansomwareCveIds: Set<String>,
-        val epssScores: Map<String, no.nav.tpt.infrastructure.epss.EpssScore>,
-        val gcveData: Map<String, GcveCveData>,
-    )
-
-    private suspend fun fetchCveEnrichmentData(cveIds: List<String>): CveEnrichmentData {
-        val kevCatalog = try {
-            kevService.getKevCatalog()
-        } catch (e: Exception) {
-            // KevServiceImpl should handle this, but defensive catch in case
-            logger.warn("Unexpected error fetching KEV catalog, using empty KEV data: ${e.message}")
-            KevCatalog(
-                title = "CISA Catalog of Known Exploited Vulnerabilities",
-                catalogVersion = "unavailable",
-                dateReleased = "unavailable",
-                count = 0,
-                vulnerabilities = emptyList()
-            )
-        }
-        val kevCveIds = kevCatalog.vulnerabilities.map { it.cveID }.toSet()
-        val kevRansomwareCveIds = kevCatalog.vulnerabilities
-            .filter { it.knownRansomwareCampaignUse.equals("Known", ignoreCase = true) }
-            .map { it.cveID }
-            .toSet()
-        val epssScores = epssService.getEpssScores(cveIds)
-        val gcveData = gcveRepository?.getCveDataBatch(cveIds) ?: emptyMap()
-
-        return CveEnrichmentData(kevCveIds, kevRansomwareCveIds, epssScores, gcveData)
-    }
+    private suspend fun fetchGcveData(cveIds: List<String>): Map<String, GcveCveData> =
+        gcveRepository.getCveDataBatch(cveIds)
 
     private fun buildRiskContext(
         cveId: String,
@@ -71,35 +36,32 @@ class VulnRichmentServiceImpl(
         suppressed: Boolean,
         environment: String?,
         buildDate: java.time.LocalDate?,
-        enrichmentData: CveEnrichmentData,
+        gcveData: Map<String, GcveCveData>,
         packageName: String? = null,
     ): no.nav.tpt.domain.risk.VulnerabilityRiskContext {
-        val epssScore = enrichmentData.epssScores[cveId]
-        val hasKevEntry = enrichmentData.kevCveIds.contains(cveId)
-        val hasRansomwareCampaignUse = enrichmentData.kevRansomwareCveIds.contains(cveId)
-        val gcveData = enrichmentData.gcveData[cveId]
+        val cve = gcveData[cveId]
 
         return no.nav.tpt.domain.risk.VulnerabilityRiskContext(
             severity = severity,
             ingressTypes = ingressTypes,
-            hasKevEntry = gcveData?.hasKevEntry ?: hasKevEntry,
-            epssScore = epssScore?.epss,
+            hasKevEntry = cve?.hasKevEntry ?: false,
+            epssScore = cve?.epssScore?.epss,
             suppressed = suppressed,
             environment = environment,
             buildDate = buildDate,
-            hasExploitReference = gcveData?.hasExploitReference ?: false,
-            hasPatchReference = gcveData?.hasPatchReference ?: false,
-            cveDaysOld = gcveData?.daysOld,
-            hasRansomwareCampaignUse = hasRansomwareCampaignUse,
-            ssvcExploitation = gcveData?.ssvcExploitation,
-            ssvcAutomatable = gcveData?.ssvcAutomatable,
-            ssvcTechnicalImpact = gcveData?.ssvcTechnicalImpact,
-            hasCvssScore = gcveData != null && (gcveData.cvssV31Score != null || gcveData.cvssV40Score != null),
+            hasExploitReference = cve?.hasExploitReference ?: false,
+            hasPatchReference = cve?.hasPatchReference ?: false,
+            cveDaysOld = cve?.daysOld,
+            hasRansomwareCampaignUse = cve?.hasRansomwareCampaignUse ?: false,
+            ssvcExploitation = cve?.ssvcExploitation,
+            ssvcAutomatable = cve?.ssvcAutomatable,
+            ssvcTechnicalImpact = cve?.ssvcTechnicalImpact,
+            hasCvssScore = cve != null && (cve.cvssV31Score != null || cve.cvssV40Score != null),
             vexNotAffected = run {
                 val version = PurlParser.extractVersion(packageName)
                 val type = PurlParser.extractPackageType(packageName)
-                if (version != null && type != null && gcveData != null) {
-                    VersionMatcher.isNotAffected(gcveData.affectedProducts, type, version)
+                if (version != null && type != null && cve != null) {
+                    VersionMatcher.isNotAffected(cve.affectedProducts, type, version)
                 } else false
             },
         )
@@ -121,7 +83,7 @@ class VulnRichmentServiceImpl(
             .filter { it.startsWith("CVE-", ignoreCase = true) }
             .distinct()
 
-        val enrichmentData = fetchCveEnrichmentData(allCveIds)
+        val gcveData = fetchGcveData(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
             val teamSlug = teamVulns.teamSlug
@@ -140,7 +102,7 @@ class VulnRichmentServiceImpl(
                         suppressed = vuln.suppressed,
                         environment = workload.environment,
                         buildDate = buildDate,
-                        enrichmentData = enrichmentData,
+                        gcveData = gcveData,
                         packageName = vuln.packageName,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
@@ -195,7 +157,7 @@ class VulnRichmentServiceImpl(
             .filter { it.startsWith("CVE-", ignoreCase = true) }
             .distinct()
 
-        val enrichmentData = fetchCveEnrichmentData(allCveIds)
+        val gcveData = fetchGcveData(allCveIds)
 
         val teams = vulnerabilitiesData.teams.mapNotNull { teamVulns ->
             val workloads = teamVulns.workloads.mapNotNull { workload ->
@@ -212,7 +174,7 @@ class VulnRichmentServiceImpl(
                         suppressed = vuln.suppressed,
                         environment = workload.environment,
                         buildDate = buildDate,
-                        enrichmentData = enrichmentData,
+                        gcveData = gcveData,
                         packageName = vuln.packageName,
                     )
                     val riskResult = riskScorer.calculateRiskScore(riskContext)
@@ -273,7 +235,7 @@ class VulnRichmentServiceImpl(
             .map { it.value }
             .distinct()
 
-        val enrichmentData = fetchCveEnrichmentData(allCveIds)
+        val gcveData = fetchGcveData(allCveIds)
 
         val teamRepositories = mutableMapOf<String, MutableList<no.nav.tpt.domain.GitHubVulnRepositoryDto>>()
 
@@ -294,18 +256,16 @@ class VulnRichmentServiceImpl(
                     suppressed = false,
                     environment = null,
                     buildDate = null,
-                    enrichmentData = enrichmentData,
+                    gcveData = gcveData,
                     packageName = vuln.packageName,
                 )
                 val riskResult = riskScorer.calculateRiskScore(riskContext)
-
-                val gcveDescription = if (useGcveDataSource) enrichmentData.gcveData[cveIdentifier]?.description else null
 
                 no.nav.tpt.domain.GitHubVulnVulnerabilityDto(
                     identifier = cveIdentifier,
                     packageName = vuln.packageName,
                     packageEcosystem = vuln.packageEcosystem,
-                    description = vuln.summary ?: gcveDescription,
+                    description = vuln.summary ?: gcveData[cveIdentifier]?.description,
                     summary = vuln.summary,
                     vulnerabilityDetailsLink = "https://nvd.nist.gov/vuln/detail/$cveIdentifier",
                     riskScore = riskResult.score,

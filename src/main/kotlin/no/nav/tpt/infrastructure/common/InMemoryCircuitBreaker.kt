@@ -1,4 +1,4 @@
-package no.nav.tpt.infrastructure.epss
+package no.nav.tpt.infrastructure.common
 
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
@@ -14,12 +14,12 @@ class InMemoryCircuitBreaker(
     fun isOpen(): Boolean {
         val openTime = openedAt.get() ?: return false
         val elapsed = Instant.now().epochSecond - openTime.epochSecond
-        
+
         if (elapsed >= openDurationSeconds) {
             reset()
             return false
         }
-        
+
         return true
     }
 

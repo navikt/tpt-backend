@@ -13,11 +13,7 @@ import io.ktor.server.sse.SSE
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.infrastructure.cisa.KevService
-import no.nav.tpt.infrastructure.cisa.MockKevService
 import no.nav.tpt.infrastructure.config.AppConfig
-import no.nav.tpt.infrastructure.epss.EpssService
-import no.nav.tpt.infrastructure.epss.MockEpssService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
@@ -41,8 +37,6 @@ import no.nav.tpt.routes.dataCollectorRoutes
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: KevService = MockKevService(),
-    epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
@@ -68,7 +62,6 @@ fun Application.installTestDependencies(
         naisApiUrl = "http://test-nais-api",
         naisTokenFilePath = "test-token",
         dbJdbcUrl = "jdbc:postgresql://localhost:5432/test_db?user=test&password=test",
-        epssApiUrl = "http://localhost:8080/mock-epss-api",
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
         naisTokenRetrievalEndpoint = "http://localhost:8080/token"
@@ -92,11 +85,10 @@ fun Application.installTestDependencies(
 
     val vulnService = VulnRichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
-        kevService = kevService,
-        epssService = MockEpssService(),
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
-        gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository()
+        gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository(),
+        gcveRepository = mockGcveRepository,
     )
 
     val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
@@ -144,8 +136,6 @@ fun Application.installTestDependencies(
         appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
         naisApiService = naisApiService,
-        kevService = kevService,
-        epssService = epssService,
         database = stubDatabase,
         leaderElection = mockLeaderElection,
         httpClient = client,
@@ -171,12 +161,10 @@ fun Application.installTestDependencies(
 fun Application.testModule(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
-    kevService: KevService = MockKevService(),
-    epssService: EpssService = MockEpssService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null
 ) {
-    installTestDependencies(tokenIntrospectionService, naisApiService, kevService, epssService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService)
+    installTestDependencies(tokenIntrospectionService, naisApiService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService)
 
     install(SSE)
     install(ServerContentNegotiation) {

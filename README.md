@@ -18,14 +18,13 @@ src/main/kotlin/no/nav/tpt/
 ├── infrastructure/                            # External integrations and technical implementations
 │   ├── admin/                                 # Admin data aggregation and queries
 │   ├── auth/                                  # Token introspection and authentication
-│   ├── cisa/                                  # CISA KEV catalog integration (PostgreSQL-backed)
+│   ├── common/                                # Shared infrastructure utilities (InMemoryCircuitBreaker)
 │   ├── config/                                # Application configuration
 │   ├── database/                              # Database factory and connection management
-│   ├── epss/                                  # EPSS API client with circuit breaker and PostgreSQL cache
 │   ├── github/                                # GitHub repository metadata storage and queries
 │   ├── kafka/                                 # Kafka consumer + producer for sync commands and GitHub events
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
-│   ├── gcve/                                  # GCVE (db.gcve.eu) parallel integration for CVE enrichment
+│   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
 │   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
@@ -70,7 +69,6 @@ src/test/                                      # Test suite mirroring main struc
 - `TEAMKATALOGEN_URL` - Teamkatalogen API URL
 
 ### Optional
-- `EPSS_API_URL` - EPSS API URL (default: https://api.first.org/data/v1)
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
 - `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
 - `KAFKA_TOPICS` - Comma-separated list of topics to consume
@@ -97,9 +95,7 @@ Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
 ## Data Sources
 
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
-- **CISA KEV** - Known Exploited Vulnerabilities catalog (PostgreSQL-backed, 24h staleness check)
-- **EPSS** - Exploit Prediction Scoring System (PostgreSQL-backed with circuit breaker, 24h staleness check)
-- **GCVE (db.gcve.eu)** - CVE v5 enrichment from CIRCL's Vulnerability-Lookup (PostgreSQL-backed, parallel to NVD, incremental sync every 2 hours + targeted miss-path fetches)
+- **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives GitHub repository/vulnerability data; also used to dispatch sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
 
 ### Data Persistence Strategy
@@ -116,10 +112,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - Automatic cleanup of stale data (deleted apps/teams) and orphaned CVEs
 - Supports search by team, CVE, severity, ingress type
 
-**Other Data Sources:**
-- **EPSS scores**: Refreshed after 24 hours, circuit breaker protects against rate limits (3 failures = 5min cooldown)
-- **KEV catalog**: Refreshed after 24 hours, returns stale data if API fails
-- **GCVE data**: Incremental sync every 2 hours — leader publishes `gcve_sync` Kafka command, consumer executes. Missing CVEs fetched on demand via miss path (async, fire-and-forget).
+**GCVE data:** Incremental sync every 2 hours — leader publishes `gcve_sync` Kafka command, consumer executes. Missing CVEs fetched on demand via miss path (async, fire-and-forget). Stores KEV, EPSS, SSVC, CVSS, ransomware campaign signal per CVE.
 
 **SSE Events (`GET /events`, authenticated):**
 - `team_sync_started` — backend is fetching fresh vulnerability data for a team

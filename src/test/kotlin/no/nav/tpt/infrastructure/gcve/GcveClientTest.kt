@@ -7,7 +7,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import no.nav.tpt.infrastructure.epss.InMemoryCircuitBreaker
+import no.nav.tpt.infrastructure.common.InMemoryCircuitBreaker
 import kotlin.test.*
 
 class GcveClientTest {
