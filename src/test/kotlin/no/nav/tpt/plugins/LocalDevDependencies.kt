@@ -108,6 +108,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
+    val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+
     val vulnService = MockVulnerabilityEnrichmentService()
 
     val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
@@ -153,7 +155,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         naisTokenRetrievalEndpoint = "http://localhost:8080/token",
     )
 
-    val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
     val sseEventBus = SseEventBus()
     val dataCollector = FakeDataCollector()
