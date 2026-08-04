@@ -94,6 +94,10 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         // No-op for mock
     }
 
+    override suspend fun updateCodeScanningStatus(repoName: String, status: String) {
+        // No-op for mock
+    }
+
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? {
         return mockRepositories.find { it.nameWithOwner == nameWithOwner }
     }
