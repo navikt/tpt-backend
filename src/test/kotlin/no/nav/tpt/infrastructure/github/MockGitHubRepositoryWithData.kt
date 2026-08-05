@@ -8,19 +8,19 @@ class MockGitHubRepositoryWithData : GitHubRepository {
     private val mockRepositories = listOf(
         GitHubRepositoryData(
             nameWithOwner = "navikt/tpt-backend",
-            naisTeams = listOf("appsec"),
+            naisTeams = listOf("team-lokal-utvikler"),
             createdAt = Instant.parse("2024-01-15T10:00:00Z"),
             updatedAt = Instant.parse("2024-12-20T14:30:00Z")
         ),
         GitHubRepositoryData(
             nameWithOwner = "navikt/security-tools",
-            naisTeams = listOf("appsec", "platform"),
+            naisTeams = listOf("team-lokal-utvikler", "team-b"),
             createdAt = Instant.parse("2023-06-10T08:00:00Z"),
             updatedAt = Instant.parse("2024-12-18T09:15:00Z")
         ),
         GitHubRepositoryData(
             nameWithOwner = "navikt/example-app",
-            naisTeams = listOf("team-rocket"),
+            naisTeams = listOf("team-c"),
             createdAt = Instant.parse("2024-03-01T12:00:00Z"),
             updatedAt = Instant.parse("2024-12-15T16:45:00Z")
         )
