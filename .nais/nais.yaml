@@ -52,7 +52,7 @@ spec:
     limits:
       memory: 3072Mi
     requests:
-      cpu: 100m
+      cpu: 229m
       memory: 1568Mi
   observability:
     logging:
