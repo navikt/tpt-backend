@@ -9,18 +9,24 @@ class MockGitHubRepositoryWithData : GitHubRepository {
         GitHubRepositoryData(
             nameWithOwner = "navikt/tpt-backend",
             naisTeams = listOf("team-lokal-utvikler"),
+            usesDistroless = true,
+            codeScanningStatus = "OK",
             createdAt = Instant.parse("2024-01-15T10:00:00Z"),
             updatedAt = Instant.parse("2024-12-20T14:30:00Z")
         ),
         GitHubRepositoryData(
             nameWithOwner = "navikt/security-tools",
             naisTeams = listOf("team-lokal-utvikler", "team-b"),
+            usesDistroless = false,
+            codeScanningStatus = "security-tools has no code scanning analyses, possibly no tools configured",
             createdAt = Instant.parse("2023-06-10T08:00:00Z"),
             updatedAt = Instant.parse("2024-12-18T09:15:00Z")
         ),
         GitHubRepositoryData(
             nameWithOwner = "navikt/example-app",
             naisTeams = listOf("team-c"),
+            usesDistroless = null,
+            codeScanningStatus = null,
             createdAt = Instant.parse("2024-03-01T12:00:00Z"),
             updatedAt = Instant.parse("2024-12-15T16:45:00Z")
         )

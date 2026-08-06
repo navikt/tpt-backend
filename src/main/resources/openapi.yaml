@@ -878,6 +878,14 @@ components:
           nullable: true
           description: Whether the repository uses distroless Docker images
           example: true
+        codeScanningStatus:
+          type: string
+          nullable: true
+          description: >
+            GitHub Code Scanning status. null means unknown/not yet collected.
+            "OK" means code scanning is active and healthy. Any other string
+            is a hint or error message describing what needs to be fixed.
+          example: "OK"
         vulnerabilities:
           type: array
           items:
