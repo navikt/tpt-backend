@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.bundles.database)
     implementation(libs.jakarta.validation.api)
     implementation(libs.kafka.clients)
+    implementation(libs.ulid)
 
     testImplementation(libs.bundles.testing)
     testImplementation(platform(libs.junit.bom))
