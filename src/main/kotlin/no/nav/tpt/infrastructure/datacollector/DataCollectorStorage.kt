@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.datacollector
 
 import de.huxhorn.sulky.ulid.ULID
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.checkName
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.id
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.repo
@@ -28,7 +29,7 @@ object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val checkName = text("check_name")
     val repo = text("repo")
     val result = text("result")
-    val updatedAt = timestamp("updated_at").default(Instant.now())
+    val updatedAt = timestamp("updated_at").default(Instant.now().truncatedTo(ChronoUnit.MILLIS))
 
     override val id: Column<EntityID<String>> = text("id").entityId()
 }
@@ -66,7 +67,7 @@ class DataCollectorRepositoryImpl : DatacollectorRepository {
                 stmt[checkName] = check.checkName
                 stmt[repo] = check.repo
                 stmt[result] = check.result
-                stmt[updatedAt] = check.updatedAt
+                stmt[updatedAt] = check.updatedAt.truncatedTo(ChronoUnit.MILLIS)
             }
 
             DatacollectorCheckFailureReasons.batchInsert(check.failureReasons) { reason ->
@@ -96,7 +97,7 @@ class DataCollectorRepositoryImpl : DatacollectorRepository {
                 it[repo],
                 it[result],
                 failureReasons[it[id].toString()] ?: emptyList(),
-                it[updatedAt])
+                it[updatedAt].truncatedTo(ChronoUnit.MILLIS))
         }
     }
 

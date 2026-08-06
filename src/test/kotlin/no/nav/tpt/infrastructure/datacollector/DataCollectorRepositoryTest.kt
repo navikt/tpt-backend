@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import de.huxhorn.sulky.ulid.ULID
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlin.test.Test
 import kotlinx.coroutines.test.runTest
 import org.flywaydb.core.Flyway
@@ -61,7 +62,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with no failures and read them back`() = runTest {
-        val checkRecord = CheckRecord(ulid.nextValue(), "TheGoodCheck", "firstrepo", "ALL_GOOD",emptyList(), Instant.now())
+        val checkRecord = CheckRecord(ulid.nextValue(), "TheGoodCheck", "firstrepo", "ALL_GOOD",emptyList(), Instant.now().truncatedTo(ChronoUnit.MILLIS))
         repository.insert(checkRecord)
         val checksForRepo = repository.allForRepo("firstrepo")
         assertEquals(1, checksForRepo.size)
@@ -69,7 +70,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with failures and read them back`() = runTest {
-        val checkRecord = CheckRecord(ulid.nextValue(), "TheFailingCheck", "secondrepo", "NEEDS_WORK",listOf("jau", "dill", "dall"), Instant.now())
+        val checkRecord = CheckRecord(ulid.nextValue(), "TheFailingCheck", "secondrepo", "NEEDS_WORK",listOf("jau", "dill", "dall"), Instant.now().truncatedTo(ChronoUnit.MILLIS))
         repository.insert(checkRecord)
         val checksForRepo = repository.allForRepo("secondrepo")
         assertEquals(1, checksForRepo.size)
@@ -78,7 +79,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `delete a check`() = runTest {
-        val checkRecord = CheckRecord(ulid.nextValue(), "TheFailingCheck", "thirdrepo", "NEEDS_WORK",listOf("jau", "dill", "dall"), Instant.now())
+        val checkRecord = CheckRecord(ulid.nextValue(), "TheFailingCheck", "thirdrepo", "NEEDS_WORK",listOf("jau", "dill", "dall"), Instant.now().truncatedTo(ChronoUnit.MILLIS))
         repository.insert(checkRecord)
         assertDoesNotThrow { repository.delete(checkRecord.id) }
         val checksForRepo = repository.allForRepo(checkRecord.repo)
