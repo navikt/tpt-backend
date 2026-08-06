@@ -1,6 +1,7 @@
 package no.nav.tpt.infrastructure.kafka
 
 import kotlinx.serialization.json.Json
+import no.nav.tpt.infrastructure.datacollector.CheckResult
 import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
@@ -21,6 +22,7 @@ class RepositoryDataConsumer(
         try {
             when (record.key()) {
                 "dockerfile_features" -> processDockerfileFeatures(record)
+                "CheckResult" -> processCheckResults(record)
                 "team_sync", "vuln_data_sync", "gcve_sync" -> return
                 else -> processRepositoryMessage(record)
             }
@@ -61,6 +63,25 @@ class RepositoryDataConsumer(
             }
         } catch (e: Exception) {
             logger.error("Error parsing dockerfile features message: ${record.value()}", e)
+        }
+    }
+
+    private suspend fun processCheckResults(record: ConsumerRecord<String, String>) {
+        try {
+            val results = json.decodeFromString<List<CheckResult>>(record.value())
+            results.filter { it.name == "githubToolingStatus" }.forEach { result ->
+                try {
+                    val status = when (result) {
+                        is CheckResult.AllGood -> "OK"
+                        is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
+                    }
+                    repository.updateCodeScanningStatus(result.repo, status)
+                } catch (e: Exception) {
+                    logger.error("Error updating code scanning status for ${result.repo}", e)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Error parsing CheckResult message: ${record.value()}", e)
         }
     }
 }
