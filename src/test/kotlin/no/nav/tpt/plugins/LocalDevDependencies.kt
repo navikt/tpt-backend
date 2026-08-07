@@ -16,6 +16,7 @@ import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
+import no.nav.tpt.infrastructure.github.MockGitHubVulnerabilityService
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
@@ -112,12 +113,13 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val vulnService = MockVulnerabilityEnrichmentService()
 
-    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
+    val fallbackGitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = gitHubRepository,
         gcveRepository = localGcveRepository,
         userContextService = userContextService,
         riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
     )
+    val gitHubVulnerabilityService = MockGitHubVulnerabilityService(fallbackGitHubVulnerabilityService)
 
     val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository.withSampleData()
     
@@ -188,4 +190,3 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     // Set Kafka environment variables for local development
     System.setProperty("KAFKA_BROKERS", "localhost:${kafka.getMappedPort(9092)}")
 }
-
