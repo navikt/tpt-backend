@@ -94,6 +94,20 @@ src/test/                                      # Test suite mirroring main struc
 
 Application starts on `http://localhost:8080`
 
+`runLocalDev` uses `MockVulnerabilityEnrichmentService`, which reads vulnerability data from
+`src/test/resources/mock-vulnerabilities.json` if present, falling back to a small built-in dataset otherwise.
+
+### Using Production Data as Mock Data
+
+To develop against a realistic, larger dataset instead of the small built-in mock:
+
+1. Fetch the JSON payload from `https://tpt.ansatt.nav.no/api/debug` (requires being logged in).
+2. Save it as `src/test/resources/mock-vulnerabilities.json`.
+3. Run `./gradlew runLocalDev` — the mock service picks it up automatically.
+
+**This file is gitignored (`src/test/resources/mock-vulnerabilities.json`) — never commit it.** Production
+dumps from `/api/debug` are not sensitive in nature but VERY large.
+
 ## Testing
 
 ```bash
