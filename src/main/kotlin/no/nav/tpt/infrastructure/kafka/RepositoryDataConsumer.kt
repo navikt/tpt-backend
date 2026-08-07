@@ -75,7 +75,8 @@ class RepositoryDataConsumer(
                         is CheckResult.AllGood -> "OK"
                         is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
                     }
-                    repository.updateCodeScanningStatus(result.repo, status)
+                    val nameWithOwner = if ('/' in result.repo) result.repo else "navikt/${result.repo}"
+                    repository.updateCodeScanningStatus(nameWithOwner, status)
                 } catch (e: Exception) {
                     logger.error("Error updating code scanning status for ${result.repo}", e)
                 }

@@ -573,5 +573,58 @@ class RepositoryDataConsumerIntegrationTest {
             kafkaConsumer.stop()
         }
     }
-}
 
+    @Test
+    fun `should update code scanning status for short and qualified repository names`() = runBlocking {
+        val shortNameRepository = """
+            {
+              "nameWithOwner": "navikt/short-name-repo",
+              "naisTeams": ["team-test"],
+              "vulnerabilities": []
+            }
+        """.trimIndent()
+        val qualifiedNameRepository = """
+            {
+              "nameWithOwner": "navikt/qualified-name-repo",
+              "naisTeams": ["team-test"],
+              "vulnerabilities": []
+            }
+        """.trimIndent()
+        val checkResults = """
+            [
+              {
+                "type": "no.nav.checks.CheckResult.AllGood",
+                "name": "githubToolingStatus",
+                "repo": "short-name-repo",
+                "whenChecked": "2026-08-07T15:00:00Z"
+              },
+              {
+                "type": "no.nav.checks.CheckResult.NeedsWork",
+                "name": "githubToolingStatus",
+                "repo": "navikt/qualified-name-repo",
+                "whenChecked": "2026-08-07T15:00:00Z",
+                "reasons": ["Code scanning is not configured"]
+              }
+            ]
+        """.trimIndent()
+
+        try {
+            kafkaConsumer.start(this)
+            delay(2000)
+
+            kafkaProducer.send(ProducerRecord(testTopic, "short-name-repo", shortNameRepository)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, "qualified-name-repo", qualifiedNameRepository)).get()
+            delay(3000)
+            kafkaProducer.send(ProducerRecord(testTopic, "CheckResult", checkResults)).get()
+            delay(3000)
+
+            assertEquals("OK", repository.getRepository("navikt/short-name-repo")?.codeScanningStatus)
+            assertEquals(
+                "Code scanning is not configured",
+                repository.getRepository("navikt/qualified-name-repo")?.codeScanningStatus,
+            )
+        } finally {
+            kafkaConsumer.stop()
+        }
+    }
+}
