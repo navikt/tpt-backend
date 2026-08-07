@@ -11,6 +11,7 @@ User Role is set depending on how the user is linked to one or more namespaces.
 src/main/kotlin/no/nav/tpt/
 ├── domain/                                    # Core business logic and interfaces
 │   ├── admin/                                 # Admin overview and reporting interfaces
+│   ├── github/                                # GitHub vulnerability domain models
 │   ├── risk/                                  # Risk scoring — additive point model (0–100), 5 factor calculators
 │   │   └── factors/                           # SeverityCalculator, ExploitationEvidenceCalculator, ExposureCalculator, EnvironmentCalculator, ActionabilityCalculator
 │   ├── user/                                  # User context and role management interfaces
@@ -21,6 +22,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── common/                                # Shared infrastructure utilities (InMemoryCircuitBreaker)
 │   ├── config/                                # Application configuration
 │   ├── database/                              # Database factory and connection management
+│   ├── datacollector/                         # Triggers on-demand data collection from the external tpt-data-collector service
 │   ├── github/                                # GitHub repository metadata, Kafka messages, vulnerability service
 │   ├── kafka/                                 # Kafka consumer + producer for sync commands
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
@@ -35,13 +37,15 @@ src/main/kotlin/no/nav/tpt/
 │   ├── Dependencies.kt                        # Dependency injection setup
 │   ├── Kafka.kt                               # Kafka consumer + producer lifecycle management
 │   ├── LeaderElection.kt                      # Kubernetes leader election (used by sync schedulers as publishers)
+│   ├── StatusPages.kt                         # RFC 9457 Problem Details error responses
 │   ├── GcveSync.kt                            # Scheduled GCVE sync (leader publishes Kafka command)
 │   └── VulnerabilityDataSync.kt               # Scheduled vuln sync (leader publishes Kafka command)
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
+│   ├── DataCollectorRoutes.kt                 # On-demand data collection trigger endpoint
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
-│   ├── ResponseHelpers.kt                     # RFC 9457 Problem Details error responses
+│   ├── SseRoutes.kt                           # Server-Sent Events endpoint (`/events`)
 │   ├── VulnerabilityRoutes.kt                 # NAIS vulnerability query endpoints
 │   ├── GitHubVulnerabilityRoutes.kt           # GitHub Dependabot vulnerability endpoints
 │   └── VulnerabilitySearchRoutes.kt           # Vulnerability search and SLA endpoints
@@ -65,14 +69,19 @@ src/test/                                      # Test suite mirroring main struc
 ### Required
 - `NAIS_TOKEN_INTROSPECTION_ENDPOINT` - Token introspection endpoint
 - `NAIS_API_URL` - Nais GraphQL API endpoint
-- `NAIS_API_TOKEN` - Nais API token
+- `NAIS_SERVICE_ACCOUNT_TOKEN_PATH` - Path to the Nais service account token file (auto-injected by Nais)
 - `NAIS_DATABASE_TPT_BACKEND_TPT_JDBC_URL` - PostgreSQL JDBC URL (auto-injected by Nais)
 - `TEAMKATALOGEN_URL` - Teamkatalogen API URL
 
 ### Optional
+- `NAIS_TOKEN_ENDPOINT` - Nais token endpoint used by the data collector's token exchange (default: `DoesNotMatterOutsideOfCluster`)
+- `NAIS_CLUSTER_NAME` - Nais cluster name, used to target the data collector service (default: `dev-gcp`)
+- `ADMIN_GROUPS` - Comma-separated Entra ID group IDs granted admin access
+- `SLA_CRITICAL_WORKDAYS` - SLA deadline for critical vulnerabilities, in workdays (default: `1`)
+- `SLA_NON_CRITICAL_MONTHS` - SLA deadline for non-critical vulnerabilities, in months (default: `3`)
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
 - `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
-- `KAFKA_TOPICS` - Comma-separated list of topics to consume
+- `KAFKA_TOPIC` - Topic to consume
 - `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by Nais)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
@@ -91,13 +100,15 @@ Application starts on `http://localhost:8080`
 ./gradlew test
 ```
 
-Tests use mocked dependencies and testcontainers for PostgreSQL & Kafka.
+Docker must be running — tests use testcontainers to spin up PostgreSQL & Kafka, so there is no separate
+local setup for those dependencies.
 
 ## Data Sources
 
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives GitHub repository/vulnerability data; also used to dispatch sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
+- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams
 
 ### Data Persistence Strategy
 

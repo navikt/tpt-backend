@@ -12,6 +12,10 @@ metadata from external sources, and returns a risk-scored, prioritized list of s
 - Do NOT add code comments unless the logic is genuinely complex.
 - Do NOT add documentation files or explanations unless specifically asked — **except** the root `README.md`,
   which must be kept concise and updated whenever functionality, packages, or folder structure change.
+- Keep existing instruction files (`.github/instructions/*.instructions.md`) in sync with the code they
+  describe. If a change makes one inaccurate — a renamed pattern, a changed env var or default, a replaced
+  integration — update that file in the same commit. This is maintenance of what already exists, not adding
+  new documentation.
 - Do not use `timeout` when running terminal commands (zsh on macOS).
 - The user verifies functionality manually; you do not need to build or run the app to confirm your changes.
 
