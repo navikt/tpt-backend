@@ -49,7 +49,7 @@ class RepositoryDataConsumer(
             }
         } catch (_: Exception) {
             // Ignore these until we continue the work here.
-            //logger.warn("Error parsing repository message: ${record.value()}", e)
+            logger.warn("Error parsing repository message: ${record.value()}", e)
         }
     }
 
