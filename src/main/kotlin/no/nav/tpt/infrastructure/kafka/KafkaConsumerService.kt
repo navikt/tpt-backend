@@ -13,7 +13,10 @@ open class KafkaConsumerService(
     protected val kafkaConfig: KafkaConfig,
     private val groupId: String = "tpt-backend",
     private val autoCommit: Boolean = true,
-    private val offsetReset: String = "earliest",
+    // latest: prevents replaying historic messages if the committed offset is ever lost.
+    // Consumers use static group IDs with persistent offsets — on offset loss, replaying
+    // thousands of messages (e.g. from tpt-data-collector) would trigger unwanted API calls.
+    private val offsetReset: String = "latest",
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumerService::class.java)
     protected var consumer: KafkaConsumer<String, String>? = null

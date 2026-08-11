@@ -13,7 +13,7 @@ import java.util.UUID
 class SseFanoutConsumer(
     kafkaConfig: KafkaConfig,
     private val sseEventBus: SseEventBus,
-) : KafkaConsumerService(kafkaConfig, groupId = podScopedGroupId(), autoCommit = true, offsetReset = "latest") {
+) : KafkaConsumerService(kafkaConfig, groupId = podScopedGroupId(), autoCommit = true) {
 
     private val logger = LoggerFactory.getLogger(SseFanoutConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
