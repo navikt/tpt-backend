@@ -23,7 +23,8 @@ class RepositoryDataConsumer(
             when (record.key()) {
                 "dockerfile_features" -> processDockerfileFeatures(record)
                 "CheckResult" -> processCheckResults(record)
-                "team_sync", "vuln_data_sync", "gcve_sync" -> return
+                KafkaKey.TEAM_SYNC, KafkaKey.TEAM_SYNC_STARTED, KafkaKey.TEAM_SYNC_COMPLETE,
+                KafkaKey.VULN_DATA_SYNC, KafkaKey.GCVE_SYNC, KafkaKey.GCVE_SYNC_COMPLETE -> return
                 else -> processRepositoryMessage(record)
             }
 

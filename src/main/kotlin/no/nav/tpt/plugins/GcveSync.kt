@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.kafka.GcveSyncCommand
+import no.nav.tpt.infrastructure.kafka.KafkaKey
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
@@ -33,7 +34,7 @@ fun Application.configureGcveSync() {
                     val command = GcveSyncCommand(
                         triggeredAt = Instant.now().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                     )
-                    kafkaProducer.publish("gcve_sync", json.encodeToString(GcveSyncCommand.serializer(), command))
+                    kafkaProducer.publish(KafkaKey.GCVE_SYNC, json.encodeToString(GcveSyncCommand.serializer(), command))
                     logger.info("Published GCVE sync command to Kafka")
                 }
             } catch (e: Exception) {

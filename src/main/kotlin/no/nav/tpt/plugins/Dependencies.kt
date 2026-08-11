@@ -143,7 +143,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
         kafkaProducer = kafkaProducerService,
-        sseEventBus = sseEventBus,
     )
 
     val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
