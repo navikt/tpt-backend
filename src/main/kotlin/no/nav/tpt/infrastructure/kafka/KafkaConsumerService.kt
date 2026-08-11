@@ -13,6 +13,7 @@ open class KafkaConsumerService(
     protected val kafkaConfig: KafkaConfig,
     private val groupId: String = "tpt-backend",
     private val autoCommit: Boolean = true,
+    private val offsetReset: String = "earliest",
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumerService::class.java)
     protected var consumer: KafkaConsumer<String, String>? = null
@@ -86,7 +87,7 @@ open class KafkaConsumerService(
             put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
             put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
-            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetReset)
             put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString())
             if (autoCommit) {
                 put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000")

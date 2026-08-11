@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 class SseFanoutConsumer(
     kafkaConfig: KafkaConfig,
     private val sseEventBus: SseEventBus,
-) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-sse-sync", autoCommit = true) {
+) : KafkaConsumerService(kafkaConfig, groupId = podScopedGroupId(), autoCommit = true, offsetReset = "latest") {
 
     private val logger = LoggerFactory.getLogger(SseFanoutConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
@@ -41,3 +42,5 @@ class SseFanoutConsumer(
     private fun nowIso(): String =
         Instant.now().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 }
+
+private fun podScopedGroupId(): String = "tpt-backend-sse-sync-${UUID.randomUUID()}"
