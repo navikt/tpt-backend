@@ -21,15 +21,15 @@ class SseFanoutConsumer(
     override suspend fun processRecord(record: ConsumerRecord<String, String>) {
         try {
             when (record.key()) {
-                "team_sync_started" -> {
+                KafkaKey.TEAM_SYNC_STARTED -> {
                     val event = json.decodeFromString<TeamSyncStartedEvent>(record.value())
                     sseEventBus.emit(SseEvent.TeamSyncStarted(event.teamSlug, event.timestamp))
                 }
-                "team_sync_complete" -> {
+                KafkaKey.TEAM_SYNC_COMPLETE -> {
                     val event = json.decodeFromString<TeamSyncCompleteEvent>(record.value())
                     sseEventBus.emit(SseEvent.TeamSyncComplete(event.teamSlug, nowIso()))
                 }
-                "gcve_sync_complete" -> {
+                KafkaKey.GCVE_SYNC_COMPLETE -> {
                     val event = json.decodeFromString<GcveSyncCompleteEvent>(record.value())
                     sseEventBus.emit(SseEvent.GcveSyncComplete(event.cveCount, nowIso()))
                 }

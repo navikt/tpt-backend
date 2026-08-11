@@ -84,7 +84,7 @@ class TeamSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync", """{"teamSlug":"team-alpha"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-alpha"}""")).get()
         producer.close()
 
         delay(3000)
@@ -93,7 +93,7 @@ class TeamSyncConsumerIntegrationTest {
         kafkaProducerService.close()
 
         assertEquals(1, mockNaisApi.getVulnerabilitiesForTeamCallCount)
-        assertTrue(receivedKeys.contains("team_sync_complete"), "Expected team_sync_complete to be published to Kafka")
+        assertTrue(receivedKeys.contains(KafkaKey.TEAM_SYNC_COMPLETE), "Expected team_sync_complete to be published to Kafka")
     }
 
     @Test
@@ -109,7 +109,7 @@ class TeamSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "vuln_data_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.send(ProducerRecord(topic, "some-other-key", "irrelevant")).get()
         producer.close()
 
@@ -160,7 +160,7 @@ class VulnerabilityDataSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "vuln_data_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
         delay(3000)
@@ -188,8 +188,8 @@ class VulnerabilityDataSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync", """{"teamSlug":"team-a"}""")).get()
-        producer.send(ProducerRecord(topic, "gcve_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
         delay(3000)
@@ -244,7 +244,7 @@ class GcveSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "gcve_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
         delay(3000)
@@ -253,7 +253,7 @@ class GcveSyncConsumerIntegrationTest {
         kafkaProducerService.close()
 
         assertNotNull(gcveRepo.getLastSyncTimestamp(), "Sync timestamp should be set after successful sync")
-        assertTrue(receivedKeys.contains("gcve_sync_complete"), "Expected gcve_sync_complete to be published to Kafka")
+        assertTrue(receivedKeys.contains(KafkaKey.GCVE_SYNC_COMPLETE), "Expected gcve_sync_complete to be published to Kafka")
     }
 
     @Test
@@ -271,7 +271,7 @@ class GcveSyncConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync", """{"teamSlug":"team-a"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
         producer.close()
 
         delay(3000)
@@ -311,7 +311,7 @@ class SseFanoutConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync_started", """{"teamSlug":"team-gamma","timestamp":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC_STARTED, """{"teamSlug":"team-gamma","timestamp":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
         delay(3000)
@@ -336,7 +336,7 @@ class SseFanoutConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync_complete", """{"teamSlug":"team-beta"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC_COMPLETE, """{"teamSlug":"team-beta"}""")).get()
         producer.close()
 
         delay(3000)
@@ -361,7 +361,7 @@ class SseFanoutConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "gcve_sync_complete", """{"cveCount":42}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC_COMPLETE, """{"cveCount":42}""")).get()
         producer.close()
 
         delay(3000)
@@ -386,9 +386,9 @@ class SseFanoutConsumerIntegrationTest {
         delay(1000)
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
-        producer.send(ProducerRecord(topic, "team_sync", """{"teamSlug":"team-a"}""")).get()
-        producer.send(ProducerRecord(topic, "gcve_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
-        producer.send(ProducerRecord(topic, "vuln_data_sync", """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
+        producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
         delay(3000)

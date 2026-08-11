@@ -21,7 +21,7 @@ class GcveSyncConsumer(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun processRecord(record: ConsumerRecord<String, String>) {
-        if (record.key() != "gcve_sync") {
+        if (record.key() != KafkaKey.GCVE_SYNC) {
             commitCurrentOffset()
             return
         }
@@ -33,7 +33,7 @@ class GcveSyncConsumer(
             logger.info("Starting GCVE incremental sync since=$since, tracked CVEs: ${trackedCveIds.size}")
             val count = gcveSyncService.performIncrementalSync(since = since, trackedCveIds = trackedCveIds)
             logger.info("GCVE incremental sync complete, upserted $count CVEs")
-            kafkaProducer.publish("gcve_sync_complete", json.encodeToString(GcveSyncCompleteEvent(count)))
+            kafkaProducer.publish(KafkaKey.GCVE_SYNC_COMPLETE, json.encodeToString(GcveSyncCompleteEvent(count)))
             commitCurrentOffset()
         } catch (e: Exception) {
             logger.error("Error processing gcve_sync command", e)

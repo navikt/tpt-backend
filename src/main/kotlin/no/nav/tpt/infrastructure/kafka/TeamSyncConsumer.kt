@@ -16,7 +16,7 @@ class TeamSyncConsumer(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun processRecord(record: ConsumerRecord<String, String>) {
-        if (record.key() != "team_sync") {
+        if (record.key() != KafkaKey.TEAM_SYNC) {
             commitCurrentOffset()
             return
         }
@@ -26,7 +26,7 @@ class TeamSyncConsumer(
             logger.info("Starting team sync for $teamSlug")
             vulnerabilityTeamSyncService.syncTeams(listOf(teamSlug))
             logger.info("Team sync complete for $teamSlug")
-            kafkaProducer.publish("team_sync_complete", json.encodeToString(TeamSyncCompleteEvent(teamSlug)))
+            kafkaProducer.publish(KafkaKey.TEAM_SYNC_COMPLETE, json.encodeToString(TeamSyncCompleteEvent(teamSlug)))
             commitCurrentOffset()
         } catch (e: Exception) {
             logger.error("Error processing team_sync command: ${record.value()}", e)
