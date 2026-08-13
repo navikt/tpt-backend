@@ -10,11 +10,14 @@ import no.nav.tpt.metrics.TPTMetrics
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
+import java.time.Duration
+
 class DataCollectorConsumer(
     kafkaConfig: KafkaConfig,
     private val gitHubRepository: GitHubRepository,
     private val dataCollectorRepository: DatacollectorRepository,
-) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend", autoCommit = true) {
+    pollTimeout: Duration = Duration.ofSeconds(1),
+) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend", autoCommit = true, pollTimeout = pollTimeout) {
 
     private val logger = LoggerFactory.getLogger(DataCollectorConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }

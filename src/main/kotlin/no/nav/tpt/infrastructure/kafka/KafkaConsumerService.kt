@@ -17,6 +17,7 @@ open class KafkaConsumerService(
     // Consumers use static group IDs with persistent offsets — on offset loss, replaying
     // thousands of messages (e.g. from tpt-data-collector) would trigger unwanted API calls.
     private val offsetReset: String = "latest",
+    private val pollTimeout: Duration = Duration.ofSeconds(1),
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumerService::class.java)
     protected var consumer: KafkaConsumer<String, String>? = null
@@ -24,6 +25,7 @@ open class KafkaConsumerService(
     private var consumerThread: ExecutorCoroutineDispatcher? = null
 
     protected var isHealthyFlag = true
+    @Volatile private var isReadyFlag = false
 
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     open fun start(scope: CoroutineScope) {
@@ -40,7 +42,8 @@ open class KafkaConsumerService(
 
                 while (isActive) {
                     try {
-                        val records = consumer?.poll(Duration.ofSeconds(1))
+                        val records = consumer?.poll(pollTimeout)
+                        if (consumer?.assignment()?.isNotEmpty() == true) isReadyFlag = true
                         records?.let {
                             for (record in it) {
                                 processRecord(record)
@@ -83,6 +86,7 @@ open class KafkaConsumerService(
     }
 
     open fun isHealthy(): Boolean = isHealthyFlag
+    fun isReady(): Boolean = isReadyFlag
 
     protected open fun createConsumer(): KafkaConsumer<String, String> {
         val props = Properties().apply {

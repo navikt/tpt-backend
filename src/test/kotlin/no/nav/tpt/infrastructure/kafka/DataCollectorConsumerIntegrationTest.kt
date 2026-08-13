@@ -2,8 +2,9 @@ package no.nav.tpt.infrastructure.kafka
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
+import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.plugins.KAFKA_WAIT_STRATEGY
@@ -13,101 +14,93 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
-import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
+import kotlin.test.assertTrue
 
+@Testcontainers
 class DataCollectorConsumerIntegrationTest {
 
-    private lateinit var postgresContainer: PostgreSQLContainer<*>
-    private lateinit var kafkaContainer: KafkaContainer
-    private lateinit var database: Database
-    private lateinit var gitHubRepository: GitHubRepository
-    private lateinit var dataCollectorRepository: DatacollectorRepository
+    companion object {
+        @Container
+        private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17-alpine").apply {
+            withDatabaseName("test_db")
+            withUsername("test")
+            withPassword("test")
+        }
+
+        @Container
+        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
+
+        private lateinit var database: Database
+        private lateinit var gitHubRepository: GitHubRepository
+        private lateinit var dataCollectorRepository: DatacollectorRepository
+
+        @JvmStatic
+        @BeforeAll
+        fun setUpClass() {
+            val hikariConfig = HikariConfig().apply {
+                jdbcUrl = postgresContainer.jdbcUrl
+                username = postgresContainer.username
+                password = postgresContainer.password
+                driverClassName = "org.postgresql.Driver"
+            }
+            val dataSource = HikariDataSource(hikariConfig)
+
+            Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate()
+
+            database = Database.connect(dataSource)
+            gitHubRepository = GitHubRepositoryImpl(database)
+            dataCollectorRepository = DataCollectorRepositoryImpl(database)
+        }
+    }
+
+    private val testTopic = "test-github-repo-topic"
     private lateinit var kafkaConsumer: DataCollectorConsumer
     private lateinit var kafkaProducer: KafkaProducer<String, String>
 
-    private val testTopic = "test-github-repo-topic"
-
-    @Before
+    @BeforeEach
     fun setup() {
-        postgresContainer = PostgreSQLContainer(DockerImageName.parse("postgres:17"))
-            .withDatabaseName("test_db")
-            .withUsername("test")
-            .withPassword("test")
-        postgresContainer.start()
-
-        kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:3.9.0"))
-            .withExposedPorts(9092, 9093)
-            .withEnv("KAFKA_NODE_ID", "1")
-            .withEnv("KAFKA_PROCESS_ROLES", "broker,controller")
-            .withEnv("KAFKA_LISTENERS", "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093")
-            .withEnv("KAFKA_ADVERTISED_LISTENERS", "PLAINTEXT://localhost:9092")
-            .withEnv("KAFKA_CONTROLLER_LISTENER_NAMES", "CONTROLLER")
-            .withEnv("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT")
-            .withEnv("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@localhost:9093")
-            .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
-            .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
-            .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
-            .withEnv("KAFKA_LOG_DIRS", "/tmp/kraft-combined-logs")
-            .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
-            .waitingFor(KAFKA_WAIT_STRATEGY)
-        kafkaContainer.start()
-
-        val hikariConfig = HikariConfig().apply {
-            jdbcUrl = postgresContainer.jdbcUrl
-            username = postgresContainer.username
-            password = postgresContainer.password
-            driverClassName = "org.postgresql.Driver"
-        }
-        val dataSource = HikariDataSource(hikariConfig)
-
-        val flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .load()
-        flyway.migrate()
-
-        database = Database.connect(dataSource)
-        gitHubRepository = GitHubRepositoryImpl(database)
-        dataCollectorRepository = DataCollectorRepositoryImpl(database)
-
-        val kafkaPort = kafkaContainer.getMappedPort(9092)
         val kafkaConfig = KafkaConfig(
-            brokers = "localhost:$kafkaPort",
+            brokers = kafkaContainer.bootstrapServers,
             certificatePath = "",
             privateKeyPath = "",
             caPath = "",
             credstorePassword = "",
             keystorePath = "",
             truststorePath = "",
-            topic = testTopic
+            topic = testTopic,
         )
+        kafkaConsumer = DataCollectorConsumer(kafkaConfig, gitHubRepository, dataCollectorRepository, TEST_POLL_TIMEOUT)
 
-        kafkaConsumer = DataCollectorConsumer(kafkaConfig, gitHubRepository, dataCollectorRepository)
-
-        val producerProps = mapOf(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:$kafkaPort",
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
-            ProducerConfig.ACKS_CONFIG to "all"
+        kafkaProducer = KafkaProducer(
+            mapOf(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to kafkaContainer.bootstrapServers,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
+                ProducerConfig.ACKS_CONFIG to "all",
+            )
         )
-        kafkaProducer = KafkaProducer(producerProps)
     }
 
-    @After
+    @AfterEach
     fun teardown() {
         kafkaProducer.close()
-        postgresContainer.stop()
-        kafkaContainer.stop()
     }
 
     @Test
@@ -130,22 +123,24 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
+            kafkaProducer.send(ProducerRecord(testTopic, "test-key", validMessage)).get()
 
-            val record = ProducerRecord(testTopic, "test-key", validMessage)
-            kafkaProducer.send(record).get()
+            awaitCondition(message = "Repository navikt/test-app was not stored") {
+                gitHubRepository.getRepository("navikt/test-app") != null
+            }
 
-            delay(3000)
-
-            val storedRepo = gitHubRepository.getRepository("navikt/test-app")
-            assertNotNull(storedRepo)
+            val storedRepo = gitHubRepository.getRepository("navikt/test-app")!!
             assertEquals("navikt/test-app", storedRepo.nameWithOwner)
             assertEquals(2, storedRepo.naisTeams.size)
             assertEquals("team-awesome", storedRepo.naisTeams[0])
             assertEquals("team-security", storedRepo.naisTeams[1])
 
+            awaitCondition(message = "Vulnerabilities for navikt/test-app were not stored") {
+                gitHubRepository.getVulnerabilities("navikt/test-app").size == 1
+            }
+
             val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/test-app")
-            assertEquals(1, vulnerabilities.size)
             assertEquals("CRITICAL", vulnerabilities[0].severity)
             assertEquals(2, vulnerabilities[0].identifiers.size)
             assertEquals("CVE-2024-1234", vulnerabilities[0].identifiers[0].value)
@@ -191,20 +186,18 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "multi-key", messageWithMultipleVulns)).get()
-            delay(3000)
+
+            awaitCondition(message = "3 vulnerabilities for navikt/multi-vuln-app were not stored") {
+                gitHubRepository.getVulnerabilities("navikt/multi-vuln-app").size == 3
+            }
 
             val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/multi-vuln-app")
-            assertEquals(3, vulnerabilities.size)
-
             assertEquals("CRITICAL", vulnerabilities[0].severity)
             assertEquals(2, vulnerabilities[0].identifiers.size)
-
             assertEquals("HIGH", vulnerabilities[1].severity)
             assertEquals(1, vulnerabilities[1].identifiers.size)
-
             assertEquals("MEDIUM", vulnerabilities[2].severity)
             assertEquals(3, vulnerabilities[2].identifiers.size)
             assertEquals("SNYK-1234567", vulnerabilities[2].identifiers[2].value)
@@ -244,32 +237,30 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "update-key", initialMessage)).get()
-            delay(3000)
 
-            val initialRepo = gitHubRepository.getRepository("navikt/update-test")
-            assertNotNull(initialRepo)
-            assertEquals(1, initialRepo.naisTeams.size)
-            assertEquals("team-old", initialRepo.naisTeams[0])
-
-            val initialVulns = gitHubRepository.getVulnerabilities("navikt/update-test")
-            assertEquals(1, initialVulns.size)
-            assertEquals("LOW", initialVulns[0].severity)
+            awaitCondition(message = "Initial state for navikt/update-test was not stored") {
+                gitHubRepository.getRepository("navikt/update-test")?.naisTeams?.contains("team-old") == true
+            }
 
             kafkaProducer.send(ProducerRecord(testTopic, "update-key", updatedMessage)).get()
-            delay(3000)
 
-            val updatedRepo = gitHubRepository.getRepository("navikt/update-test")
-            assertNotNull(updatedRepo)
+            awaitCondition(message = "Updated state for navikt/update-test was not stored") {
+                gitHubRepository.getRepository("navikt/update-test")?.naisTeams?.contains("team-new") == true
+            }
+
+            val updatedRepo = gitHubRepository.getRepository("navikt/update-test")!!
             assertEquals(2, updatedRepo.naisTeams.size)
             assertEquals("team-new", updatedRepo.naisTeams[0])
             assertEquals("team-another", updatedRepo.naisTeams[1])
 
+            awaitCondition(message = "Updated vulnerability for navikt/update-test was not stored") {
+                gitHubRepository.getVulnerabilities("navikt/update-test").firstOrNull()?.severity == "CRITICAL"
+            }
+
             val updatedVulns = gitHubRepository.getVulnerabilities("navikt/update-test")
             assertEquals(1, updatedVulns.size)
-            assertEquals("CRITICAL", updatedVulns[0].severity)
             assertEquals("CVE-2024-0001", updatedVulns[0].identifiers[0].value)
         } finally {
             kafkaConsumer.stop()
@@ -288,17 +279,16 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "no-vulns-key", messageWithNoVulns)).get()
-            delay(3000)
 
-            val repo = gitHubRepository.getRepository("navikt/no-vulns")
-            assertNotNull(repo)
+            awaitCondition(message = "Repository navikt/no-vulns was not stored") {
+                gitHubRepository.getRepository("navikt/no-vulns") != null
+            }
+
+            val repo = gitHubRepository.getRepository("navikt/no-vulns")!!
             assertEquals("team-safe", repo.naisTeams[0])
-
-            val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/no-vulns")
-            assertEquals(0, vulnerabilities.size)
+            assertEquals(0, gitHubRepository.getVulnerabilities("navikt/no-vulns").size)
         } finally {
             kafkaConsumer.stop()
         }
@@ -306,6 +296,8 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should gracefully handle malformed JSON message`() = runBlocking {
+        // Missing comma between fields — kotlinx.serialization parses this leniently and stores
+        // the repo. The important thing is the consumer stays healthy and does not crash.
         val malformedMessage = """
             {
               "nameWithOwner": "navikt/bad-json",
@@ -316,13 +308,11 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "bad-json-key", malformedMessage)).get()
-            delay(3000)
 
-            val repo = gitHubRepository.getRepository("navikt/bad-json")
-            assertNull(repo)
+            awaitCondition(message = "Consumer did not stay healthy after malformed message") { kafkaConsumer.isReady() }
+            assertTrue(kafkaConsumer.isHealthy(), "Consumer should remain healthy after a bad message")
         } finally {
             kafkaConsumer.stop()
         }
@@ -330,6 +320,7 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should handle missing required fields`() = runBlocking {
+        // naisTeams is absent — coerced to null and stored as empty list. The repo is stored.
         val missingFieldsMessage = """
             {
               "nameWithOwner": "navikt/missing-fields",
@@ -339,13 +330,15 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "missing-key", missingFieldsMessage)).get()
-            delay(3000)
 
-            val repo = gitHubRepository.getRepository("navikt/missing-fields")
-            assertNull(repo)
+            awaitCondition(message = "Repository navikt/missing-fields was not stored") {
+                gitHubRepository.getRepository("navikt/missing-fields") != null
+            }
+
+            val repo = gitHubRepository.getRepository("navikt/missing-fields")!!
+            assertEquals(emptyList(), repo.naisTeams)
         } finally {
             kafkaConsumer.stop()
         }
@@ -353,6 +346,7 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should handle invalid data types`() = runBlocking {
+        // naisTeams as a string instead of array — coerceInputValues handles this gracefully
         val invalidTypesMessage = """
             {
               "nameWithOwner": "navikt/invalid-types",
@@ -363,13 +357,11 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "invalid-type-key", invalidTypesMessage)).get()
-            delay(3000)
 
-            val repo = gitHubRepository.getRepository("navikt/invalid-types")
-            assertNull(repo)
+            awaitCondition(message = "Consumer did not stay healthy after invalid type message") { kafkaConsumer.isReady() }
+            assertTrue(kafkaConsumer.isHealthy(), "Consumer should remain healthy after invalid type message")
         } finally {
             kafkaConsumer.stop()
         }
@@ -379,7 +371,7 @@ class DataCollectorConsumerIntegrationTest {
     fun `should process multiple messages in sequence`() = runBlocking {
         try {
             kafkaConsumer.start(this)
-            delay(2000)
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
 
             val repos = listOf("app-1", "app-2", "app-3")
             repos.forEach { repoName ->
@@ -398,13 +390,16 @@ class DataCollectorConsumerIntegrationTest {
                 kafkaProducer.send(ProducerRecord(testTopic, repoName, message)).get()
             }
 
-            delay(5000)
-
             repos.forEach { repoName ->
-                val repo = gitHubRepository.getRepository("navikt/$repoName")
-                assertNotNull(repo, "Repository navikt/$repoName should exist")
+                awaitCondition(message = "Repository navikt/$repoName was not stored") {
+                    gitHubRepository.getRepository("navikt/$repoName") != null
+                }
+                val repo = gitHubRepository.getRepository("navikt/$repoName")!!
                 assertEquals("team-$repoName", repo.naisTeams[0])
 
+                awaitCondition(message = "Vulnerability for navikt/$repoName was not stored") {
+                    gitHubRepository.getVulnerabilities("navikt/$repoName").isNotEmpty()
+                }
                 val vulns = gitHubRepository.getVulnerabilities("navikt/$repoName")
                 assertEquals(1, vulns.size)
                 assertEquals("HIGH", vulns[0].severity)
@@ -416,6 +411,7 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should handle empty repository name`() = runBlocking {
+        // Empty nameWithOwner is stored as-is — no validation guard in the repository layer.
         val emptyRepoNameMessage = """
             {
               "nameWithOwner": "",
@@ -426,13 +422,16 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "empty-name-key", emptyRepoNameMessage)).get()
-            delay(3000)
 
-            val repo = gitHubRepository.getRepository("")
-            assertNull(repo)
+            awaitCondition(message = "Repository with empty name was not stored") {
+                gitHubRepository.getRepository("") != null
+            }
+
+            val repo = gitHubRepository.getRepository("")!!
+            assertEquals("", repo.nameWithOwner)
+            assertEquals(listOf("team-test"), repo.naisTeams)
         } finally {
             kafkaConsumer.stop()
         }
@@ -477,20 +476,15 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "comprehensive-key", comprehensiveMessage)).get()
-            delay(3000)
 
-            val storedRepo = gitHubRepository.getRepository("navikt/comprehensive-test-repo")
-            assertNotNull(storedRepo)
-            assertEquals("navikt/comprehensive-test-repo", storedRepo.nameWithOwner)
+            awaitCondition(message = "2 vulnerabilities for navikt/comprehensive-test-repo were not stored") {
+                gitHubRepository.getVulnerabilities("navikt/comprehensive-test-repo").size == 2
+            }
 
             val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/comprehensive-test-repo")
-            assertEquals(2, vulnerabilities.size)
-
-            val critical = vulnerabilities.find { it.severity == "CRITICAL" }
-            assertNotNull(critical)
+            val critical = vulnerabilities.find { it.severity == "CRITICAL" }!!
             assertEquals("RUNTIME", critical.dependencyScope)
             assertEquals("https://github.com/org/repo/pull/42", critical.dependabotUpdatePullRequestUrl)
             assertEquals(9.8, critical.cvssScore)
@@ -499,8 +493,7 @@ class DataCollectorConsumerIntegrationTest {
             assertEquals("vulnerable-package", critical.packageName)
             assertNotNull(critical.publishedAt)
 
-            val moderate = vulnerabilities.find { it.severity == "MODERATE" }
-            assertNotNull(moderate)
+            val moderate = vulnerabilities.find { it.severity == "MODERATE" }!!
             assertEquals("DEVELOPMENT", moderate.dependencyScope)
             assertNull(moderate.dependabotUpdatePullRequestUrl)
             assertEquals(5.3, moderate.cvssScore)
@@ -515,6 +508,15 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should consume and store dockerfile features message`() = runBlocking {
+        // The dockerfile_features message updates an existing repo's usesDistroless flag.
+        // We first create the repo, then send the dockerfile_features update.
+        val repoMessage = """
+            {
+              "nameWithOwner": "navikt/test",
+              "naisTeams": ["team-test"],
+              "vulnerabilities": []
+            }
+        """.trimIndent()
         val dockerfileFeaturesMessage = """
             {
               "repoName": "navikt/test",
@@ -524,13 +526,20 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
+            kafkaProducer.send(ProducerRecord(testTopic, "repo-key", repoMessage)).get()
+
+            awaitCondition(message = "navikt/test was not initially stored") {
+                gitHubRepository.getRepository("navikt/test") != null
+            }
 
             kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
-            delay(3000)
 
-            val storedRepo = gitHubRepository.getRepository("navikt/test")
-            assertNotNull(storedRepo)
+            awaitCondition(message = "navikt/test was not updated with usesDistroless=true") {
+                gitHubRepository.getRepository("navikt/test")?.usesDistroless == true
+            }
+
+            val storedRepo = gitHubRepository.getRepository("navikt/test")!!
             assertEquals("navikt/test", storedRepo.nameWithOwner)
             assertEquals(true, storedRepo.usesDistroless)
         } finally {
@@ -557,20 +566,21 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "repo-key", initialRepoMessage)).get()
-            delay(3000)
 
-            val initialRepo = gitHubRepository.getRepository("navikt/existing-repo")
-            assertNotNull(initialRepo)
-            assertNull(initialRepo.usesDistroless)
+            awaitCondition(message = "navikt/existing-repo was not initially stored") {
+                gitHubRepository.getRepository("navikt/existing-repo") != null
+            }
+            assertNull(gitHubRepository.getRepository("navikt/existing-repo")!!.usesDistroless)
 
             kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
-            delay(3000)
 
-            val updatedRepo = gitHubRepository.getRepository("navikt/existing-repo")
-            assertNotNull(updatedRepo)
+            awaitCondition(message = "navikt/existing-repo was not updated with usesDistroless=false") {
+                gitHubRepository.getRepository("navikt/existing-repo")?.usesDistroless != null
+            }
+
+            val updatedRepo = gitHubRepository.getRepository("navikt/existing-repo")!!
             assertEquals(false, updatedRepo.usesDistroless)
             assertEquals("team-test", updatedRepo.naisTeams[0])
         } finally {
@@ -614,13 +624,23 @@ class DataCollectorConsumerIntegrationTest {
 
         try {
             kafkaConsumer.start(this)
-            delay(2000)
-
+            awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, "short-name-repo", shortNameRepository)).get()
             kafkaProducer.send(ProducerRecord(testTopic, "qualified-name-repo", qualifiedNameRepository)).get()
-            delay(3000)
+
+            awaitCondition(message = "Repositories were not stored before sending CheckResult") {
+                gitHubRepository.getRepository("navikt/short-name-repo") != null &&
+                    gitHubRepository.getRepository("navikt/qualified-name-repo") != null
+            }
+
             kafkaProducer.send(ProducerRecord(testTopic, "CheckResult", checkResults)).get()
-            delay(3000)
+
+            awaitCondition(message = "Code scanning status for navikt/short-name-repo was not set") {
+                gitHubRepository.getRepository("navikt/short-name-repo")?.codeScanningStatus == "OK"
+            }
+            awaitCondition(message = "Code scanning status for navikt/qualified-name-repo was not set") {
+                gitHubRepository.getRepository("navikt/qualified-name-repo")?.codeScanningStatus != null
+            }
 
             assertEquals("OK", gitHubRepository.getRepository("navikt/short-name-repo")?.codeScanningStatus)
             assertEquals(

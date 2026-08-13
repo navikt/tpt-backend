@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.Duration
 import java.time.format.DateTimeFormatter
 
 class GcveSyncConsumer(
@@ -15,7 +16,8 @@ class GcveSyncConsumer(
     private val gcveSyncService: GcveSyncService,
     private val gcveRepository: GcveRepository,
     private val kafkaProducer: SyncPublisher,
-) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-gcve-sync", autoCommit = false) {
+    pollTimeout: Duration = Duration.ofSeconds(1),
+) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-gcve-sync", autoCommit = false, pollTimeout = pollTimeout) {
 
     private val logger = LoggerFactory.getLogger(GcveSyncConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }

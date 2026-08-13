@@ -3,6 +3,7 @@ package no.nav.tpt.infrastructure.kafka
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
+import java.time.Duration
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
@@ -10,7 +11,8 @@ class TeamSyncConsumer(
     kafkaConfig: KafkaConfig,
     private val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
     private val kafkaProducer: SyncPublisher,
-) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-team-sync", autoCommit = false) {
+    pollTimeout: Duration = Duration.ofSeconds(1),
+) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-team-sync", autoCommit = false, pollTimeout = pollTimeout) {
 
     private val logger = LoggerFactory.getLogger(TeamSyncConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }

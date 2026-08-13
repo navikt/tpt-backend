@@ -3,7 +3,6 @@ package no.nav.tpt.infrastructure.kafka
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.http.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import no.nav.tpt.infrastructure.gcve.GcveClient
@@ -17,15 +16,24 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.util.*
 import kotlin.test.*
 
-private fun startKafka(): KafkaContainer =
-    KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
-        .waitingFor(KAFKA_WAIT_STRATEGY)
-        .also { it.start() }
+private fun testProducer(bootstrapServers: String): KafkaProducer<String, String> =
+    KafkaProducer(
+        Properties().apply {
+            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+            put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+            put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+            put(ProducerConfig.ACKS_CONFIG, "all")
+        }
+    )
 
 private fun testKafkaConfig(bootstrapServers: String, topic: String) = KafkaConfig(
     brokers = bootstrapServers,
@@ -34,31 +42,22 @@ private fun testKafkaConfig(bootstrapServers: String, topic: String) = KafkaConf
     topic = topic,
 )
 
-private fun testProducer(bootstrapServers: String): KafkaProducer<String, String> {
-    val props = Properties().apply {
-        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-        put(ProducerConfig.ACKS_CONFIG, "all")
-    }
-    return KafkaProducer(props)
-}
-
 // ---------------------------------------------------------------------------
 
+@Testcontainers
 class TeamSyncConsumerIntegrationTest {
 
-    private lateinit var kafkaContainer: KafkaContainer
-    private val topic = "test-sync-topic"
-
-    @BeforeTest
-    fun setup() {
-        kafkaContainer = startKafka()
+    companion object {
+        @Container
+        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
     }
 
-    @AfterTest
-    fun teardown() {
-        kafkaContainer.stop()
+    private lateinit var topic: String
+
+    @BeforeEach
+    fun setup() {
+        topic = "test-sync-topic-${UUID.randomUUID()}"
     }
 
     @Test
@@ -71,29 +70,33 @@ class TeamSyncConsumerIntegrationTest {
         val kafkaProducerService = KafkaProducerService(kafkaConfig)
 
         val receivedKeys = mutableListOf<String>()
-        val spyConsumer = object : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-test-spy", autoCommit = true) {
+        val spyConsumer = object : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-test-spy", autoCommit = true, pollTimeout = TEST_POLL_TIMEOUT) {
             override suspend fun processRecord(record: ConsumerRecord<String, String>) {
                 receivedKeys.add(record.key())
             }
         }
         spyConsumer.start(this)
-        delay(500)
 
-        val consumer = TeamSyncConsumer(kafkaConfig, syncService, kafkaProducerService)
+        val consumer = TeamSyncConsumer(kafkaConfig, syncService, kafkaProducerService, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-alpha"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        spyConsumer.stop()
-        kafkaProducerService.close()
-
-        assertEquals(1, mockNaisApi.getVulnerabilitiesForTeamCallCount)
-        assertTrue(receivedKeys.contains(KafkaKey.TEAM_SYNC_COMPLETE), "Expected team_sync_complete to be published to Kafka")
+        try {
+            awaitCondition(message = "team_sync was not processed") {
+                mockNaisApi.getVulnerabilitiesForTeamCallCount == 1
+            }
+            awaitCondition(message = "team_sync_complete was not published to Kafka") {
+                receivedKeys.contains(KafkaKey.TEAM_SYNC_COMPLETE)
+            }
+        } finally {
+            consumer.stop()
+            spyConsumer.stop()
+            kafkaProducerService.close()
+        }
     }
 
     @Test
@@ -104,38 +107,41 @@ class TeamSyncConsumerIntegrationTest {
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
         val kafkaProducerService = KafkaProducerService(kafkaConfig)
-        val consumer = TeamSyncConsumer(kafkaConfig, syncService, kafkaProducerService)
+        val consumer = TeamSyncConsumer(kafkaConfig, syncService, kafkaProducerService, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.send(ProducerRecord(topic, "some-other-key", "irrelevant")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        kafkaProducerService.close()
-
-        assertEquals(0, mockNaisApi.getVulnerabilitiesForTeamCallCount)
+        try {
+            awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
+            assertEquals(0, mockNaisApi.getVulnerabilitiesForTeamCallCount)
+        } finally {
+            consumer.stop()
+            kafkaProducerService.close()
+        }
     }
 }
 
 // ---------------------------------------------------------------------------
 
+@Testcontainers
 class VulnerabilityDataSyncConsumerIntegrationTest {
 
-    private lateinit var kafkaContainer: KafkaContainer
-    private val topic = "test-vuln-sync-topic"
-
-    @BeforeTest
-    fun setup() {
-        kafkaContainer = startKafka()
+    companion object {
+        @Container
+        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
     }
 
-    @AfterTest
-    fun teardown() {
-        kafkaContainer.stop()
+    private lateinit var topic: String
+
+    @BeforeEach
+    fun setup() {
+        topic = "test-vuln-sync-topic-${UUID.randomUUID()}"
     }
 
     @Test
@@ -155,18 +161,19 @@ class VulnerabilityDataSyncConsumerIntegrationTest {
         )
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = VulnerabilityDataSyncConsumer(kafkaConfig, syncJob)
+        val consumer = VulnerabilityDataSyncConsumer(kafkaConfig, syncJob, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-
-        assertTrue(mockNaisApi.getAllTeamsCalled)
+        try {
+            awaitCondition(message = "Full sync was not triggered") { mockNaisApi.getAllTeamsCalled }
+        } finally {
+            consumer.stop()
+        }
     }
 
     @Test
@@ -183,37 +190,40 @@ class VulnerabilityDataSyncConsumerIntegrationTest {
         )
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = VulnerabilityDataSyncConsumer(kafkaConfig, syncJob)
+        val consumer = VulnerabilityDataSyncConsumer(kafkaConfig, syncJob, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
         producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-
-        assertFalse(mockNaisApi.getAllTeamsCalled)
+        try {
+            awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
+            assertFalse(mockNaisApi.getAllTeamsCalled)
+        } finally {
+            consumer.stop()
+        }
     }
 }
 
 // ---------------------------------------------------------------------------
 
+@Testcontainers
 class GcveSyncConsumerIntegrationTest {
 
-    private lateinit var kafkaContainer: KafkaContainer
-    private val topic = "test-gcve-sync-topic"
-
-    @BeforeTest
-    fun setup() {
-        kafkaContainer = startKafka()
+    companion object {
+        @Container
+        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
     }
 
-    @AfterTest
-    fun teardown() {
-        kafkaContainer.stop()
+    private lateinit var topic: String
+
+    @BeforeEach
+    fun setup() {
+        topic = "test-gcve-sync-topic-${UUID.randomUUID()}"
     }
 
     @Test
@@ -231,29 +241,33 @@ class GcveSyncConsumerIntegrationTest {
         val kafkaProducerService = KafkaProducerService(kafkaConfig)
 
         val receivedKeys = mutableListOf<String>()
-        val spyConsumer = object : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-gcve-test-spy", autoCommit = true) {
+        val spyConsumer = object : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-gcve-test-spy", autoCommit = true, pollTimeout = TEST_POLL_TIMEOUT) {
             override suspend fun processRecord(record: ConsumerRecord<String, String>) {
                 receivedKeys.add(record.key())
             }
         }
         spyConsumer.start(this)
-        delay(500)
 
-        val consumer = GcveSyncConsumer(kafkaConfig, gcveSyncService, gcveRepo, kafkaProducerService)
+        val consumer = GcveSyncConsumer(kafkaConfig, gcveSyncService, gcveRepo, kafkaProducerService, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        spyConsumer.stop()
-        kafkaProducerService.close()
-
-        assertNotNull(gcveRepo.getLastSyncTimestamp(), "Sync timestamp should be set after successful sync")
-        assertTrue(receivedKeys.contains(KafkaKey.GCVE_SYNC_COMPLETE), "Expected gcve_sync_complete to be published to Kafka")
+        try {
+            awaitCondition(message = "GCVE sync timestamp was not set") {
+                gcveRepo.getLastSyncTimestamp() != null
+            }
+            awaitCondition(message = "gcve_sync_complete was not published to Kafka") {
+                receivedKeys.contains(KafkaKey.GCVE_SYNC_COMPLETE)
+            }
+        } finally {
+            consumer.stop()
+            spyConsumer.stop()
+            kafkaProducerService.close()
+        }
     }
 
     @Test
@@ -266,37 +280,40 @@ class GcveSyncConsumerIntegrationTest {
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
         val kafkaProducerService = KafkaProducerService(kafkaConfig)
-        val consumer = GcveSyncConsumer(kafkaConfig, gcveSyncService, gcveRepo, kafkaProducerService)
+        val consumer = GcveSyncConsumer(kafkaConfig, gcveSyncService, gcveRepo, kafkaProducerService, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        kafkaProducerService.close()
-
-        assertNull(gcveRepo.getLastSyncTimestamp(), "Sync timestamp should not be set when no gcve_sync received")
+        try {
+            awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
+            assertNull(gcveRepo.getLastSyncTimestamp(), "Sync timestamp should not be set when no gcve_sync received")
+        } finally {
+            consumer.stop()
+            kafkaProducerService.close()
+        }
     }
 }
 
 // ---------------------------------------------------------------------------
 
+@Testcontainers
 class SseFanoutConsumerIntegrationTest {
 
-    private lateinit var kafkaContainer: KafkaContainer
-    private val topic = "test-sse-fanout-topic"
-
-    @BeforeTest
-    fun setup() {
-        kafkaContainer = startKafka()
+    companion object {
+        @Container
+        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
+            .waitingFor(KAFKA_WAIT_STRATEGY)
     }
 
-    @AfterTest
-    fun teardown() {
-        kafkaContainer.stop()
+    private lateinit var topic: String
+
+    @BeforeEach
+    fun setup() {
+        topic = "test-sse-fanout-topic-${UUID.randomUUID()}"
     }
 
     @Test
@@ -306,22 +323,23 @@ class SseFanoutConsumerIntegrationTest {
         val collectJob = launch { eventBus.events.collect { receivedEvents.add(it) } }
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = SseFanoutConsumer(kafkaConfig, eventBus)
+        val consumer = SseFanoutConsumer(kafkaConfig, eventBus, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC_STARTED, """{"teamSlug":"team-gamma","timestamp":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        collectJob.cancel()
-
-        assertEquals(1, receivedEvents.size)
-        val event = receivedEvents[0]
-        assertIs<SseEvent.TeamSyncStarted>(event)
-        assertEquals("team-gamma", event.teamSlug)
+        try {
+            awaitCondition(message = "TeamSyncStarted SSE event was not emitted") { receivedEvents.size == 1 }
+            val event = receivedEvents[0]
+            assertIs<SseEvent.TeamSyncStarted>(event)
+            assertEquals("team-gamma", event.teamSlug)
+        } finally {
+            consumer.stop()
+            collectJob.cancel()
+        }
     }
 
     @Test
@@ -331,22 +349,23 @@ class SseFanoutConsumerIntegrationTest {
         val collectJob = launch { eventBus.events.collect { receivedEvents.add(it) } }
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = SseFanoutConsumer(kafkaConfig, eventBus)
+        val consumer = SseFanoutConsumer(kafkaConfig, eventBus, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC_COMPLETE, """{"teamSlug":"team-beta"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        collectJob.cancel()
-
-        assertEquals(1, receivedEvents.size)
-        val event = receivedEvents[0]
-        assertIs<SseEvent.TeamSyncComplete>(event)
-        assertEquals("team-beta", event.teamSlug)
+        try {
+            awaitCondition(message = "TeamSyncComplete SSE event was not emitted") { receivedEvents.size == 1 }
+            val event = receivedEvents[0]
+            assertIs<SseEvent.TeamSyncComplete>(event)
+            assertEquals("team-beta", event.teamSlug)
+        } finally {
+            consumer.stop()
+            collectJob.cancel()
+        }
     }
 
     @Test
@@ -356,22 +375,23 @@ class SseFanoutConsumerIntegrationTest {
         val collectJob = launch { eventBus.events.collect { receivedEvents.add(it) } }
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = SseFanoutConsumer(kafkaConfig, eventBus)
+        val consumer = SseFanoutConsumer(kafkaConfig, eventBus, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.GCVE_SYNC_COMPLETE, """{"cveCount":42}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        collectJob.cancel()
-
-        assertEquals(1, receivedEvents.size)
-        val event = receivedEvents[0]
-        assertIs<SseEvent.GcveSyncComplete>(event)
-        assertEquals(42, event.cveCount)
+        try {
+            awaitCondition(message = "GcveSyncComplete SSE event was not emitted") { receivedEvents.size == 1 }
+            val event = receivedEvents[0]
+            assertIs<SseEvent.GcveSyncComplete>(event)
+            assertEquals(42, event.cveCount)
+        } finally {
+            consumer.stop()
+            collectJob.cancel()
+        }
     }
 
     @Test
@@ -381,9 +401,9 @@ class SseFanoutConsumerIntegrationTest {
         val collectJob = launch { eventBus.events.collect { receivedEvents.add(it) } }
 
         val kafkaConfig = testKafkaConfig(kafkaContainer.bootstrapServers, topic)
-        val consumer = SseFanoutConsumer(kafkaConfig, eventBus)
+        val consumer = SseFanoutConsumer(kafkaConfig, eventBus, TEST_POLL_TIMEOUT)
         consumer.start(this)
-        delay(1000)
+        awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
 
         val producer = testProducer(kafkaContainer.bootstrapServers)
         producer.send(ProducerRecord(topic, KafkaKey.TEAM_SYNC, """{"teamSlug":"team-a"}""")).get()
@@ -391,10 +411,12 @@ class SseFanoutConsumerIntegrationTest {
         producer.send(ProducerRecord(topic, KafkaKey.VULN_DATA_SYNC, """{"triggeredAt":"2024-01-01T00:00:00Z"}""")).get()
         producer.close()
 
-        delay(3000)
-        consumer.stop()
-        collectJob.cancel()
-
-        assertEquals(0, receivedEvents.size)
+        try {
+            awaitCondition(message = "Consumer did not become ready") { consumer.isReady() }
+            assertEquals(0, receivedEvents.size)
+        } finally {
+            consumer.stop()
+            collectJob.cancel()
+        }
     }
 }
