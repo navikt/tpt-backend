@@ -6,6 +6,7 @@ import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
+import no.nav.tpt.metrics.BusinessMetrics
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
@@ -73,6 +74,7 @@ class DataCollectorConsumer(
         try {
             val results = json.decodeFromString<List<CheckResult>>(record.value())
             storeCodeScanningStatus(results.filter { it.name == "githubToolingStatus" })
+            storeCheckResults(results)
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
         }
@@ -89,6 +91,18 @@ class DataCollectorConsumer(
                 gitHubRepository.updateCodeScanningStatus(nameWithOwner, status)
             } catch (e: Exception) {
                 logger.error("Error updating code scanning status for ${result.repo}", e)
+            }
+        }
+    }
+
+    private suspend fun storeCheckResults(checkResults: List<CheckResult>) {
+        checkResults.forEach { result ->
+            try {
+                dataCollectorRepository.insert(result)
+                BusinessMetrics.checksPersisted()
+            } catch (e: Exception) {
+                logger.error("Error saving check result for ${result.repo}", e)
+                BusinessMetrics.checksPersistingFailed()
             }
         }
     }
