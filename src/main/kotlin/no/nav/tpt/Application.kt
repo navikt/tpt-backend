@@ -52,7 +52,7 @@ fun Application.module() {
     install(CallLogging) {
         level = Level.INFO
         filter { call ->
-            !call.request.uri.startsWith("/isalive") && !call.request.uri.startsWith("/isready")
+            !call.request.uri.startsWith("/internal")
         }
         format { call ->
             val status = call.response.status()
