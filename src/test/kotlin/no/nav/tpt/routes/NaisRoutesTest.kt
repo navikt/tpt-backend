@@ -8,13 +8,13 @@ import no.nav.tpt.plugins.testModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class HealthRoutesTest {
+class NaisRoutesTest {
 
     @Test
     fun `should return OK for isalive`() = testApplication {
         application { testModule() }
 
-        val response = client.get("/isalive")
+        val response = client.get("/internal/isalive")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("A-OK", response.bodyAsText())
     }
@@ -23,7 +23,7 @@ class HealthRoutesTest {
     fun `should return OK for isready when Kafka is not configured`() = testApplication {
         application { testModule() }
 
-        val response = client.get("/isready")
+        val response = client.get("/internal/isready")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("KIROV REPORTING", response.bodyAsText())
     }

@@ -21,7 +21,7 @@ import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
-import no.nav.tpt.routes.healthRoutes
+import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
@@ -67,7 +67,7 @@ fun Application.localDevModule() {
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")
-        healthRoutes()
+        naisRoutes()
         configRoutes()
         vulnerabilitySearchRoutes()
         vulnerabilityRoutes()

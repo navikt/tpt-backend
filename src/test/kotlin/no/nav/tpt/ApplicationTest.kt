@@ -12,7 +12,7 @@ class ApplicationTest {
         application {
             testModule()
         }
-        val response = client.get("/isready")
+        val response = client.get("/internal/isready")
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
@@ -21,7 +21,7 @@ class ApplicationTest {
         application {
             testModule()
         }
-        val response = client.get("/isalive")
+        val response = client.get("/internal/isalive")
         assertEquals(HttpStatusCode.OK, response.status)
     }
 }

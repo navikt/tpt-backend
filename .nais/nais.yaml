@@ -41,10 +41,13 @@ spec:
   leaderElection: true
   liveness:
     initialDelay: 60
-    path: isalive
+    path: /internal/isalive
   readiness:
     initialDelay: 60
-    path: isready
+    path: /internal/isready
+  prometheus:
+    enabled: true
+    path: /internal/metrics
   replicas:
     max: 2
     min: 2

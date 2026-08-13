@@ -6,7 +6,7 @@ import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
-import no.nav.tpt.metrics.BusinessMetrics
+import no.nav.tpt.metrics.TPTMetrics
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
@@ -99,10 +99,10 @@ class DataCollectorConsumer(
         checkResults.forEach { result ->
             try {
                 dataCollectorRepository.insert(result)
-                BusinessMetrics.checksPersisted()
+                TPTMetrics.checksPersisted()
             } catch (e: Exception) {
                 logger.error("Error saving check result for ${result.repo}", e)
-                BusinessMetrics.checksPersistingFailed()
+                TPTMetrics.checksPersistingFailed()
             }
         }
     }

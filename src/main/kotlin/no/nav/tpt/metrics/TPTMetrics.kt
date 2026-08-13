@@ -6,10 +6,10 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 
-object BusinessMetrics {
+object TPTMetrics {
     private val collectorRegistry = PrometheusRegistry.defaultRegistry
 
-    private val registry =
+    val registry =
         PrometheusMeterRegistry(
             PrometheusConfig.DEFAULT,
             collectorRegistry,

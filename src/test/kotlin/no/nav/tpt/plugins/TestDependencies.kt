@@ -27,7 +27,7 @@ import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
-import no.nav.tpt.routes.healthRoutes
+import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
@@ -200,7 +200,7 @@ fun Application.testModule(
     configureStatusPages()
 
     routing {
-        healthRoutes()
+        naisRoutes()
         configRoutes()
         vulnerabilityRoutes()
         gitHubVulnerabilityRoutes()

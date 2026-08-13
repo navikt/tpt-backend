@@ -33,6 +33,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger", version.ref = "ktor" }
 ktor-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor" }
+metrics-ktor = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-encoder" }
 opentelemetry-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "logback-mdc"}
@@ -82,7 +83,8 @@ ktor = [
     "ktor-client-cio",
     "ktor-client-content-negotiation",
     "ktor-serialization-kotlinx-json",
-    "ktor-server-swagger"
+    "ktor-server-swagger",
+    "metrics-ktor"
 ]
 
 logging = [
