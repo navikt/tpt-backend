@@ -8,12 +8,12 @@ import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
-class RepositoryDataConsumer(
+class DataCollectorConsumer(
     kafkaConfig: KafkaConfig,
     private val repository: GitHubRepository,
 ) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend", autoCommit = true) {
 
-    private val logger = LoggerFactory.getLogger(RepositoryDataConsumer::class.java)
+    private val logger = LoggerFactory.getLogger(DataCollectorConsumer::class.java)
     private val json = Json { ignoreUnknownKeys = true }
     private var messageCount = 0
     private var lastLogTime = System.currentTimeMillis()
@@ -36,7 +36,7 @@ class RepositoryDataConsumer(
                 lastLogTime = now
             }
         } catch (e: Exception) {
-            logger.error("Error processing repository message with key ${record.key()}", e)
+            logger.error("Error processing data collector message with key ${record.key()}", e)
         }
     }
 
@@ -70,20 +70,24 @@ class RepositoryDataConsumer(
     private suspend fun processCheckResults(record: ConsumerRecord<String, String>) {
         try {
             val results = json.decodeFromString<List<CheckResult>>(record.value())
-            results.filter { it.name == "githubToolingStatus" }.forEach { result ->
-                try {
-                    val status = when (result) {
-                        is CheckResult.AllGood -> "OK"
-                        is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
-                    }
-                    val nameWithOwner = if ('/' in result.repo) result.repo else "navikt/${result.repo}"
-                    repository.updateCodeScanningStatus(nameWithOwner, status)
-                } catch (e: Exception) {
-                    logger.error("Error updating code scanning status for ${result.repo}", e)
-                }
-            }
+            storeCodeScanningStatus(results.filter { it.name == "githubToolingStatus" })
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
+        }
+    }
+
+    private suspend fun storeCodeScanningStatus(checkResults: List<CheckResult>) {
+        checkResults.forEach { result ->
+            try {
+                val status = when (result) {
+                    is CheckResult.AllGood -> "OK"
+                    is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
+                }
+                val nameWithOwner = if ('/' in result.repo) result.repo else "navikt/${result.repo}"
+                repository.updateCodeScanningStatus(nameWithOwner, status)
+            } catch (e: Exception) {
+                logger.error("Error updating code scanning status for ${result.repo}", e)
+            }
         }
     }
 }

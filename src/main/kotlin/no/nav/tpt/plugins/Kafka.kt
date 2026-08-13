@@ -25,7 +25,7 @@ fun Application.configureKafka() {
     logger.info("Initializing Kafka consumers for topic: ${kafkaConfig.topic}")
 
     val consumers = listOf(
-        RepositoryDataConsumer(
+        DataCollectorConsumer(
             kafkaConfig = kafkaConfig,
             repository = dependencies.gitHubRepository,
         ),
