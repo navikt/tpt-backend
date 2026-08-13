@@ -19,7 +19,7 @@ object BusinessMetrics {
     private val checksPersistedCounter = Counter.builder("checks_persisted")
         .register(registry)
 
-    private val checksPersistedFailCounter = Counter.builder("checks_persisted")
+    private val checksPersistedFailCounter = Counter.builder("checks_persisted_failed")
         .register(registry)
 
     fun checksPersisted(n: Int = 1) = checksPersistedCounter.increment(n.toDouble())
