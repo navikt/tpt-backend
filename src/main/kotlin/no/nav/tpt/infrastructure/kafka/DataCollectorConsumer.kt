@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.kafka
 
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.datacollector.CheckResult
+import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
@@ -10,7 +11,8 @@ import org.slf4j.LoggerFactory
 
 class DataCollectorConsumer(
     kafkaConfig: KafkaConfig,
-    private val repository: GitHubRepository,
+    private val gitHubRepository: GitHubRepository,
+    private val dataCollectorRepository: DatacollectorRepository,
 ) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend", autoCommit = true) {
 
     private val logger = LoggerFactory.getLogger(DataCollectorConsumer::class.java)
@@ -44,7 +46,7 @@ class DataCollectorConsumer(
         try {
             val message = json.decodeFromString<GitHubRepositoryMessage>(record.value())
             try {
-                repository.upsertRepositoryData(message)
+                gitHubRepository.upsertRepositoryData(message)
             } catch (e: Exception) {
                 logger.error("Error upserting repository data for ${message.getRepositoryIdentifier()}", e)
             }
@@ -58,7 +60,7 @@ class DataCollectorConsumer(
         try {
             val message = json.decodeFromString<DockerfileFeaturesMessage>(record.value())
             try {
-                repository.updateDockerfileFeatures(message.repoName, message.usesDistroless)
+                gitHubRepository.updateDockerfileFeatures(message.repoName, message.usesDistroless)
             } catch (e: Exception) {
                 logger.error("Error updating dockerfile features for ${message.repoName}", e)
             }
@@ -84,7 +86,7 @@ class DataCollectorConsumer(
                     is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
                 }
                 val nameWithOwner = if ('/' in result.repo) result.repo else "navikt/${result.repo}"
-                repository.updateCodeScanningStatus(nameWithOwner, status)
+                gitHubRepository.updateCodeScanningStatus(nameWithOwner, status)
             } catch (e: Exception) {
                 logger.error("Error updating code scanning status for ${result.repo}", e)
             }

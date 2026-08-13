@@ -27,7 +27,8 @@ fun Application.configureKafka() {
     val consumers = listOf(
         DataCollectorConsumer(
             kafkaConfig = kafkaConfig,
-            repository = dependencies.gitHubRepository,
+            gitHubRepository = dependencies.gitHubRepository,
+            dataCollectorRepository = dependencies.dataCollectorRepository,
         ),
         TeamSyncConsumer(
             kafkaConfig = kafkaConfig,

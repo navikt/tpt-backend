@@ -22,13 +22,16 @@ import org.testcontainers.utility.DockerImageName
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
+import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 
 class DataCollectorConsumerIntegrationTest {
 
     private lateinit var postgresContainer: PostgreSQLContainer<*>
     private lateinit var kafkaContainer: KafkaContainer
     private lateinit var database: Database
-    private lateinit var repository: GitHubRepository
+    private lateinit var gitHubRepository: GitHubRepository
+    private lateinit var dataCollectorRepository: DatacollectorRepository
     private lateinit var kafkaConsumer: DataCollectorConsumer
     private lateinit var kafkaProducer: KafkaProducer<String, String>
 
@@ -74,7 +77,8 @@ class DataCollectorConsumerIntegrationTest {
         flyway.migrate()
 
         database = Database.connect(dataSource)
-        repository = GitHubRepositoryImpl(database)
+        gitHubRepository = GitHubRepositoryImpl(database)
+        dataCollectorRepository = DataCollectorRepositoryImpl(database)
 
         val kafkaPort = kafkaContainer.getMappedPort(9092)
         val kafkaConfig = KafkaConfig(
@@ -88,7 +92,7 @@ class DataCollectorConsumerIntegrationTest {
             topic = testTopic
         )
 
-        kafkaConsumer = DataCollectorConsumer(kafkaConfig, repository)
+        kafkaConsumer = DataCollectorConsumer(kafkaConfig, gitHubRepository, dataCollectorRepository)
 
         val producerProps = mapOf(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:$kafkaPort",
@@ -133,14 +137,14 @@ class DataCollectorConsumerIntegrationTest {
 
             delay(3000)
 
-            val storedRepo = repository.getRepository("navikt/test-app")
+            val storedRepo = gitHubRepository.getRepository("navikt/test-app")
             assertNotNull(storedRepo)
             assertEquals("navikt/test-app", storedRepo.nameWithOwner)
             assertEquals(2, storedRepo.naisTeams.size)
             assertEquals("team-awesome", storedRepo.naisTeams[0])
             assertEquals("team-security", storedRepo.naisTeams[1])
 
-            val vulnerabilities = repository.getVulnerabilities("navikt/test-app")
+            val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/test-app")
             assertEquals(1, vulnerabilities.size)
             assertEquals("CRITICAL", vulnerabilities[0].severity)
             assertEquals(2, vulnerabilities[0].identifiers.size)
@@ -192,7 +196,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "multi-key", messageWithMultipleVulns)).get()
             delay(3000)
 
-            val vulnerabilities = repository.getVulnerabilities("navikt/multi-vuln-app")
+            val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/multi-vuln-app")
             assertEquals(3, vulnerabilities.size)
 
             assertEquals("CRITICAL", vulnerabilities[0].severity)
@@ -245,25 +249,25 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "update-key", initialMessage)).get()
             delay(3000)
 
-            val initialRepo = repository.getRepository("navikt/update-test")
+            val initialRepo = gitHubRepository.getRepository("navikt/update-test")
             assertNotNull(initialRepo)
             assertEquals(1, initialRepo.naisTeams.size)
             assertEquals("team-old", initialRepo.naisTeams[0])
 
-            val initialVulns = repository.getVulnerabilities("navikt/update-test")
+            val initialVulns = gitHubRepository.getVulnerabilities("navikt/update-test")
             assertEquals(1, initialVulns.size)
             assertEquals("LOW", initialVulns[0].severity)
 
             kafkaProducer.send(ProducerRecord(testTopic, "update-key", updatedMessage)).get()
             delay(3000)
 
-            val updatedRepo = repository.getRepository("navikt/update-test")
+            val updatedRepo = gitHubRepository.getRepository("navikt/update-test")
             assertNotNull(updatedRepo)
             assertEquals(2, updatedRepo.naisTeams.size)
             assertEquals("team-new", updatedRepo.naisTeams[0])
             assertEquals("team-another", updatedRepo.naisTeams[1])
 
-            val updatedVulns = repository.getVulnerabilities("navikt/update-test")
+            val updatedVulns = gitHubRepository.getVulnerabilities("navikt/update-test")
             assertEquals(1, updatedVulns.size)
             assertEquals("CRITICAL", updatedVulns[0].severity)
             assertEquals("CVE-2024-0001", updatedVulns[0].identifiers[0].value)
@@ -289,11 +293,11 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "no-vulns-key", messageWithNoVulns)).get()
             delay(3000)
 
-            val repo = repository.getRepository("navikt/no-vulns")
+            val repo = gitHubRepository.getRepository("navikt/no-vulns")
             assertNotNull(repo)
             assertEquals("team-safe", repo.naisTeams[0])
 
-            val vulnerabilities = repository.getVulnerabilities("navikt/no-vulns")
+            val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/no-vulns")
             assertEquals(0, vulnerabilities.size)
         } finally {
             kafkaConsumer.stop()
@@ -317,7 +321,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "bad-json-key", malformedMessage)).get()
             delay(3000)
 
-            val repo = repository.getRepository("navikt/bad-json")
+            val repo = gitHubRepository.getRepository("navikt/bad-json")
             assertNull(repo)
         } finally {
             kafkaConsumer.stop()
@@ -340,7 +344,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "missing-key", missingFieldsMessage)).get()
             delay(3000)
 
-            val repo = repository.getRepository("navikt/missing-fields")
+            val repo = gitHubRepository.getRepository("navikt/missing-fields")
             assertNull(repo)
         } finally {
             kafkaConsumer.stop()
@@ -364,7 +368,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "invalid-type-key", invalidTypesMessage)).get()
             delay(3000)
 
-            val repo = repository.getRepository("navikt/invalid-types")
+            val repo = gitHubRepository.getRepository("navikt/invalid-types")
             assertNull(repo)
         } finally {
             kafkaConsumer.stop()
@@ -397,11 +401,11 @@ class DataCollectorConsumerIntegrationTest {
             delay(5000)
 
             repos.forEach { repoName ->
-                val repo = repository.getRepository("navikt/$repoName")
+                val repo = gitHubRepository.getRepository("navikt/$repoName")
                 assertNotNull(repo, "Repository navikt/$repoName should exist")
                 assertEquals("team-$repoName", repo.naisTeams[0])
 
-                val vulns = repository.getVulnerabilities("navikt/$repoName")
+                val vulns = gitHubRepository.getVulnerabilities("navikt/$repoName")
                 assertEquals(1, vulns.size)
                 assertEquals("HIGH", vulns[0].severity)
             }
@@ -427,7 +431,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "empty-name-key", emptyRepoNameMessage)).get()
             delay(3000)
 
-            val repo = repository.getRepository("")
+            val repo = gitHubRepository.getRepository("")
             assertNull(repo)
         } finally {
             kafkaConsumer.stop()
@@ -478,11 +482,11 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "comprehensive-key", comprehensiveMessage)).get()
             delay(3000)
 
-            val storedRepo = repository.getRepository("navikt/comprehensive-test-repo")
+            val storedRepo = gitHubRepository.getRepository("navikt/comprehensive-test-repo")
             assertNotNull(storedRepo)
             assertEquals("navikt/comprehensive-test-repo", storedRepo.nameWithOwner)
 
-            val vulnerabilities = repository.getVulnerabilities("navikt/comprehensive-test-repo")
+            val vulnerabilities = gitHubRepository.getVulnerabilities("navikt/comprehensive-test-repo")
             assertEquals(2, vulnerabilities.size)
 
             val critical = vulnerabilities.find { it.severity == "CRITICAL" }
@@ -525,7 +529,7 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
             delay(3000)
 
-            val storedRepo = repository.getRepository("navikt/test")
+            val storedRepo = gitHubRepository.getRepository("navikt/test")
             assertNotNull(storedRepo)
             assertEquals("navikt/test", storedRepo.nameWithOwner)
             assertEquals(true, storedRepo.usesDistroless)
@@ -558,14 +562,14 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "repo-key", initialRepoMessage)).get()
             delay(3000)
 
-            val initialRepo = repository.getRepository("navikt/existing-repo")
+            val initialRepo = gitHubRepository.getRepository("navikt/existing-repo")
             assertNotNull(initialRepo)
             assertNull(initialRepo.usesDistroless)
 
             kafkaProducer.send(ProducerRecord(testTopic, "dockerfile_features", dockerfileFeaturesMessage)).get()
             delay(3000)
 
-            val updatedRepo = repository.getRepository("navikt/existing-repo")
+            val updatedRepo = gitHubRepository.getRepository("navikt/existing-repo")
             assertNotNull(updatedRepo)
             assertEquals(false, updatedRepo.usesDistroless)
             assertEquals("team-test", updatedRepo.naisTeams[0])
@@ -618,10 +622,10 @@ class DataCollectorConsumerIntegrationTest {
             kafkaProducer.send(ProducerRecord(testTopic, "CheckResult", checkResults)).get()
             delay(3000)
 
-            assertEquals("OK", repository.getRepository("navikt/short-name-repo")?.codeScanningStatus)
+            assertEquals("OK", gitHubRepository.getRepository("navikt/short-name-repo")?.codeScanningStatus)
             assertEquals(
                 "Code scanning is not configured",
-                repository.getRepository("navikt/qualified-name-repo")?.codeScanningStatus,
+                gitHubRepository.getRepository("navikt/qualified-name-repo")?.codeScanningStatus,
             )
         } finally {
             kafkaConsumer.stop()

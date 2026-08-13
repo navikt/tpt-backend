@@ -14,6 +14,7 @@ import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
+import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.github.MockGitHubVulnerabilityService
@@ -160,6 +161,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
     val sseEventBus = SseEventBus()
     val dataCollector = FakeDataCollector()
+    val datacollectorRepository = FakeDatacollectorRepository()
 
     val dependencies = Dependencies(
         appConfig = config,
@@ -174,6 +176,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         adminAuthorizationService = adminAuthorizationService,
         adminService = mockAdminService,
         gitHubRepository = gitHubRepository,
+        dataCollectorRepository = datacollectorRepository,
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,

@@ -34,6 +34,7 @@ import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
+import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
 import no.nav.tpt.routes.dataCollectorRoutes
 
 fun Application.installTestDependencies(
@@ -140,6 +141,8 @@ fun Application.installTestDependencies(
 
     val dataCollector = FakeDataCollector()
 
+    val datacollectorRepository = FakeDatacollectorRepository()
+
     val dependencies = Dependencies(
         appConfig = testConfig,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -153,6 +156,7 @@ fun Application.installTestDependencies(
         adminAuthorizationService = actualAdminAuthorizationService,
         adminService = mockAdminService,
         gitHubRepository = gitHubRepository,
+        dataCollectorRepository = datacollectorRepository,
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,

@@ -26,6 +26,8 @@ import no.nav.tpt.infrastructure.common.InMemoryCircuitBreaker
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.datacollector.DataCollector
+import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
+import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.datacollector.RealDataCollector
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveRepository
@@ -67,6 +69,7 @@ class Dependencies(
     val adminAuthorizationService: AdminAuthorizationService,
     val adminService: AdminService,
     val gitHubRepository: GitHubRepository,
+    val dataCollectorRepository: DatacollectorRepository,
     val gitHubVulnerabilityService: GitHubVulnerabilityService,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
@@ -123,6 +126,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val userContextService = UserContextServiceImpl(naisApiClient, teamkatalogenService, adminAuthorizationService)
 
     val gitHubRepository = GitHubRepositoryImpl(database)
+
+    val dataCollectorRepository = DataCollectorRepositoryImpl(database)
 
     val slaPolicy = SlaPolicy(SlaConfig(
         criticalWorkdays = config.slaCriticalWorkdays,
@@ -195,6 +200,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         adminAuthorizationService = adminAuthorizationService,
         adminService = adminService,
         gitHubRepository = gitHubRepository,
+        dataCollectorRepository = dataCollectorRepository,
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
