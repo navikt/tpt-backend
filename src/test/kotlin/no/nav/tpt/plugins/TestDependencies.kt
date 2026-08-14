@@ -43,7 +43,8 @@ fun Application.installTestDependencies(
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     userContextService: UserContextService? = null,
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
-    httpClient: HttpClient? = null
+    httpClient: HttpClient? = null,
+    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -75,12 +76,12 @@ fun Application.installTestDependencies(
     val actualAdminAuthorizationService = adminAuthorizationService ?: no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl()
     val actualUserContextService = userContextService ?: UserContextServiceImpl(naisApiService, teamkatalogenService, actualAdminAuthorizationService)
 
-    val vulnerabilityDataService = object : no.nav.tpt.domain.vulnerability.VulnerabilityDataService {
-        override suspend fun getVulnerabilitiesForTeams(teamSlugs: List<String>) =
-            naisApiService.getVulnerabilitiesForUser("test@nav.no")
-        override suspend fun getVulnerabilitiesForTeam(teamSlug: String) =
-            naisApiService.getVulnerabilitiesForTeam(teamSlug)
-    }
+    val mockVulnerabilityRepository = vulnerabilityRepository ?: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository()
+
+    val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService(
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        kafkaProducer = null,
+    )
 
     val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
@@ -110,8 +111,6 @@ fun Application.installTestDependencies(
     val mockLeaderElection = LeaderElection(client)
 
     val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(stubDatabase)
-
-    val mockVulnerabilityRepository = no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository()
 
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
         naisApiService = naisApiService,
@@ -175,9 +174,10 @@ fun Application.testModule(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
     naisApiService: NaisApiService = MockNaisApiService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
-    adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null
+    adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
+    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null
 ) {
-    installTestDependencies(tokenIntrospectionService, naisApiService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService)
+    installTestDependencies(tokenIntrospectionService, naisApiService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService, vulnerabilityRepository = vulnerabilityRepository)
 
     install(SSE)
     install(ServerContentNegotiation) {
@@ -189,7 +189,7 @@ fun Application.testModule(
 
     install(RateLimit) {
         register(RateLimitName("vulnerabilities-refresh")) {
-            rateLimiter(limit = 1, refillPeriod = 60.seconds)
+            rateLimiter(limit = 100, refillPeriod = 60.seconds)
             requestKey { call ->
                 call.principal<TokenPrincipal>()?.preferredUsername ?: "anonymous"
             }

@@ -3,8 +3,14 @@ package no.nav.tpt.infrastructure.nais
 class MockNaisApiService(
     private val shouldSucceed: Boolean = true,
     private val mockUserVulnerabilitiesData: UserVulnerabilitiesData? = null,
-    private val mockTeamMemberships: List<String>? = null
+    private val mockTeamMemberships: List<String>? = null,
+    private val teamVulnerabilitiesOverrides: MutableMap<String, UserVulnerabilitiesData> = mutableMapOf()
 ) : NaisApiService {
+
+    fun setTeamVulnerabilities(teamSlug: String, data: UserVulnerabilitiesData) {
+        teamVulnerabilitiesOverrides[teamSlug] = data
+    }
+
 
     override suspend fun getAllTeams(): List<TeamInfo> {
         if (!shouldSucceed) {
@@ -69,6 +75,8 @@ class MockNaisApiService(
         if (!shouldSucceed) {
             throw RuntimeException("Mock error: Failed to fetch vulnerabilities for team")
         }
+
+        teamVulnerabilitiesOverrides[teamSlug]?.let { return it }
 
         return mockUserVulnerabilitiesData ?: UserVulnerabilitiesData(
             teams = listOf(
