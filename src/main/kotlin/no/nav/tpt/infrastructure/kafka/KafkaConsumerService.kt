@@ -38,7 +38,6 @@ open class KafkaConsumerService(
             try {
                 consumer = createConsumer()
                 consumer?.subscribe(listOf(kafkaConfig.topic))
-                logger.info("Kafka consumer subscribed to topic: ${kafkaConfig.topic}")
 
                 while (isActive) {
                     try {

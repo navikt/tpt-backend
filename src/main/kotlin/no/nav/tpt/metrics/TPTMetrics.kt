@@ -18,11 +18,13 @@ object TPTMetrics {
             Clock.SYSTEM,
         )
 
-    private val checksPersistedCounter = Counter.builder("checks_persisted")
-        .register(registry)
+    private val checksPersistedCounter by lazy {
+        Counter.builder("checks_persisted").register(registry)
+    }
 
-    private val checksPersistedFailCounter = Counter.builder("checks_persisted_failed")
-        .register(registry)
+    private val checksPersistedFailCounter by lazy {
+        Counter.builder("checks_persisted_failed").register(registry)
+    }
 
     fun checksPersisted(n: Int = 1) = checksPersistedCounter.increment(n.toDouble())
 
