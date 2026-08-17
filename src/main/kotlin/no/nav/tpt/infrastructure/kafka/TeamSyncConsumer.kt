@@ -1,9 +1,11 @@
 package no.nav.tpt.infrastructure.kafka
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
@@ -25,10 +27,21 @@ class TeamSyncConsumer(
         try {
             val command = json.decodeFromString<TeamSyncCommand>(record.value())
             val teamSlug = command.teamSlug
+
+            val timestamp = Instant.now().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            kafkaProducer.publish(KafkaKey.TEAM_SYNC_STARTED, json.encodeToString(TeamSyncStartedEvent(teamSlug, timestamp)))
+
             logger.info("Starting team sync for $teamSlug")
-            vulnerabilityTeamSyncService.syncTeams(listOf(teamSlug))
-            logger.info("Team sync complete for $teamSlug")
-            kafkaProducer.publish(KafkaKey.TEAM_SYNC_COMPLETE, json.encodeToString(TeamSyncCompleteEvent(teamSlug)))
+            val results = vulnerabilityTeamSyncService.syncTeams(listOf(teamSlug))
+            val result = results.first()
+
+            if (!result.lockSkipped) {
+                logger.info("Team sync complete for $teamSlug")
+                kafkaProducer.publish(KafkaKey.TEAM_SYNC_COMPLETE, json.encodeToString(TeamSyncCompleteEvent(teamSlug)))
+            } else {
+                logger.info("Team sync skipped for $teamSlug — lock already held or data is fresh")
+            }
+
             commitCurrentOffset()
         } catch (e: Exception) {
             logger.error("Error processing team_sync command: ${record.value()}", e)
