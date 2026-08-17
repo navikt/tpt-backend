@@ -101,8 +101,8 @@ class DataCollectorConsumer(
     private suspend fun storeCheckResults(checkResults: List<CheckResult>) {
         checkResults.forEach { result ->
             try {
-                dataCollectorRepository.insert(result)
-                TPTMetrics.checksPersisted()
+//                dataCollectorRepository.insert(result)
+//                TPTMetrics.checksPersisted()
             } catch (e: Exception) {
                 logger.error("Error saving check result for ${result.repo}", e)
                 TPTMetrics.checksPersistingFailed()
