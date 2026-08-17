@@ -2,11 +2,9 @@ package no.nav.tpt
 
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
-import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.*
-import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.swagger.swaggerUI
@@ -21,7 +19,6 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.DependenciesPlugin
-import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureGcveSync
@@ -36,7 +33,6 @@ import no.nav.tpt.routes.gitHubVulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
-import kotlin.time.Duration.Companion.seconds
 import no.nav.tpt.metrics.TPTMetrics
 import no.nav.tpt.routes.dataCollectorRoutes
 
@@ -67,15 +63,6 @@ fun Application.module() {
             prettyPrint = true
             isLenient = true
         })
-    }
-
-    install(RateLimit) {
-        register(RateLimitName("vulnerabilities-refresh")) {
-            rateLimiter(limit = 1, refillPeriod = 60.seconds)
-            requestKey { call ->
-                call.principal<TokenPrincipal>()?.preferredUsername ?: "anonymous"
-            }
-        }
     }
 
     install(MicrometerMetrics) {
