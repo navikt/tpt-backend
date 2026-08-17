@@ -29,7 +29,7 @@ object TPTMetrics {
     fun checksPersistingFailed(n: Int = 1) = checksPersistedFailCounter.increment(n.toDouble())
 
     fun recordTeamSyncDuration(teamSlug: String, result: String, durationMs: Long) {
-        Timer.builder("team_sync_duration_seconds")
+        Timer.builder("team_sync_duration")
             .description("Time taken to sync vulnerabilities for a single team from Nais API")
             .tags("team", teamSlug, "result", result)
             .register(registry)

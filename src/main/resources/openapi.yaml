@@ -127,7 +127,8 @@ paths:
       summary: Refresh vulnerability data for authenticated user's teams
       description: |
         Triggers a manual sync of vulnerability data from NAIS API for all teams the authenticated user belongs to.
-        Updates the database with fresh vulnerability data. This endpoint is rate limited to 1 request per minute per user.
+        Updates the database with fresh vulnerability data. If data is already fresh or a sync is already in
+        progress for all teams, returns 202 Accepted without starting a new sync.
       tags:
         - Vulnerabilities
       security:
@@ -135,6 +136,12 @@ paths:
       responses:
         '200':
           description: Successfully refreshed vulnerability data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnerabilityRefreshResponse'
+        '202':
+          description: Data is fresh or sync already in progress for all teams — no new sync started
           content:
             application/json:
               schema:
@@ -147,17 +154,6 @@ paths:
                 $ref: '#/components/schemas/ProblemDetail'
         '401':
           description: Unauthorized - invalid or missing bearer token
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '429':
-          description: Too Many Requests - rate limit exceeded (1 request per minute)
-          headers:
-            Retry-After:
-              schema:
-                type: integer
-              description: Number of seconds to wait before retrying
           content:
             application/problem+json:
               schema:
@@ -1082,6 +1078,7 @@ components:
       type: object
       required:
         - teamSlug
+        - syncInProgress
         - processed
         - inserted
         - skipped
@@ -1090,6 +1087,10 @@ components:
           type: string
           description: Team identifier
           example: "team-a"
+        syncInProgress:
+          type: boolean
+          description: True if data was fresh or a sync was already in progress — no new sync was started for this team
+          example: false
         processed:
           type: integer
           description: Total number of vulnerabilities processed

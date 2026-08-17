@@ -136,14 +136,15 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl(slaPolicy)
 
-    val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
-        naisApiService = naisApiClient,
-        vulnerabilityRepository = vulnerabilityRepository
-    )
-
     val sseEventBus = SseEventBus()
 
     val kafkaProducerService = KafkaConfig.fromEnvironment()?.let { KafkaProducerService(it) }
+
+    val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
+        naisApiService = naisApiClient,
+        vulnerabilityRepository = vulnerabilityRepository,
+        syncPublisher = kafkaProducerService,
+    )
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
