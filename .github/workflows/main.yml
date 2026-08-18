@@ -27,7 +27,7 @@ jobs:
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@2d2b0a7193e65422b7f0355d4afb445e0a8b2cc3
+        uses: nais/docker-build-push@8e41f1f58749b9248e376c25d33bfbdd2b1163c0
         id: docker-push
         with:
           team: appsec
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb
+      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199
         env:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
@@ -66,7 +66,7 @@ jobs:
       security-events: write # push sarif to github security
     needs: test-build
     steps:
-      - uses: nais/login@bb6c3e1e14e53d40d69d0d092bd2fce2e39ae3bf # v0
+      - uses: nais/login@40b72a35a18ddf2ad74b632461139ab838cc2a2f # v0
         with:
           team: appsec
       - name: Scan docker image for secrets
