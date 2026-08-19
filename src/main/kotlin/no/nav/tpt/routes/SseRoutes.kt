@@ -39,6 +39,8 @@ fun Route.sseRoutes(sseEventBus: SseEventBus) {
                             is SseEvent.TeamSyncStarted -> event.teamSlug in userTeamSlugs
                             is SseEvent.TeamSyncComplete -> event.teamSlug in userTeamSlugs
                             is SseEvent.GcveSyncComplete -> true
+                            is SseEvent.GitHubVulnSyncStarted -> event.teams.any { it in userTeamSlugs }
+                            is SseEvent.GitHubVulnSyncComplete -> event.teams.any { it in userTeamSlugs }
                         }
                     }
                     .onEach { event ->
@@ -46,6 +48,8 @@ fun Route.sseRoutes(sseEventBus: SseEventBus) {
                             is SseEvent.TeamSyncStarted -> "team_sync_started"
                             is SseEvent.TeamSyncComplete -> "team_sync_complete"
                             is SseEvent.GcveSyncComplete -> "gcve_sync_complete"
+                            is SseEvent.GitHubVulnSyncStarted -> "github_vuln_sync_started"
+                            is SseEvent.GitHubVulnSyncComplete -> "github_vuln_sync_complete"
                         }
                         send(ServerSentEvent(data = json.encodeToString(SseEvent.serializer(), event), event = eventType))
                     }

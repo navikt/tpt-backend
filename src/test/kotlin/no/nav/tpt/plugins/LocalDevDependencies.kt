@@ -15,6 +15,7 @@ import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
+import no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.MockGitHubRepositoryWithData
 import no.nav.tpt.infrastructure.github.MockGitHubVulnerabilityService
@@ -186,6 +187,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
         dataCollector = dataCollector,
+        gitHubDataCollector = FakeGitHubDataCollector(),
     )
 
     application.attributes.put(DependenciesKey, dependencies)

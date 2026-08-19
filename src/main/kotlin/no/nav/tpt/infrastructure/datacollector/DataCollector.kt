@@ -26,6 +26,10 @@ interface DataCollector {
     suspend fun startCollectingDataFor(teamSlugs: List<String>)
 }
 
+interface GitHubDataCollector {
+    suspend fun startCollectingDataFor(teamSlugs: List<String>)
+}
+
 class RealDataCollector(
     val naisTokenEndpoint: String,
     val httpClient: HttpClient = HttpClient(CIO)
@@ -89,3 +93,36 @@ private data class TokenResponse(
     @SerialName("expires_in")
     val expiresIn: Int,
 )
+
+@Serializable
+data class GitHubCollectRequest(val teams: List<String>)
+
+class RealGitHubDataCollector(
+    val naisTokenEndpoint: String,
+    val httpClient: HttpClient = HttpClient(CIO)
+) : GitHubDataCollector {
+    private val logger = LoggerFactory.getLogger(RealGitHubDataCollector::class.java)
+
+    override suspend fun startCollectingDataFor(teamSlugs: List<String>) {
+        val authToken = retrieveAccessToken()
+        val url = URI("http", "tpt-data-collector", "/collect/github", null).toString()
+        httpClient.request(url) {
+            method = Post
+            bearerAuth(authToken)
+            header(Accept, "application/json")
+            contentType(Json)
+            setBody(GitHubCollectRequest(teamSlugs))
+        }
+        logger.info("Triggered GitHub vulnerability collection for ${teamSlugs.size} teams")
+    }
+
+    private suspend fun retrieveAccessToken(): String {
+        val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
+        val requestBody = TokenRequest("entra_id", "api://$cluster.appsec.tpt-data-collector/.default")
+        return httpClient.request(naisTokenEndpoint) {
+            method = Post
+            contentType(Json)
+            setBody(requestBody)
+        }.body<TokenResponse>().accessToken
+    }
+}

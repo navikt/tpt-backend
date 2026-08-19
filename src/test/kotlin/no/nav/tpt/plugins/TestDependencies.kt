@@ -35,6 +35,7 @@ import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
+import no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector
 import no.nav.tpt.routes.dataCollectorRoutes
 
 fun Application.installTestDependencies(
@@ -164,7 +165,8 @@ fun Application.installTestDependencies(
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
-        dataCollector = dataCollector
+        dataCollector = dataCollector,
+        gitHubDataCollector = FakeGitHubDataCollector()
     )
 
     attributes.put(DependenciesKey, dependencies)

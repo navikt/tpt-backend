@@ -124,7 +124,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "test-key", validMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, validMessage)).get()
 
             awaitCondition(message = "Repository navikt/test-app was not stored") {
                 gitHubRepository.getRepository("navikt/test-app") != null
@@ -187,7 +187,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "multi-key", messageWithMultipleVulns)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, messageWithMultipleVulns)).get()
 
             awaitCondition(message = "3 vulnerabilities for navikt/multi-vuln-app were not stored") {
                 gitHubRepository.getVulnerabilities("navikt/multi-vuln-app").size == 3
@@ -238,13 +238,13 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "update-key", initialMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, initialMessage)).get()
 
             awaitCondition(message = "Initial state for navikt/update-test was not stored") {
                 gitHubRepository.getRepository("navikt/update-test")?.naisTeams?.contains("team-old") == true
             }
 
-            kafkaProducer.send(ProducerRecord(testTopic, "update-key", updatedMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, updatedMessage)).get()
 
             awaitCondition(message = "Updated state for navikt/update-test was not stored") {
                 gitHubRepository.getRepository("navikt/update-test")?.naisTeams?.contains("team-new") == true
@@ -280,7 +280,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "no-vulns-key", messageWithNoVulns)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, messageWithNoVulns)).get()
 
             awaitCondition(message = "Repository navikt/no-vulns was not stored") {
                 gitHubRepository.getRepository("navikt/no-vulns") != null
@@ -309,7 +309,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "bad-json-key", malformedMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, malformedMessage)).get()
 
             awaitCondition(message = "Consumer did not stay healthy after malformed message") { kafkaConsumer.isReady() }
             assertTrue(kafkaConsumer.isHealthy(), "Consumer should remain healthy after a bad message")
@@ -331,7 +331,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "missing-key", missingFieldsMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, missingFieldsMessage)).get()
 
             awaitCondition(message = "Repository navikt/missing-fields was not stored") {
                 gitHubRepository.getRepository("navikt/missing-fields") != null
@@ -358,7 +358,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "invalid-type-key", invalidTypesMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, invalidTypesMessage)).get()
 
             awaitCondition(message = "Consumer did not stay healthy after invalid type message") { kafkaConsumer.isReady() }
             assertTrue(kafkaConsumer.isHealthy(), "Consumer should remain healthy after invalid type message")
@@ -387,7 +387,7 @@ class DataCollectorConsumerIntegrationTest {
                   ]
                 }
             """.trimIndent()
-                kafkaProducer.send(ProducerRecord(testTopic, repoName, message)).get()
+                kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, message)).get()
             }
 
             repos.forEach { repoName ->
@@ -423,7 +423,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "empty-name-key", emptyRepoNameMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, emptyRepoNameMessage)).get()
 
             awaitCondition(message = "Repository with empty name was not stored") {
                 gitHubRepository.getRepository("") != null
@@ -477,7 +477,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "comprehensive-key", comprehensiveMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, comprehensiveMessage)).get()
 
             awaitCondition(message = "2 vulnerabilities for navikt/comprehensive-test-repo were not stored") {
                 gitHubRepository.getVulnerabilities("navikt/comprehensive-test-repo").size == 2
@@ -527,7 +527,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "repo-key", repoMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, repoMessage)).get()
 
             awaitCondition(message = "navikt/test was not initially stored") {
                 gitHubRepository.getRepository("navikt/test") != null
@@ -567,7 +567,7 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "repo-key", initialRepoMessage)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, initialRepoMessage)).get()
 
             awaitCondition(message = "navikt/existing-repo was not initially stored") {
                 gitHubRepository.getRepository("navikt/existing-repo") != null
@@ -625,8 +625,8 @@ class DataCollectorConsumerIntegrationTest {
         try {
             kafkaConsumer.start(this)
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
-            kafkaProducer.send(ProducerRecord(testTopic, "short-name-repo", shortNameRepository)).get()
-            kafkaProducer.send(ProducerRecord(testTopic, "qualified-name-repo", qualifiedNameRepository)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, shortNameRepository)).get()
+            kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, qualifiedNameRepository)).get()
 
             awaitCondition(message = "Repositories were not stored before sending CheckResult") {
                 gitHubRepository.getRepository("navikt/short-name-repo") != null &&

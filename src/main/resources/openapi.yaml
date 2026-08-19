@@ -122,6 +122,39 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /vulnerabilities/github/refresh:
+    get:
+      summary: Trigger GitHub vulnerability data refresh for authenticated user's teams
+      description: |
+        Triggers collection of GitHub vulnerability data from tpt-data-collector for all teams the
+        authenticated user belongs to. Returns 202 Accepted immediately; data arrives asynchronously via Kafka.
+      tags:
+        - Vulnerabilities
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Refresh triggered successfully
+        '200':
+          description: No teams found for user - nothing to refresh
+        '400':
+          description: Bad request - preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/refresh:
     get:
       summary: Refresh vulnerability data for authenticated user's teams

@@ -16,4 +16,12 @@ sealed class SseEvent {
     @Serializable
     @SerialName("gcve_sync_complete")
     data class GcveSyncComplete(val cveCount: Int, val timestamp: String) : SseEvent()
+
+    @Serializable
+    @SerialName("github_vuln_sync_started")
+    data class GitHubVulnSyncStarted(val teams: List<String>, val timestamp: String) : SseEvent()
+
+    @Serializable
+    @SerialName("github_vuln_sync_complete")
+    data class GitHubVulnSyncComplete(val teams: List<String>, val timestamp: String) : SseEvent()
 }

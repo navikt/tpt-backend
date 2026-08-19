@@ -28,7 +28,9 @@ import no.nav.tpt.infrastructure.database.DatabaseFactory
 import no.nav.tpt.infrastructure.datacollector.DataCollector
 import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
+import no.nav.tpt.infrastructure.datacollector.GitHubDataCollector
 import no.nav.tpt.infrastructure.datacollector.RealDataCollector
+import no.nav.tpt.infrastructure.datacollector.RealGitHubDataCollector
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
@@ -78,7 +80,8 @@ class Dependencies(
     val gcveSyncService: GcveSyncService,
     val sseEventBus: SseEventBus,
     val kafkaProducerService: KafkaProducerService?,
-    val dataCollector: DataCollector
+    val dataCollector: DataCollector,
+    val gitHubDataCollector: GitHubDataCollector,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -188,6 +191,9 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val dataCollector =
         RealDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
 
+    val gitHubDataCollector =
+        RealGitHubDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -211,6 +217,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         sseEventBus = sseEventBus,
         kafkaProducerService = kafkaProducerService,
         dataCollector = dataCollector,
+        gitHubDataCollector = gitHubDataCollector,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

@@ -35,6 +35,14 @@ class SseFanoutConsumer(
                     val event = json.decodeFromString<GcveSyncCompleteEvent>(record.value())
                     sseEventBus.emit(SseEvent.GcveSyncComplete(event.cveCount, nowIso()))
                 }
+                KafkaKey.GITHUB_VULN_SYNC_STARTED -> {
+                    val event = json.decodeFromString<GitHubVulnSyncStartedEvent>(record.value())
+                    sseEventBus.emit(SseEvent.GitHubVulnSyncStarted(event.teams, event.timestamp))
+                }
+                KafkaKey.GITHUB_VULN_SYNC_COMPLETE -> {
+                    val event = json.decodeFromString<GitHubVulnSyncCompleteEvent>(record.value())
+                    sseEventBus.emit(SseEvent.GitHubVulnSyncComplete(event.teams, event.timestamp))
+                }
             }
         } catch (e: Exception) {
             logger.error("Error processing SSE fanout record key=${record.key()}: ${record.value()}", e)

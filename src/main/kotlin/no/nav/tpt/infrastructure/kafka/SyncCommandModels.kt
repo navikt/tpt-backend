@@ -19,3 +19,9 @@ data class TeamSyncStartedEvent(val teamSlug: String, val timestamp: String)
 
 @Serializable
 data class GcveSyncCompleteEvent(val cveCount: Int)
+
+@Serializable
+data class GitHubVulnSyncStartedEvent(val teams: List<String>, val timestamp: String)
+
+@Serializable
+data class GitHubVulnSyncCompleteEvent(val teams: List<String>, val timestamp: String)

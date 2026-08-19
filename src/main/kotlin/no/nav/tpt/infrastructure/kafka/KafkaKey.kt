@@ -7,4 +7,7 @@ object KafkaKey {
     const val VULN_DATA_SYNC = "vuln_data_sync"
     const val GCVE_SYNC = "gcve_sync"
     const val GCVE_SYNC_COMPLETE = "gcve_sync_complete"
+    const val GITHUB_VULNERABILITY_DATA = "github_vulnerability_data"
+    const val GITHUB_VULN_SYNC_STARTED = "github_vuln_sync_started"
+    const val GITHUB_VULN_SYNC_COMPLETE = "github_vuln_sync_complete"
 }
