@@ -11,7 +11,8 @@ class SeverityCalculator(private val config: RiskScoringConfig) : FactorCalculat
     override val maxPoints = config.severityCriticalPoints
 
     override fun calculate(context: VulnerabilityRiskContext): RiskFactor {
-        val points = when (context.severity.uppercase()) {
+        val normalized = normalizeSeverity(context.severity.uppercase())
+        val points = when (normalized) {
             "CRITICAL" -> config.severityCriticalPoints
             "HIGH" -> config.severityHighPoints
             "MEDIUM" -> config.severityMediumPoints
@@ -23,7 +24,14 @@ class SeverityCalculator(private val config: RiskScoringConfig) : FactorCalculat
             name = categoryName,
             points = points,
             maxPoints = maxPoints,
-            metadata = mapOf("severity" to context.severity.uppercase())
+            metadata = mapOf("severity" to normalized)
         )
+    }
+
+    // Maps vendor-specific severity labels to CVSS standard terms.
+    // GitHub Advisory uses MODERATE instead of MEDIUM.
+    private fun normalizeSeverity(severity: String): String = when (severity) {
+        "MODERATE" -> "MEDIUM"
+        else -> severity
     }
 }

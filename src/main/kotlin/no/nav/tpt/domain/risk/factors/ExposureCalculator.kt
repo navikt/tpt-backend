@@ -12,7 +12,7 @@ class ExposureCalculator(private val config: RiskScoringConfig) : FactorCalculat
 
     override fun calculate(context: VulnerabilityRiskContext): RiskFactor {
         val (basePoints, exposureType) = getExposurePoints(context.ingressTypes)
-        val automatableBonus = if (context.ssvcAutomatable?.equals("yes", ignoreCase = true) == true)
+        val automatableBonus = if (basePoints > 0 && context.ssvcAutomatable?.equals("yes", ignoreCase = true) == true)
             config.exposureAutomatableBonus else 0
         val totalPoints = minOf(basePoints + automatableBonus, maxPoints)
 
