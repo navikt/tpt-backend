@@ -8,8 +8,6 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
-import io.ktor.server.plugins.ratelimit.RateLimit
-import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.uri
@@ -54,13 +52,6 @@ fun Application.localDevModule() {
             prettyPrint = true
             isLenient = true
         })
-    }
-
-    install(RateLimit) {
-        register(RateLimitName("vulnerabilities-refresh")) {
-            rateLimiter(limit = 1, refillPeriod = 60.seconds)
-            requestKey { "local-dev" }
-        }
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)

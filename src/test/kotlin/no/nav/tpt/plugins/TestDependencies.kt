@@ -7,7 +7,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
-import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.SSE
 import kotlinx.serialization.json.Json
@@ -200,15 +199,6 @@ fun Application.testModule(
             prettyPrint = true
             isLenient = true
         })
-    }
-
-    install(RateLimit) {
-        register(RateLimitName("vulnerabilities-refresh")) {
-            rateLimiter(limit = 100, refillPeriod = 60.seconds)
-            requestKey { call ->
-                call.principal<TokenPrincipal>()?.preferredUsername ?: "anonymous"
-            }
-        }
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)
