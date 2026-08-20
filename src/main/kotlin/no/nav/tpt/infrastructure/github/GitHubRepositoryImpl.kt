@@ -137,6 +137,37 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             .filter { repo -> repo.naisTeams.any { it in teamSlugs } }
     }
 
+    override suspend fun deleteRepositoriesExclusivelyOwnedBy(teamSlugs: List<String>): Unit = dbQuery {
+        if (teamSlugs.isEmpty()) return@dbQuery
+        val teamSlugsSet = teamSlugs.toSet()
+        val exclusiveRepos = GitHubRepositories.selectAll()
+            .map { Pair(it[GitHubRepositories.nameWithOwner], it[GitHubRepositories.naisTeams].toSet()) }
+            .filter { (_, teams) -> teams.isNotEmpty() && teamSlugsSet.containsAll(teams) }
+            .map { (name, _) -> name }
+
+        if (exclusiveRepos.isNotEmpty()) {
+            GitHubRepositories.deleteWhere { nameWithOwner inList exclusiveRepos }
+        }
+    }
+
+    override suspend fun removeTeamsFromSharedRepositories(teamSlugs: List<String>): Unit = dbQuery {
+        if (teamSlugs.isEmpty()) return@dbQuery
+        val teamSlugsSet = teamSlugs.toSet()
+        val sharedRepos = GitHubRepositories.selectAll()
+            .map { Pair(it[GitHubRepositories.nameWithOwner], it[GitHubRepositories.naisTeams].toList()) }
+            .filter { (_, teams) ->
+                teams.any { it in teamSlugsSet } && !teamSlugsSet.containsAll(teams)
+            }
+
+        for ((name, teams) in sharedRepos) {
+            val updatedTeams = teams.filter { it !in teamSlugsSet }
+            GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq name }) {
+                it[naisTeams] = updatedTeams
+                it[updatedAt] = Instant.now()
+            }
+        }
+    }
+
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
         return GitHubRepositoryData(
             nameWithOwner = row[GitHubRepositories.nameWithOwner],

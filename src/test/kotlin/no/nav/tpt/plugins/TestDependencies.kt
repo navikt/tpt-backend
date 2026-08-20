@@ -16,7 +16,6 @@ import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import no.nav.tpt.infrastructure.config.AppConfig
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentServiceImpl
 import no.nav.tpt.infrastructure.github.GitHubRepository
-import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
@@ -45,7 +44,9 @@ fun Application.installTestDependencies(
     userContextService: UserContextService? = null,
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
     httpClient: HttpClient? = null,
-    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null
+    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null,
+    gitHubDataCollector: no.nav.tpt.infrastructure.datacollector.GitHubDataCollector = FakeGitHubDataCollector(),
+    gitHubRepository: GitHubRepository? = null,
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -95,13 +96,6 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
     )
 
-    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
-        gitHubRepository = no.nav.tpt.infrastructure.github.MockGitHubRepository(),
-        gcveRepository = mockGcveRepository,
-        userContextService = actualUserContextService,
-        riskScorer = riskScorer,
-    )
-
     val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
         url = "jdbc:postgresql://stub:5432/stub",
         driver = "org.postgresql.Driver",
@@ -111,7 +105,14 @@ fun Application.installTestDependencies(
 
     val mockLeaderElection = LeaderElection(client)
 
-    val gitHubRepository: GitHubRepository = GitHubRepositoryImpl(stubDatabase)
+    val resolvedGitHubRepository: GitHubRepository = gitHubRepository ?: no.nav.tpt.infrastructure.github.MockGitHubRepository()
+
+    val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
+        gitHubRepository = resolvedGitHubRepository,
+        gcveRepository = mockGcveRepository,
+        userContextService = actualUserContextService,
+        riskScorer = riskScorer,
+    )
 
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
         naisApiService = naisApiService,
@@ -155,7 +156,7 @@ fun Application.installTestDependencies(
         userContextService = actualUserContextService,
         adminAuthorizationService = actualAdminAuthorizationService,
         adminService = mockAdminService,
-        gitHubRepository = gitHubRepository,
+        gitHubRepository = resolvedGitHubRepository,
         dataCollectorRepository = datacollectorRepository,
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
@@ -166,7 +167,7 @@ fun Application.installTestDependencies(
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
         dataCollector = dataCollector,
-        gitHubDataCollector = FakeGitHubDataCollector()
+        gitHubDataCollector = gitHubDataCollector
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -177,9 +178,21 @@ fun Application.testModule(
     naisApiService: NaisApiService = MockNaisApiService(),
     teamkatalogenService: TeamkatalogenService = MockTeamkatalogenService(),
     adminAuthorizationService: no.nav.tpt.domain.user.AdminAuthorizationService? = null,
-    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null
+    vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null,
+    gitHubDataCollector: no.nav.tpt.infrastructure.datacollector.GitHubDataCollector = no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector(),
+    gitHubRepository: GitHubRepository? = null,
+    userContextService: UserContextService? = null,
 ) {
-    installTestDependencies(tokenIntrospectionService, naisApiService, teamkatalogenService, adminAuthorizationService = adminAuthorizationService, vulnerabilityRepository = vulnerabilityRepository)
+    installTestDependencies(
+        tokenIntrospectionService,
+        naisApiService,
+        teamkatalogenService,
+        adminAuthorizationService = adminAuthorizationService,
+        vulnerabilityRepository = vulnerabilityRepository,
+        gitHubDataCollector = gitHubDataCollector,
+        gitHubRepository = gitHubRepository,
+        userContextService = userContextService,
+    )
 
     install(SSE)
     install(ServerContentNegotiation) {
