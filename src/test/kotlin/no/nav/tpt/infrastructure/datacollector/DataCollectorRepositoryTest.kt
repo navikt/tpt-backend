@@ -19,6 +19,9 @@ import org.testcontainers.junit.jupiter.Testcontainers
 
 @Testcontainers
 class DataCollectorRepositoryTest {
+    // Dirty trick to truncate the Kotlin Instant to milliseconds
+    val now = Clock.System.now().toJavaInstant().truncatedTo(ChronoUnit.MILLIS).toKotlinInstant()
+
     companion object {
         @Container
         private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17-alpine").apply {
@@ -59,32 +62,39 @@ class DataCollectorRepositoryTest {
     }
 
     @Test
-    fun `store checks with no failures and read them back`() = runTest {
-        val checkResult = CheckResult.AllGood("TheGoodCheck", "firstrepo", Clock.System.now())
-        repository.insert(checkResult)
-        val checksForRepo = repository.allForRepo("firstrepo")
+    fun `store checks with good results and read them back`() = runTest {
+        val checkResult = CheckResult.AllGood("TheGoodCheck", now)
+        repository.insert(CheckResultsForRepo("firstRepo", listOf("firstTeam"),
+            listOf(checkResult)))
+        val checksForRepo = repository.allForRepo("firstRepo")
         assertEquals(1, checksForRepo.size)
     }
 
     @Test
     fun `store checks with failures and read them back`() = runTest {
-        // Dirty trick to truncate the Kotlin Instant to milliseconds
-        val now = Clock.System.now().toJavaInstant().truncatedTo(ChronoUnit.MILLIS).toKotlinInstant()
-        val checkResult = CheckResult.NeedsWork("TheFailingCheck", "secondrepo", now, listOf("jau", "dill", "dall"))
-        repository.insert(checkResult)
+        val checkResult = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
+        val crr = CheckResultsForRepo("secondrepo", listOf("firstTeam"), listOf(checkResult))
+        repository.insert(crr)
         val checksForRepo = repository.allForRepo("secondrepo")
         assertEquals(1, checksForRepo.size)
         assertEquals(checkResult, checksForRepo[0])
     }
 
     @Test
-    fun `delete a check`() = runTest {
-        val checkResult = CheckResult.NeedsWork("AnotherFailingCheck", "thirdrepo", Clock.System.now(), listOf("jau", "dill", "dall"))
-        val id = repository.insert(checkResult)
-        assertEquals(1, repository.delete(id))
-        val checksForRepo = repository.allForRepo(checkResult.repo)
-        assertEquals(0, checksForRepo.size)
-    }
+    fun `all results for owner with multiple repos`() = runTest{
+        val repoWithTeam2 = CheckResultsForRepo("firstRepo", listOf("firstTeam", "secondTeam"), listOf(
+            CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall")),
+            CheckResult.AllGood("TheGoodCheck", now)
+        ))
+        val repoWithoutTeam2 = CheckResultsForRepo("firstRepo", listOf("firstTeam"), listOf(
+            CheckResult.NeedsWork("AnotherFailingCheck", now, listOf("jau", "dill", "dall")),
+            CheckResult.AllGood("AnotherGoodCheck", Clock.System.now())
+        ))
+        repository.insert(repoWithTeam2)
+        repository.insert(repoWithoutTeam2)
 
+        val checksForTeam2FromDatabase = repository.allForOwner("secondTeam")
+        assertEquals(repoWithTeam2.results, checksForTeam2FromDatabase)
+    }
 
 }

@@ -1,9 +1,7 @@
 package no.nav.tpt.infrastructure.datacollector
 
-import de.huxhorn.sulky.ulid.ULID
-
 class FakeDatacollectorRepository: DatacollectorRepository {
-    override suspend fun insert(check: CheckResult): ULID.Value {
+    override suspend fun insert(checks: CheckResultsForRepo) {
         TODO("Not yet implemented")
     }
 
@@ -11,7 +9,7 @@ class FakeDatacollectorRepository: DatacollectorRepository {
         return emptyList()
     }
 
-    override suspend fun delete(id: ULID.Value): Int {
-        return 0
+    override suspend fun allForOwner(owner: String): List<CheckResult> {
+        TODO("Not yet implemented")
     }
 }

@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
 
 import java.time.Duration
+import no.nav.tpt.infrastructure.datacollector.CheckResultsForRepo
 
 class DataCollectorConsumer(
     kafkaConfig: KafkaConfig,
@@ -80,38 +81,37 @@ class DataCollectorConsumer(
 
     private suspend fun processCheckResults(record: ConsumerRecord<String, String>) {
         try {
-            val results = json.decodeFromString<List<CheckResult>>(record.value())
-            storeCodeScanningStatus(results.filter { it.name == "githubToolingStatus" })
-            storeCheckResults(results)
+            val resultsForRepo = json.decodeFromString<CheckResultsForRepo>(record.value())
+            val githubToolingOnly = resultsForRepo.copy(results = resultsForRepo.results.filter { it.name == "githubToolingStatus" })
+            storeCodeScanningStatus(githubToolingOnly)
+            storeCheckResults(resultsForRepo)
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
         }
     }
 
-    private suspend fun storeCodeScanningStatus(checkResults: List<CheckResult>) {
-        checkResults.forEach { result ->
+    private suspend fun storeCodeScanningStatus(checkResults: CheckResultsForRepo) {
+        checkResults.results.forEach { result ->
             try {
                 val status = when (result) {
                     is CheckResult.AllGood -> "OK"
                     is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
                 }
-                val nameWithOwner = if ('/' in result.repo) result.repo else "navikt/${result.repo}"
+                val nameWithOwner = if ('/' in checkResults.repoName) checkResults.repoName else "navikt/${checkResults.repoName}"
                 gitHubRepository.updateCodeScanningStatus(nameWithOwner, status)
             } catch (e: Exception) {
-                logger.error("Error updating code scanning status for ${result.repo}", e)
+                logger.error("Error updating code scanning status for $checkResults.repoName", e)
             }
         }
     }
 
-    private suspend fun storeCheckResults(checkResults: List<CheckResult>) {
-        checkResults.forEach { result ->
-            try {
-//                dataCollectorRepository.insert(result)
-//                TPTMetrics.checksPersisted()
-            } catch (e: Exception) {
-                logger.error("Error saving check result for ${result.repo}", e)
-                TPTMetrics.checksPersistingFailed()
-            }
+    private suspend fun storeCheckResults(checkResults: CheckResultsForRepo) {
+        try {
+            dataCollectorRepository.insert(checkResults)
+            TPTMetrics.checksPersisted(checkResults.results.size)
+        } catch (e: Exception) {
+            logger.error("Error saving check result for ${checkResults.repoName}", e)
+            TPTMetrics.checksPersistingFailed()
         }
     }
 }
