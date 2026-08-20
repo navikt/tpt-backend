@@ -10,4 +10,6 @@ interface GitHubRepository {
     suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData>
     suspend fun getAllRepositories(): List<GitHubRepositoryData>
     suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData>
+    suspend fun deleteRepositoriesExclusivelyOwnedBy(teamSlugs: List<String>)
+    suspend fun removeTeamsFromSharedRepositories(teamSlugs: List<String>)
 }

@@ -37,4 +37,12 @@ class MockGitHubRepository(
             repo.naisTeams.any { it in teamSlugs }
         }
     }
+
+    override suspend fun deleteRepositoriesExclusivelyOwnedBy(teamSlugs: List<String>) {
+        // No-op for tests
+    }
+
+    override suspend fun removeTeamsFromSharedRepositories(teamSlugs: List<String>) {
+        // No-op for tests
+    }
 }

@@ -226,5 +226,116 @@ class GitHubRepositoryTest {
         assertEquals("com.example:test-lib", moderate.packageName)
         assertNotNull(moderate.publishedAt)
     }
+
+    @Test
+    fun `should delete repositories exclusively owned by the given teams`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val exclusiveRepo = "navikt/exclusive-repo-$ts"
+        val sharedRepo = "navikt/shared-repo-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = exclusiveRepo, naisTeams = listOf("team-a", "team-b"), vulnerabilities = emptyList())
+        )
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = sharedRepo, naisTeams = listOf("team-a", "team-c"), vulnerabilities = emptyList())
+        )
+
+        repository.deleteRepositoriesExclusivelyOwnedBy(listOf("team-a", "team-b"))
+
+        assertNull(repository.getRepository(exclusiveRepo))
+        assertNotNull(repository.getRepository(sharedRepo))
+    }
+
+    @Test
+    fun `should not delete repository when it has teams outside the refresh set`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val repoName = "navikt/mixed-teams-repo-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = repoName, naisTeams = listOf("team-a", "team-outside"), vulnerabilities = emptyList())
+        )
+
+        repository.deleteRepositoriesExclusivelyOwnedBy(listOf("team-a"))
+
+        assertNotNull(repository.getRepository(repoName))
+    }
+
+    @Test
+    fun `should cascade delete vulnerabilities when exclusively owned repository is deleted`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val repoName = "navikt/repo-with-vulns-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(
+                nameWithOwner = repoName,
+                naisTeams = listOf("team-a"),
+                vulnerabilities = listOf(
+                    GitHubVulnerabilityMessage(severity = "HIGH", identifiers = listOf(GitHubIdentifierMessage("CVE-2024-9999", "CVE")))
+                )
+            )
+        )
+
+        assertEquals(1, repository.getVulnerabilities(repoName).size)
+
+        repository.deleteRepositoriesExclusivelyOwnedBy(listOf("team-a"))
+
+        assertNull(repository.getRepository(repoName))
+        assertEquals(0, repository.getVulnerabilities(repoName).size)
+    }
+
+    @Test
+    fun `should remove refreshing teams from shared repositories`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val repoName = "navikt/shared-ownership-repo-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = repoName, naisTeams = listOf("team-a", "team-b"), vulnerabilities = emptyList())
+        )
+
+        repository.removeTeamsFromSharedRepositories(listOf("team-a"))
+
+        val updated = repository.getRepository(repoName)
+        assertNotNull(updated)
+        assertEquals(listOf("team-b"), updated.naisTeams)
+    }
+
+    @Test
+    fun `should not modify exclusively owned repositories when removing teams from shared ones`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val exclusiveRepo = "navikt/exclusive-$ts"
+        val sharedRepo = "navikt/shared-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = exclusiveRepo, naisTeams = listOf("team-a"), vulnerabilities = emptyList())
+        )
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = sharedRepo, naisTeams = listOf("team-a", "team-b"), vulnerabilities = emptyList())
+        )
+
+        repository.removeTeamsFromSharedRepositories(listOf("team-a"))
+
+        val exclusive = repository.getRepository(exclusiveRepo)
+        assertNotNull(exclusive)
+        assertEquals(listOf("team-a"), exclusive.naisTeams)
+
+        val shared = repository.getRepository(sharedRepo)
+        assertNotNull(shared)
+        assertEquals(listOf("team-b"), shared.naisTeams)
+    }
+
+    @Test
+    fun `should handle empty team list gracefully for delete and remove`() = runBlocking {
+        val ts = System.currentTimeMillis()
+        val repoName = "navikt/untouched-repo-$ts"
+
+        repository.upsertRepositoryData(
+            GitHubRepositoryMessage(nameWithOwner = repoName, naisTeams = listOf("team-x"), vulnerabilities = emptyList())
+        )
+
+        repository.deleteRepositoriesExclusivelyOwnedBy(emptyList())
+        repository.removeTeamsFromSharedRepositories(emptyList())
+
+        assertNotNull(repository.getRepository(repoName))
+    }
 }
 

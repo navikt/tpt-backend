@@ -13,6 +13,7 @@ import io.ktor.http.HttpHeaders.Accept
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpMethod.Companion.Post
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import java.net.URI
 import kotlin.time.measureTimedValue
 import kotlinx.coroutines.async
@@ -97,6 +98,8 @@ private data class TokenResponse(
 @Serializable
 data class GitHubCollectRequest(val teams: List<String>)
 
+class DataCollectorException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
 class RealGitHubDataCollector(
     val naisTokenEndpoint: String,
     val httpClient: HttpClient = HttpClient(CIO)
@@ -106,12 +109,17 @@ class RealGitHubDataCollector(
     override suspend fun startCollectingDataFor(teamSlugs: List<String>) {
         val authToken = retrieveAccessToken()
         val url = URI("http", "tpt-data-collector", "/collect/github", null).toString()
-        httpClient.request(url) {
+        val response = httpClient.request(url) {
             method = Post
             bearerAuth(authToken)
             header(Accept, "application/json")
             contentType(Json)
             setBody(GitHubCollectRequest(teamSlugs))
+        }
+        if (!response.status.isSuccess()) {
+            throw DataCollectorException(
+                "tpt-data-collector returned ${response.status.value} for GitHub collection request"
+            )
         }
         logger.info("Triggered GitHub vulnerability collection for ${teamSlugs.size} teams")
     }
