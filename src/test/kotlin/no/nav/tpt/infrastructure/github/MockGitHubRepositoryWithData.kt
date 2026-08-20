@@ -155,4 +155,10 @@ class MockGitHubRepositoryWithData : GitHubRepository {
     override suspend fun removeTeamsFromSharedRepositories(teamSlugs: List<String>) {
         // No-op for mock
     }
+
+    override suspend fun tryAcquireRefreshLock(teamSlug: String): Boolean = true
+
+    override suspend fun releaseRefreshLock(teamSlug: String) {
+        // No-op for mock
+    }
 }

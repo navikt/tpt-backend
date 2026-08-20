@@ -168,6 +168,45 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
     }
 
+    override suspend fun tryAcquireRefreshLock(teamSlug: String): Boolean =
+        dbQuery {
+            val now = Instant.now()
+            val staleThreshold = now.minusSeconds(30 * 60)
+            val lockDeadline = now.plusSeconds(15 * 60)
+
+            GitHubTeamSyncMetadata.upsert(
+                GitHubTeamSyncMetadata.teamSlug,
+                onUpdateExclude = listOf(GitHubTeamSyncMetadata.createdAt),
+                where = {
+                    (GitHubTeamSyncMetadata.lastRefreshTriggeredAt less staleThreshold) and
+                        (GitHubTeamSyncMetadata.syncLockedUntil.isNull() or (GitHubTeamSyncMetadata.syncLockedUntil lessEq now))
+                },
+            ) {
+                it[GitHubTeamSyncMetadata.teamSlug] = teamSlug
+                it[lastRefreshTriggeredAt] = Instant.EPOCH
+                it[syncLockedUntil] = lockDeadline
+                it[createdAt] = now
+                it[updatedAt] = now
+            }
+
+            GitHubTeamSyncMetadata
+                .selectAll()
+                .where {
+                    (GitHubTeamSyncMetadata.teamSlug eq teamSlug) and
+                        (GitHubTeamSyncMetadata.syncLockedUntil eq lockDeadline)
+                }
+                .count() > 0
+        }
+
+    override suspend fun releaseRefreshLock(teamSlug: String): Unit =
+        dbQuery {
+            GitHubTeamSyncMetadata.update({ GitHubTeamSyncMetadata.teamSlug eq teamSlug }) {
+                it[syncLockedUntil] = null
+                it[lastRefreshTriggeredAt] = Instant.now()
+                it[updatedAt] = Instant.now()
+            }
+        }
+
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
         return GitHubRepositoryData(
             nameWithOwner = row[GitHubRepositories.nameWithOwner],

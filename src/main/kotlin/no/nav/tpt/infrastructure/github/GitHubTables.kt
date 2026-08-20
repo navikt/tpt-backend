@@ -68,6 +68,16 @@ data class GitHubVulnerabilityData(
     val updatedAt: Instant
 )
 
+object GitHubTeamSyncMetadata : Table("github_team_sync_metadata") {
+    val teamSlug = varchar("team_slug", 100)
+    val lastRefreshTriggeredAt = timestamp("last_refresh_triggered_at")
+    val syncLockedUntil = timestamp("sync_locked_until").nullable()
+    val createdAt = timestamp("created_at").default(Instant.now())
+    val updatedAt = timestamp("updated_at").default(Instant.now())
+
+    override val primaryKey = PrimaryKey(teamSlug)
+}
+
 data class GitHubIdentifierData(
     val value: String,
     val type: String

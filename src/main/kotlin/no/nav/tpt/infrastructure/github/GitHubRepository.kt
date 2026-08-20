@@ -12,4 +12,6 @@ interface GitHubRepository {
     suspend fun getRepositoriesByTeams(teamSlugs: List<String>): List<GitHubRepositoryData>
     suspend fun deleteRepositoriesExclusivelyOwnedBy(teamSlugs: List<String>)
     suspend fun removeTeamsFromSharedRepositories(teamSlugs: List<String>)
+    suspend fun tryAcquireRefreshLock(teamSlug: String): Boolean
+    suspend fun releaseRefreshLock(teamSlug: String)
 }
