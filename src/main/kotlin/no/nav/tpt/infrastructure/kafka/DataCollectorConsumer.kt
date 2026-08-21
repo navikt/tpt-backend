@@ -3,7 +3,6 @@ package no.nav.tpt.infrastructure.kafka
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.datacollector.CheckResult
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
-import no.nav.tpt.infrastructure.github.DockerfileFeaturesMessage
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import no.nav.tpt.metrics.TPTMetrics
@@ -55,19 +54,6 @@ class DataCollectorConsumer(
             }
         } catch (e: Exception) {
             logger.error("Error parsing repository message: ${record.value()}", e)
-        }
-    }
-
-    private suspend fun processDockerfileFeatures(record: ConsumerRecord<String, String>) {
-        try {
-            val message = json.decodeFromString<DockerfileFeaturesMessage>(record.value())
-            try {
-                gitHubRepository.updateDockerfileFeatures(message.repoName, message.usesDistroless)
-            } catch (e: Exception) {
-                logger.error("Error updating dockerfile features for ${message.repoName}", e)
-            }
-        } catch (e: Exception) {
-            logger.error("Error parsing dockerfile features message: ${record.value()}", e)
         }
     }
 

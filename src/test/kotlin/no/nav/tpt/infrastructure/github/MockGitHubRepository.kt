@@ -12,10 +12,6 @@ class MockGitHubRepository(
         // No-op for tests
     }
 
-    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean) {
-        // No-op for tests
-    }
-
     override suspend fun updateCodeScanningStatus(repoName: String, status: String) {
         // No-op for tests
     }

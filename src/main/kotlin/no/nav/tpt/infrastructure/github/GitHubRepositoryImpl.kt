@@ -67,13 +67,6 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
     }
 
-    override suspend fun updateDockerfileFeatures(repoName: String, usesDistroless: Boolean): Unit = dbQuery {
-        GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
-            it[GitHubRepositories.usesDistroless] = usesDistroless
-            it[updatedAt] = Instant.now()
-        }
-    }
-
     override suspend fun updateCodeScanningStatus(repoName: String, status: String): Unit = dbQuery {
         GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
             it[GitHubRepositories.codeScanningStatus] = status
