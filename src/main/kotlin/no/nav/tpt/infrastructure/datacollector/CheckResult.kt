@@ -13,10 +13,12 @@ sealed class CheckResult {
     abstract val whenChecked: Instant
 
     @Serializable
+    @SerialName("no.nav.checks.CheckResult.AllGood")
     data class AllGood(override val name: String,
                        override val whenChecked: Instant) :
         CheckResult()
     @Serializable
+    @SerialName("no.nav.checks.CheckResult.NeedsWork")
     data class NeedsWork(
         override val name: String,
         override val whenChecked: Instant,
