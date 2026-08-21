@@ -18,6 +18,7 @@ import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ReferenceOption.CASCADE
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.IdTable
 import org.jetbrains.exposed.v1.core.eq
@@ -25,6 +26,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -37,6 +39,10 @@ object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val result = text("result")
     val updatedAt = timestamp("updated_at").default(Instant.now().truncatedTo(ChronoUnit.MILLIS))
 
+    init {
+        uniqueIndex(repo, checkName)
+    }
+
     override val id: Column<EntityID<String>> = text("id").entityId()
 }
 
@@ -48,6 +54,10 @@ object DatacollectorCheckFailureReasons : Table("datacollector_check_failure_rea
 object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
     val owner = text("owner")
     val checkId = reference(name = "check_id", refColumn = id, onDelete = CASCADE)
+
+    init {
+        uniqueIndex(owner, checkId)
+    }
 }
 
 interface DatacollectorRepository {
@@ -62,7 +72,21 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
 
     override suspend fun insert(checks: CheckResultsForRepo) {
         transaction {
-            val insertedChecks = DataCollectorChecks.batchInsert(data = checks.results) { checkResult ->
+            checks.results.forEach { check ->
+                val existingIds = DataCollectorChecks.selectAll().where {
+                    repo eq checks.repoName and(checkName eq check.name)
+                }.map { row ->
+                    row[DataCollectorChecks.id].value
+                }
+
+                if (existingIds.isNotEmpty()) {
+                    DataCollectorChecks.deleteWhere { id inList existingIds }
+                }
+            }
+
+            val insertedChecks = DataCollectorChecks.batchInsert(
+                data = checks.results
+            ) { checkResult ->
                 val rowId = ulid.nextValue()
                 this[DataCollectorChecks.id] = rowId.toString()
                 this[checkName] = checkResult.name
@@ -113,7 +137,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
 
     private fun checksWithReasons(ids: List<String>): List<CheckResult> {
         val reasonRows = DatacollectorCheckFailureReasons.selectAll()
-            .where {checkId inList ids}
+            .where { checkId inList ids }
 
         val reasonMapping = reasonRows
             .groupBy { it[checkId].value }
@@ -121,12 +145,12 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .toMap()
 
         return DataCollectorChecks.selectAll()
-            .where {id inList ids}
+            .where { id inList ids }
             .map {
                 if (it[result] == AllGood::class.java.simpleName) {
                     AllGood(it[checkName], it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
-                    val reasons = reasonMapping.get(it[id].value)  ?: emptyList()
+                    val reasons = reasonMapping.get(it[id].value) ?: emptyList()
                     NeedsWork(it[checkName], it[updatedAt].toKotlinInstant(), reasons)
                 }
             }

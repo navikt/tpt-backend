@@ -66,27 +66,27 @@ class DataCollectorRepositoryTest {
         val checkResult = CheckResult.AllGood("TheGoodCheck", now)
         repository.insert(CheckResultsForRepo("firstRepo", listOf("firstTeam"),
             listOf(checkResult)))
-        val checksForRepo = repository.allForRepo("firstRepo")
-        assertEquals(1, checksForRepo.size)
+        val fromDatabase = repository.allForRepo("firstRepo")
+        assertEquals(1, fromDatabase.size)
     }
 
     @Test
     fun `store checks with failures and read them back`() = runTest {
         val checkResult = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
-        val crr = CheckResultsForRepo("secondrepo", listOf("firstTeam"), listOf(checkResult))
+        val crr = CheckResultsForRepo("secondRepo", listOf("firstTeam"), listOf(checkResult))
         repository.insert(crr)
-        val checksForRepo = repository.allForRepo("secondrepo")
-        assertEquals(1, checksForRepo.size)
-        assertEquals(checkResult, checksForRepo[0])
+        val fromDatabase = repository.allForRepo("secondRepo")
+        assertEquals(1, fromDatabase.size)
+        assertEquals(checkResult, fromDatabase[0])
     }
 
     @Test
     fun `all results for owner with multiple repos`() = runTest{
-        val repoWithTeam2 = CheckResultsForRepo("firstRepo", listOf("firstTeam", "secondTeam"), listOf(
-            CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall")),
-            CheckResult.AllGood("TheGoodCheck", now)
+        val repoWithTeam2 = CheckResultsForRepo("thirdRepo", listOf("firstTeam", "secondTeam"), listOf(
+            CheckResult.NeedsWork("AnotherFailingCheck", now, listOf("yolo", "whats", "up")),
+            CheckResult.AllGood("AnotherGoodCheck", now)
         ))
-        val repoWithoutTeam2 = CheckResultsForRepo("firstRepo", listOf("firstTeam"), listOf(
+        val repoWithoutTeam2 = CheckResultsForRepo("fourthRepo", listOf("firstTeam"), listOf(
             CheckResult.NeedsWork("AnotherFailingCheck", now, listOf("jau", "dill", "dall")),
             CheckResult.AllGood("AnotherGoodCheck", Clock.System.now())
         ))
@@ -95,6 +95,19 @@ class DataCollectorRepositoryTest {
 
         val checksForTeam2FromDatabase = repository.allForOwner("secondTeam")
         assertEquals(repoWithTeam2.results, checksForTeam2FromDatabase)
+    }
+
+    @Test
+    fun `existing checks with same name and repo should be replaced`() = runTest {
+        val checkResult1 = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
+        val checkResult2 = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "replaced"))
+        val crr1 = CheckResultsForRepo("fifthRepo", listOf("firstTeam"), listOf(checkResult1))
+        val crr2 = CheckResultsForRepo("fifthRepo", listOf("firstTeam"), listOf(checkResult2))
+        repository.insert(crr1)
+        repository.insert(crr2)
+        val fromDatabase = repository.allForRepo("fifthRepo")
+        assertEquals(1, fromDatabase.size)
+        assertEquals(checkResult2, fromDatabase[0])
     }
 
 }
