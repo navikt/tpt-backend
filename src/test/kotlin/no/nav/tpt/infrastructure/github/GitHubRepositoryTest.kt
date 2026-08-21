@@ -80,7 +80,7 @@ class GitHubRepositoryTest {
 
         repository.upsertRepositoryData(message)
 
-        val repoIdentifier = message.getRepositoryIdentifier()
+        val repoIdentifier = message.nameWithOwner
         val result = repository.getRepository(repoIdentifier)
         assertNotNull(result)
         assertEquals(repoIdentifier, result.nameWithOwner)
@@ -161,7 +161,7 @@ class GitHubRepositoryTest {
         )
 
         repository.upsertRepositoryData(message)
-        val vulnerabilities = repository.getVulnerabilities(message.getRepositoryIdentifier())
+        val vulnerabilities = repository.getVulnerabilities(message.nameWithOwner)
         assertEquals(0, vulnerabilities.size)
     }
 

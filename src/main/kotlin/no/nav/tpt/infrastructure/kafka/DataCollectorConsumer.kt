@@ -58,11 +58,10 @@ class DataCollectorConsumer(
             try {
                 gitHubRepository.upsertRepositoryData(message)
             } catch (e: Exception) {
-                logger.error("Error upserting repository data for ${message.getRepositoryIdentifier()}", e)
+                logger.error("Error upserting repository data for ${message.nameWithOwner}", e)
             }
         } catch (e: Exception) {
-            // Ignore these until we continue the work here.
-            logger.warn("Error parsing repository message: ${record.value()}", e)
+            logger.error("Error parsing repository message: ${record.value()}", e)
         }
     }
 

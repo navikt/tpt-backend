@@ -15,7 +15,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         suspendTransaction(database) { block() }
 
     override suspend fun upsertRepositoryData(message: GitHubRepositoryMessage): Unit = dbQuery {
-        val repoIdentifier = message.getRepositoryIdentifier()
+        val repoIdentifier = message.nameWithOwner
 
         val existingRow = GitHubRepositories.selectAll()
             .where { GitHubRepositories.nameWithOwner eq repoIdentifier }

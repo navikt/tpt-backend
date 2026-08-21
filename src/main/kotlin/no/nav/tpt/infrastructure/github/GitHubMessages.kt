@@ -1,21 +1,13 @@
 package no.nav.tpt.infrastructure.github
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class GitHubRepositoryMessage(
-    @SerialName("nameWithOwner")
-    val nameWithOwner: String? = null,
-    @SerialName("repositoryName")
-    val repositoryName: String? = null,
-    val naisTeams: List<String>? = null,
-    val vulnerabilities: List<GitHubVulnerabilityMessage>? = null
-) {
-    fun getRepositoryIdentifier(): String {
-        return nameWithOwner ?: repositoryName ?: throw IllegalArgumentException("Either nameWithOwner or repositoryName must be provided")
-    }
-}
+    val nameWithOwner: String,
+    val naisTeams: List<String>,
+    val vulnerabilities: List<GitHubVulnerabilityMessage>
+)
 
 @Serializable
 data class GitHubVulnerabilityMessage(

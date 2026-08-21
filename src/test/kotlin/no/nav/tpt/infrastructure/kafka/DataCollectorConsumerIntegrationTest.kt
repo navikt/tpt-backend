@@ -320,7 +320,7 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should handle missing required fields`() = runBlocking {
-        // naisTeams is absent — coerced to null and stored as empty list. The repo is stored.
+        // naisTeams is required — a message without it fails deserialization and must not be stored.
         val missingFieldsMessage = """
             {
               "nameWithOwner": "navikt/missing-fields",
@@ -333,12 +333,9 @@ class DataCollectorConsumerIntegrationTest {
             awaitCondition(message = "Consumer did not become ready") { kafkaConsumer.isReady() }
             kafkaProducer.send(ProducerRecord(testTopic, KafkaKey.GITHUB_VULNERABILITY_DATA, missingFieldsMessage)).get()
 
-            awaitCondition(message = "Repository navikt/missing-fields was not stored") {
-                gitHubRepository.getRepository("navikt/missing-fields") != null
-            }
-
-            val repo = gitHubRepository.getRepository("navikt/missing-fields")!!
-            assertEquals(emptyList(), repo.naisTeams)
+            awaitCondition(message = "Consumer did not stay healthy after missing-field message") { kafkaConsumer.isReady() }
+            assertTrue(kafkaConsumer.isHealthy(), "Consumer should remain healthy after missing-field message")
+            assertNull(gitHubRepository.getRepository("navikt/missing-fields"), "Malformed message must not be stored")
         } finally {
             kafkaConsumer.stop()
         }
@@ -346,7 +343,7 @@ class DataCollectorConsumerIntegrationTest {
 
     @Test
     fun `should handle invalid data types`() = runBlocking {
-        // naisTeams as a string instead of array — coerceInputValues handles this gracefully
+        // naisTeams as a string instead of array — deserialization fails, repo must not be stored.
         val invalidTypesMessage = """
             {
               "nameWithOwner": "navikt/invalid-types",
