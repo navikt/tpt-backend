@@ -28,16 +28,9 @@ class DataCollectorConsumer(
     override suspend fun processRecord(record: ConsumerRecord<String, String>) {
         try {
             when (record.key()) {
-                "dockerfile_features" -> processDockerfileFeatures(record)
                 "CheckResult" -> processCheckResults(record)
                 KafkaKey.GITHUB_VULNERABILITY_DATA -> processRepositoryMessage(record)
-                KafkaKey.TEAM_SYNC, KafkaKey.TEAM_SYNC_STARTED, KafkaKey.TEAM_SYNC_COMPLETE,
-                KafkaKey.VULN_DATA_SYNC, KafkaKey.GCVE_SYNC, KafkaKey.GCVE_SYNC_COMPLETE,
-                KafkaKey.GITHUB_VULN_SYNC_STARTED, KafkaKey.GITHUB_VULN_SYNC_COMPLETE -> return
-                else -> {
-                    logger.warn("Ignoring unknown message key: ${record.key()}")
-                    return
-                }
+                else -> return
             }
 
             messageCount++
