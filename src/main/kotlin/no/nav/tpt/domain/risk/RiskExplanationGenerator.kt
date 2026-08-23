@@ -38,6 +38,9 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
             val epssRaw = factor.metadata["epssScore"] as? String
             val hasPoc = factor.metadata["hasExploitReference"] as? Boolean ?: false
             val ssvc = factor.metadata["ssvcExploitation"] as? String
+            val sightingsExploited = factor.metadata["sightingsExploited"] as? Int ?: 0
+            val sightingsPoc = factor.metadata["sightingsPoc"] as? Int ?: 0
+            val sightingsSeen = factor.metadata["sightingsSeen"] as? Int ?: 0
             val epssExplanation = formatEpssExplanation(epssRaw)
             when {
                 ssvc?.equals("active", ignoreCase = true) == true ->
@@ -48,6 +51,18 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
                 hasPoc && epssExplanation != null ->
                     "Exploit PoC available — $epssExplanation"
                 hasPoc -> "Exploit PoC available"
+                sightingsExploited >= config.sightingExploitedHighThreshold && epssExplanation == null ->
+                    "Community sightings report active exploitation ($sightingsExploited sightings) — EPSS may be underestimating this CVE"
+                sightingsExploited >= config.sightingExploitedHighThreshold ->
+                    "Community sightings report active exploitation ($sightingsExploited sightings) — $epssExplanation"
+                sightingsExploited >= config.sightingExploitedMinThreshold && epssExplanation == null ->
+                    "Early warning: exploitation sightings observed before full analysis is available ($sightingsExploited sightings)"
+                sightingsPoc >= config.sightingPocHighThreshold ->
+                    "High volume of proof-of-concept sightings ($sightingsPoc) — elevated community attention"
+                sightingsPoc >= config.sightingPocMinThreshold && epssExplanation == null ->
+                    "Early warning: PoC sightings observed before EPSS scoring ($sightingsPoc sightings)"
+                sightingsSeen >= config.sightingSeenEarlyWarningThreshold ->
+                    "Early warning: elevated community attention ($sightingsSeen mentions) before exploitation confirmed"
                 epssExplanation != null -> epssExplanation
                 else -> "No exploitation evidence found"
             }

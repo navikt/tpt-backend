@@ -51,5 +51,13 @@ data class RiskScoringConfig(
 
     // VEX: multiplier applied when version matching confirms the package is not in the affected range
     val vexNotAffectedMultiplier: Double = 0.5,
+
+    // Sightings thresholds for exploitation category
+    val sightingExploitedHighThreshold: Int = 5,       // >= 5 exploited sightings → PoC-level evidence
+    val sightingExploitedMinThreshold: Int = 1,         // >= 1 exploited sighting  → medium-level evidence
+    val sightingPocHighThreshold: Int = 10,             // >= 10 PoC sightings → high community attention
+    val sightingPocMinThreshold: Int = 3,               // >= 3 PoC sightings  → early PoC chatter
+    val sightingSeenEarlyWarningThreshold: Int = 20,    // >= 20 seen → crowd attention signal
+    val sightingStaleDays: Long = 365,
 )
 

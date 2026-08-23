@@ -443,4 +443,125 @@ class GcveClientTest {
 
         assertNull(result)
     }
+
+    // --- Sightings endpoint tests ---
+
+    private fun sightingsEnvelope(data: String, count: Int = 1, page: Int = 1, perPage: Int = 1000) =
+        """{"metadata":{"count":$count,"page":$page,"per_page":$perPage},"data":$data}"""
+
+    @Test
+    fun `should fetch sightings since given date and invoke callback`() = runTest {
+        val mockEngine = MockEngine { request ->
+            assertTrue(request.url.toString().contains("/sighting/"))
+            assertTrue(request.url.toString().contains("date_from=2024-05-01"))
+            respond(
+                content = sightingsEnvelope(
+                    """[{"type":"exploited","creation_timestamp":"2024-05-10T12:00:00Z","vulnerability":"CVE-2024-0001"}]""",
+                    count = 1,
+                ),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val received = mutableListOf<GcveSighting>()
+        val client = createClient(mockEngine)
+        val success = client.getSightingsSince(java.time.LocalDate.of(2024, 5, 1)) { page -> received.addAll(page) }
+
+        assertTrue(success)
+        assertEquals(1, received.size)
+        assertEquals("CVE-2024-0001", received.first().vulnerability)
+        assertEquals("exploited", received.first().type)
+    }
+
+    @Test
+    fun `should invoke callback with empty list when no sightings found`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = sightingsEnvelope("[]", count = 0),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val received = mutableListOf<GcveSighting>()
+        val client = createClient(mockEngine)
+        val success = client.getSightingsSince(java.time.LocalDate.of(2024, 5, 1)) { page -> received.addAll(page) }
+
+        assertTrue(success)
+        assertTrue(received.isEmpty())
+    }
+
+    @Test
+    fun `should return false when sightings API returns error`() = runTest {
+        val mockEngine = MockEngine {
+            respond(content = "Internal Server Error", status = HttpStatusCode.InternalServerError)
+        }
+
+        val client = createClient(mockEngine)
+        val success = client.getSightingsSince(java.time.LocalDate.of(2024, 5, 1)) {}
+
+        assertFalse(success)
+    }
+
+    @Test
+    fun `should paginate sightings and invoke callback per page`() = runTest {
+        var callCount = 0
+        val pagesReceived = mutableListOf<Int>()
+        val mockEngine = MockEngine { request ->
+            callCount++
+            val pageParam = request.url.parameters["page"]
+            when (pageParam) {
+                "1" -> {
+                    val items = (1..1000).joinToString(",") {
+                        """{"type":"seen","creation_timestamp":"2024-05-01T00:00:00Z","vulnerability":"CVE-2024-${it.toString().padStart(4,'0')}"}"""
+                    }
+                    respond(
+                        content = sightingsEnvelope("[$items]", count = 1500, page = 1),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+                else -> {
+                    val items = (1..500).joinToString(",") {
+                        """{"type":"seen","creation_timestamp":"2024-05-01T00:00:00Z","vulnerability":"CVE-2025-${it.toString().padStart(4,'0')}"}"""
+                    }
+                    respond(
+                        content = sightingsEnvelope("[$items]", count = 1500, page = 2),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            }
+        }
+
+        val totalReceived = mutableListOf<GcveSighting>()
+        val client = createClient(mockEngine)
+        val success = client.getSightingsSince(java.time.LocalDate.of(2024, 5, 1)) { page ->
+            pagesReceived.add(page.size)
+            totalReceived.addAll(page)
+        }
+
+        assertTrue(success)
+        assertEquals(1500, totalReceived.size)
+        assertEquals(2, callCount)
+        assertEquals(listOf(1000, 500), pagesReceived)
+    }
+
+    @Test
+    fun `should return false for sightings when circuit breaker is open`() = runTest {
+        val circuitBreaker = InMemoryCircuitBreaker(failureThreshold = 1, openDurationSeconds = 300)
+        circuitBreaker.recordFailure()
+        circuitBreaker.recordFailure()
+
+        val mockEngine = MockEngine {
+            fail("Should not make HTTP request when circuit breaker is open")
+        }
+
+        val client = createClient(mockEngine, circuitBreaker = circuitBreaker)
+        val success = client.getSightingsSince(java.time.LocalDate.of(2024, 5, 1)) {}
+
+        assertFalse(success)
+    }
 }
+

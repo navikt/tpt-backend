@@ -22,6 +22,7 @@ import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
 import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureGcveSync
+import no.nav.tpt.plugins.configureSightingsSync
 import no.nav.tpt.plugins.configureStatusPages
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
 import no.nav.tpt.plugins.dependencies
@@ -81,6 +82,7 @@ fun Application.module() {
     configureStatusPages()
     configureVulnerabilityDataSync()
     configureGcveSync()
+    configureSightingsSync()
     configureKafka()
 
     routing {
