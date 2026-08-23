@@ -1,9 +1,8 @@
 package no.nav.tpt.infrastructure.gcve
 
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate

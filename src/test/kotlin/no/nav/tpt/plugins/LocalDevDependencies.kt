@@ -112,6 +112,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     val gitHubRepository: GitHubRepository = MockGitHubRepositoryWithData()
 
     val localGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+    val localGcveSightingsRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveSightingsRepository()
 
     val vulnService = MockVulnerabilityEnrichmentService()
 
@@ -184,6 +185,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
+        gcveSightingsRepository = localGcveSightingsRepository,
+        gcveSightingsSyncService = no.nav.tpt.infrastructure.gcve.GcveSightingsSyncService(localGcveClient, localGcveSightingsRepository),
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
         dataCollector = dataCollector,

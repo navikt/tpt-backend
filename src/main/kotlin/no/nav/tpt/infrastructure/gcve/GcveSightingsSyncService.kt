@@ -18,7 +18,7 @@ class GcveSightingsSyncService(
 
         logger.info("Starting sightings sync from $lastFetchedDate")
 
-        val accumulator = SightingsAccumulator()
+        val accumulator = SightingsAccumulator(::parseTimestamp)
 
         val success = gcveClient.getSightingsSince(lastFetchedDate) { page ->
             accumulator.ingest(page)
@@ -46,58 +46,66 @@ class GcveSightingsSyncService(
         logger.debug("Could not parse sighting timestamp '$raw': ${e.message}")
         null
     }
+}
 
-    private inner class SightingsAccumulator {
-        private data class Counts(
-            var exploited: Int = 0,
-            var poc: Int = 0,
-            var seen: Int = 0,
-            var latestExploited: Instant? = null,
-            var latestPoc: Instant? = null,
-            var latestSeen: Instant? = null,
-        )
+private class SightingsAccumulator(
+    private val parseTimestamp: (String) -> Instant?,
+) {
+    private class Counts(
+        var exploited: Int = 0,
+        var poc: Int = 0,
+        var seen: Int = 0,
+        var latestExploited: Instant? = null,
+        var latestPoc: Instant? = null,
+        var latestSeen: Instant? = null,
+    )
 
-        private val byVuln = mutableMapOf<String, Counts>()
+    private val byVuln = mutableMapOf<String, Counts>()
 
-        fun ingest(sightings: List<GcveSighting>) {
-            for (sighting in sightings) {
-                val cveId = sighting.vulnerability.uppercase()
-                if (!cveId.startsWith("CVE-")) continue
+    fun ingest(sightings: List<GcveSighting>) {
+        for (sighting in sightings) {
+            val cveId = sighting.vulnerability.uppercase()
+            if (!cveId.startsWith("CVE-")) continue
 
-                val ts = parseTimestamp(sighting.creationTimestamp)
-                val counts = byVuln.getOrPut(cveId) { Counts() }
+            val type = sighting.type.lowercase()
+            if (type !in KNOWN_TYPES) continue
 
-                when (sighting.type.lowercase()) {
-                    "exploited" -> {
-                        counts.exploited++
-                        if (ts != null && (counts.latestExploited == null || ts.isAfter(counts.latestExploited)))
-                            counts.latestExploited = ts
-                    }
-                    "published-proof-of-concept" -> {
-                        counts.poc++
-                        if (ts != null && (counts.latestPoc == null || ts.isAfter(counts.latestPoc)))
-                            counts.latestPoc = ts
-                    }
-                    "seen" -> {
-                        counts.seen++
-                        if (ts != null && (counts.latestSeen == null || ts.isAfter(counts.latestSeen)))
-                            counts.latestSeen = ts
-                    }
-                    else -> {}
+            val ts = parseTimestamp(sighting.creationTimestamp)
+            val counts = byVuln.getOrPut(cveId) { Counts() }
+
+            when (type) {
+                "exploited" -> {
+                    counts.exploited++
+                    if (ts != null && (counts.latestExploited == null || ts.isAfter(counts.latestExploited)))
+                        counts.latestExploited = ts
+                }
+                "published-proof-of-concept" -> {
+                    counts.poc++
+                    if (ts != null && (counts.latestPoc == null || ts.isAfter(counts.latestPoc)))
+                        counts.latestPoc = ts
+                }
+                "seen" -> {
+                    counts.seen++
+                    if (ts != null && (counts.latestSeen == null || ts.isAfter(counts.latestSeen)))
+                        counts.latestSeen = ts
                 }
             }
         }
+    }
 
-        fun toSummaries(): List<GcveSightingsSummary> = byVuln.map { (cveId, counts) ->
-            GcveSightingsSummary(
-                cveId = cveId,
-                exploitedCount = counts.exploited,
-                pocCount = counts.poc,
-                seenCount = counts.seen,
-                latestExploitedAt = counts.latestExploited,
-                latestPocAt = counts.latestPoc,
-                latestSeenAt = counts.latestSeen,
-            )
-        }
+    companion object {
+        private val KNOWN_TYPES = setOf("exploited", "published-proof-of-concept", "seen")
+    }
+
+    fun toSummaries(): List<GcveSightingsSummary> = byVuln.map { (cveId, counts) ->
+        GcveSightingsSummary(
+            cveId = cveId,
+            exploitedCount = counts.exploited,
+            pocCount = counts.poc,
+            seenCount = counts.seen,
+            latestExploitedAt = counts.latestExploited,
+            latestPocAt = counts.latestPoc,
+            latestSeenAt = counts.latestSeen,
+        )
     }
 }
