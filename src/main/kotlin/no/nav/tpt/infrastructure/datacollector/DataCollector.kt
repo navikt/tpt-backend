@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory
 
 interface DataCollector {
     suspend fun startCollectingDataFor(teamSlugs: List<String>)
+    suspend fun allChecksFor(teamSlugs: List<String>): List<CheckResult>
 }
 
 interface GitHubDataCollector {
@@ -33,7 +34,8 @@ interface GitHubDataCollector {
 
 class RealDataCollector(
     val naisTokenEndpoint: String,
-    val httpClient: HttpClient = HttpClient(CIO)
+    val httpClient: HttpClient = HttpClient(CIO),
+    val storage: DatacollectorRepository
 ) : DataCollector {
     private val logger = LoggerFactory.getLogger(RealDataCollector::class.java)
 
@@ -48,6 +50,9 @@ class RealDataCollector(
             }
             logger.info("Collected ${responses.value.size} responses for ${teamSlugs.size} teams in ${responses.duration}")
         }
+
+    override suspend fun allChecksFor(teamSlugs: List<String>) =
+        storage.allForOwner(teamSlugs)
 
     private suspend fun retrieveAccessToken(): String {
         val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"

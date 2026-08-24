@@ -35,7 +35,7 @@ class DataCollectorTest {
             }
         }
 
-        val dataCollector = RealDataCollector(naisTokenEndpoint = "http://localhost:8080/token", httpClient = httpClient)
+        val dataCollector = RealDataCollector(naisTokenEndpoint = "http://localhost:8080/token", httpClient = httpClient, storage = FakeDatacollectorRepository())
         assertDoesNotThrow { dataCollector.startCollectingDataFor(listOf("tulleteam")) }
     }
 

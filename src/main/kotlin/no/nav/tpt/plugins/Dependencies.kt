@@ -189,7 +189,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     )
 
     val dataCollector =
-        RealDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
+        RealDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint, storage = dataCollectorRepository)
 
     val gitHubDataCollector =
         RealGitHubDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
