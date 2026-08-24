@@ -62,7 +62,6 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 
 interface DatacollectorRepository {
     suspend fun insert(checks: CheckResultsForRepo)
-    suspend fun allForRepo(name: String): List<CheckResult>
     suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult>
 }
 
@@ -113,15 +112,6 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             }
 
         }
-    }
-
-    override suspend fun allForRepo(name: String): List<CheckResult> = dbQuery {
-        val ids = DataCollectorChecks.selectAll().where {
-            repo eq name
-        }.map { row ->
-            row[id].value
-        }
-        checksWithReasons(ids)
     }
 
     override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult> = dbQuery {

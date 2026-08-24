@@ -5,10 +5,6 @@ import kotlin.time.Clock
 class FakeDatacollectorRepository: DatacollectorRepository {
     override suspend fun insert(checks: CheckResultsForRepo) {}
 
-    override suspend fun allForRepo(name: String): List<CheckResult> {
-        return emptyList()
-    }
-
     override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult> {
         return listOf(
             CheckResult.AllGood("Tullesjekk", Clock.System.now()),
