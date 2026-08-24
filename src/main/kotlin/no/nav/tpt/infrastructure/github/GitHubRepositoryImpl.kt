@@ -67,13 +67,6 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         }
     }
 
-    override suspend fun updateCodeScanningStatus(repoName: String, status: String): Unit = dbQuery {
-        GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoName }) {
-            it[GitHubRepositories.codeScanningStatus] = status
-            it[updatedAt] = Instant.now()
-        }
-    }
-
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
         GitHubRepositories.selectAll()
             .where { GitHubRepositories.nameWithOwner eq nameWithOwner }
@@ -200,12 +193,22 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
             }
         }
 
+    override suspend fun getLastSyncedAt(teamSlugs: List<String>): Map<String, String> =
+        dbQuery {
+            if (teamSlugs.isEmpty()) return@dbQuery emptyMap()
+            GitHubTeamSyncMetadata.selectAll()
+                .where { GitHubTeamSyncMetadata.teamSlug inList teamSlugs }
+                .filter { it[GitHubTeamSyncMetadata.lastRefreshTriggeredAt] != Instant.EPOCH }
+                .associate {
+                    it[GitHubTeamSyncMetadata.teamSlug] to
+                        it[GitHubTeamSyncMetadata.lastRefreshTriggeredAt].toString()
+                }
+        }
+
     private fun toGitHubRepositoryData(row: ResultRow): GitHubRepositoryData {
         return GitHubRepositoryData(
             nameWithOwner = row[GitHubRepositories.nameWithOwner],
             naisTeams = row[GitHubRepositories.naisTeams].toList(),
-            usesDistroless = row[GitHubRepositories.usesDistroless],
-            codeScanningStatus = row[GitHubRepositories.codeScanningStatus],
             createdAt = row[GitHubRepositories.createdAt],
             updatedAt = row[GitHubRepositories.updatedAt]
         )
