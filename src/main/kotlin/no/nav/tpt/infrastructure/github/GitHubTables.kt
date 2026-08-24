@@ -8,8 +8,6 @@ import java.time.Instant
 object GitHubRepositories : Table("github_repositories") {
     val nameWithOwner = varchar("name_with_owner", 500)
     val naisTeams = array<String>("nais_teams")
-    val usesDistroless = bool("uses_distroless").nullable()
-    val codeScanningStatus = varchar("code_scanning_status", 500).nullable()
     val createdAt = timestamp("created_at").default(Instant.now())
     val updatedAt = timestamp("updated_at").default(Instant.now())
 
@@ -46,8 +44,6 @@ object GitHubVulnerabilityIdentifiers : Table("github_vulnerability_identifiers"
 data class GitHubRepositoryData(
     val nameWithOwner: String,
     val naisTeams: List<String>,
-    val usesDistroless: Boolean? = null,
-    val codeScanningStatus: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant
 )

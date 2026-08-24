@@ -12,10 +12,6 @@ class MockGitHubRepository(
         // No-op for tests
     }
 
-    override suspend fun updateCodeScanningStatus(repoName: String, status: String) {
-        // No-op for tests
-    }
-
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? {
         return mockRepositories.find { it.nameWithOwner == nameWithOwner }
     }
@@ -47,4 +43,6 @@ class MockGitHubRepository(
     override suspend fun releaseRefreshLock(teamSlug: String) {
         // No-op for tests
     }
+
+    override suspend fun getLastSyncedAt(teamSlugs: List<String>): Map<String, String> = emptyMap()
 }

@@ -60,26 +60,9 @@ class DataCollectorConsumer(
     private suspend fun processCheckResults(record: ConsumerRecord<String, String>) {
         try {
             val resultsForRepo = json.decodeFromString<CheckResultsForRepo>(record.value())
-            val githubToolingOnly = resultsForRepo.copy(results = resultsForRepo.results.filter { it.name == "githubToolingStatus" })
-            storeCodeScanningStatus(githubToolingOnly)
             storeCheckResults(resultsForRepo)
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
-        }
-    }
-
-    private suspend fun storeCodeScanningStatus(checkResults: CheckResultsForRepo) {
-        checkResults.results.forEach { result ->
-            try {
-                val status = when (result) {
-                    is CheckResult.AllGood -> "OK"
-                    is CheckResult.NeedsWork -> result.reasons.firstOrNull() ?: "error"
-                }
-                val nameWithOwner = if ('/' in checkResults.repoName) checkResults.repoName else "navikt/${checkResults.repoName}"
-                gitHubRepository.updateCodeScanningStatus(nameWithOwner, status)
-            } catch (e: Exception) {
-                logger.error("Error updating code scanning status for $checkResults.repoName", e)
-            }
         }
     }
 

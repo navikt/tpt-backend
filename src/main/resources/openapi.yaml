@@ -155,6 +155,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Data collector service unavailable - stale data has been removed, retry later
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /vulnerabilities/refresh:
     get:
       summary: Refresh vulnerability data for authenticated user's teams
@@ -887,6 +893,11 @@ components:
           type: string
           description: Team name
           example: "appsec"
+        lastSyncedAt:
+          type: string
+          nullable: true
+          description: ISO 8601 timestamp of the last completed data sync for this team. Null if the team has never been synced.
+          example: "2024-12-20T14:30:00Z"
         repositories:
           type: array
           items:
@@ -902,19 +913,6 @@ components:
           type: string
           description: GitHub repository name with owner (e.g., navikt/my-repo)
           example: "navikt/tpt-backend"
-        usesDistroless:
-          type: boolean
-          nullable: true
-          description: Whether the repository uses distroless Docker images
-          example: true
-        codeScanningStatus:
-          type: string
-          nullable: true
-          description: >
-            GitHub Code Scanning status. null means unknown/not yet collected.
-            "OK" means code scanning is active and healthy. Any other string
-            is a hint or error message describing what needs to be fixed.
-          example: "OK"
         vulnerabilities:
           type: array
           items:
