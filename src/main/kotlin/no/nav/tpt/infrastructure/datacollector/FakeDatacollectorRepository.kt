@@ -9,7 +9,7 @@ class FakeDatacollectorRepository: DatacollectorRepository {
         return emptyList()
     }
 
-    override suspend fun allForOwner(owner: String): List<CheckResult> {
+    override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult> {
         TODO("Not yet implemented")
     }
 }

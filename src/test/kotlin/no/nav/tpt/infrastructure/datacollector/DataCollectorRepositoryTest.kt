@@ -93,7 +93,7 @@ class DataCollectorRepositoryTest {
         repository.insert(repoWithTeam2)
         repository.insert(repoWithoutTeam2)
 
-        val checksForTeam2FromDatabase = repository.allForOwner("secondTeam")
+        val checksForTeam2FromDatabase = repository.allForOwner(listOf("secondTeam"))
         assertEquals(repoWithTeam2.results, checksForTeam2FromDatabase)
     }
 

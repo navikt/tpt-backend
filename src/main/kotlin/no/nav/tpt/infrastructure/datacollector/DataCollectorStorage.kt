@@ -63,7 +63,7 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 interface DatacollectorRepository {
     suspend fun insert(checks: CheckResultsForRepo)
     suspend fun allForRepo(name: String): List<CheckResult>
-    suspend fun allForOwner(teamSlug: String): List<CheckResult>
+    suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult>
 }
 
 class DataCollectorRepositoryImpl(private val database: Database) : DatacollectorRepository {
@@ -124,10 +124,10 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         checksWithReasons(ids)
     }
 
-    override suspend fun allForOwner(teamSlug: String): List<CheckResult> = dbQuery {
+    override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult> = dbQuery {
         val ids =
             DatacollectorRepoOwners.selectAll().where {
-                owner eq teamSlug
+                owner inList  teamSlugs
             }.map { row ->
                 row[DatacollectorRepoOwners.checkId].value
             }
