@@ -62,7 +62,7 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 
 interface DatacollectorRepository {
     suspend fun insert(checks: CheckResultsForRepo)
-    suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult>
+    suspend fun allForOwner(teamSlugs: List<String>): Map<String, List<CheckResult>>
 }
 
 class DataCollectorRepositoryImpl(private val database: Database) : DatacollectorRepository {
@@ -114,7 +114,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         }
     }
 
-    override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResult> = dbQuery {
+    override suspend fun allForOwner(teamSlugs: List<String>): Map<String, List<CheckResult>> = dbQuery {
         val ids =
             DatacollectorRepoOwners.selectAll().where {
                 owner inList  teamSlugs
@@ -122,10 +122,6 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
                 row[DatacollectorRepoOwners.checkId].value
             }
 
-        checksWithReasons(ids)
-    }
-
-    private fun checksWithReasons(ids: List<String>): List<CheckResult> {
         val reasonRows = DatacollectorCheckFailureReasons.selectAll()
             .where { checkId inList ids }
 
@@ -134,16 +130,18 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .mapValues { it.value.extractReasons() }
             .toMap()
 
-        return DataCollectorChecks.selectAll()
+        DataCollectorChecks.selectAll()
             .where { id inList ids }
             .map {
-                if (it[result] == AllGood::class.java.simpleName) {
+                it[repo] to if (it[result] == AllGood::class.java.simpleName) {
                     AllGood(it[checkName], it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
                     val reasons = reasonMapping.get(it[id].value) ?: emptyList()
                     NeedsWork(it[checkName], it[updatedAt].toKotlinInstant(), reasons)
                 }
             }
+            .groupBy { it.first }
+            .mapValues { groupedByRepo -> groupedByRepo.value.map { (_, checks) -> checks } }
     }
 
     private fun List<ResultRow>.extractReasons() = this.map { it[DatacollectorCheckFailureReasons.reason] }

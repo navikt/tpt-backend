@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory
 
 interface DataCollector {
     suspend fun startCollectingDataFor(teamSlugs: List<String>)
-    suspend fun allChecksFor(teamSlugs: List<String>): List<CheckResult>
+    suspend fun allChecksFor(teamSlugs: List<String>): Map<String, List<CheckResult>>
 }
 
 interface GitHubDataCollector {

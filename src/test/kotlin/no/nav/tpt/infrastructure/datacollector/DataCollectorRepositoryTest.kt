@@ -64,10 +64,12 @@ class DataCollectorRepositoryTest {
     @Test
     fun `store checks with good results and read them back`() = runTest {
         val checkResult = CheckResult.AllGood("TheGoodCheck", now)
-        repository.insert(CheckResultsForRepo("firstRepo", listOf("firstTeam"),
-            listOf(checkResult)))
-        val fromDatabase = repository.allForOwner(listOf("firstTeam"))
-        assertEquals(1, fromDatabase.size)
+        val crr = CheckResultsForRepo("firstRepo", listOf("firstTeam"),
+            listOf(checkResult))
+        repository.insert(crr)
+        val expected = mapOf("firstRepo" to listOf(checkResult))
+        val actual = repository.allForOwner(listOf("firstTeam"))
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -75,9 +77,10 @@ class DataCollectorRepositoryTest {
         val checkResult = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
         val crr = CheckResultsForRepo("secondRepo", listOf("secondTeam"), listOf(checkResult))
         repository.insert(crr)
-        val fromDatabase = repository.allForOwner(listOf("secondTeam"))
-        assertEquals(1, fromDatabase.size)
-        assertEquals(checkResult, fromDatabase[0])
+        val expected = mapOf("secondRepo" to crr.results)
+        val actual = repository.allForOwner(listOf("secondTeam"))
+
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -93,8 +96,9 @@ class DataCollectorRepositoryTest {
         repository.insert(repoWithTeam4)
         repository.insert(repoWithoutTeam4)
 
-        val checksForTeam4FromDatabase = repository.allForOwner(listOf("fourthTeam"))
-        assertEquals(repoWithTeam4.results, checksForTeam4FromDatabase)
+        val expected = mapOf("thirdRepo" to repoWithTeam4.results)
+        val actual = repository.allForOwner(listOf("fourthTeam"))
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -105,9 +109,9 @@ class DataCollectorRepositoryTest {
         val crr2 = CheckResultsForRepo("fifthRepo", listOf("anotherTeam"), listOf(checkResult2))
         repository.insert(crr1)
         repository.insert(crr2)
-        val fromDatabase = repository.allForOwner(listOf("anotherTeam"))
-        assertEquals(1, fromDatabase.size)
-        assertEquals(checkResult2, fromDatabase[0])
+        val expected = mapOf("fifthRepo" to crr2.results)
+        val actual = repository.allForOwner(listOf("anotherTeam"))
+        assertEquals(expected, actual)
     }
 
 }
