@@ -1,7 +1,6 @@
 package no.nav.tpt.routes
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.HttpStatusCode.Companion.OK
+import io.ktor.http.HttpStatusCode.Companion.Accepted
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -22,7 +21,7 @@ fun Route.dataCollectorRoutes() {
                 return@post call.respond(Unauthorized)
             }
             call.dependencies.dataCollector.startCollectingDataFor(teams)
-            call.respond(OK)
+            call.respond(Accepted)
         }
 
         get("/checks") {
