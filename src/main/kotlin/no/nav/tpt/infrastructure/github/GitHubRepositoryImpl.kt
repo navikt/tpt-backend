@@ -23,25 +23,25 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
 
         if (existingRow != null) {
             GitHubRepositories.update({ GitHubRepositories.nameWithOwner eq repoIdentifier }) {
-                message.naisTeams?.let { teams ->
+                message.naisTeams.let { teams ->
                     it[naisTeams] = teams
                 }
                 it[updatedAt] = Instant.now()
             }
 
-            message.vulnerabilities?.let {
+            message.vulnerabilities.let {
                 GitHubVulnerabilities.deleteWhere { nameWithOwner eq repoIdentifier }
             }
         } else {
             GitHubRepositories.insert {
                 it[nameWithOwner] = repoIdentifier
-                it[naisTeams] = message.naisTeams ?: emptyList()
+                it[naisTeams] = message.naisTeams
                 it[createdAt] = Instant.now()
                 it[updatedAt] = Instant.now()
             }
         }
 
-        message.vulnerabilities?.forEach { vuln ->
+        message.vulnerabilities.forEach { vuln ->
             val vulnId = GitHubVulnerabilities.insert {
                 it[nameWithOwner] = repoIdentifier
                 it[severity] = vuln.severity
