@@ -8,9 +8,11 @@ import kotlin.time.toKotlinInstant
 import no.nav.tpt.infrastructure.datacollector.CheckResult.AllGood
 import no.nav.tpt.infrastructure.datacollector.CheckResult.NeedsWork
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.checkName
+import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.description
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.id
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.repo
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.result
+import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.severity
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.updatedAt
 import no.nav.tpt.infrastructure.datacollector.DatacollectorCheckFailureReasons.checkId
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepoOwners.owner
@@ -35,6 +37,8 @@ private val ulid = ULID()
 
 object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val checkName = text("check_name")
+    val description = text("description")
+    val severity = text("severity")
     val repo = text("repo")
     val result = text("result")
     val updatedAt = timestamp("updated_at").default(Instant.now().truncatedTo(ChronoUnit.MILLIS))
@@ -89,6 +93,8 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
                 val rowId = ulid.nextValue()
                 this[DataCollectorChecks.id] = rowId.toString()
                 this[checkName] = checkResult.name
+                this[description] = checkResult.desc
+                this[severity] = checkResult.severity.toString()
                 this[repo] = checks.repoName
                 this[result] = checkResult.javaClass.simpleName
                 this[updatedAt] = checkResult.whenChecked.toJavaInstant().truncatedTo(ChronoUnit.MILLIS)
@@ -134,10 +140,12 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .where { id inList ids }
             .map {
                 it[repo] to if (it[result] == AllGood::class.java.simpleName) {
-                    AllGood(it[checkName], it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
+                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity]),
+                        whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
                     val reasons = reasonMapping.get(it[id].value) ?: emptyList()
-                    NeedsWork(it[checkName], it[updatedAt].toKotlinInstant(), reasons)
+                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity]),
+                        whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
                 }
             }
             .groupBy { it.first }

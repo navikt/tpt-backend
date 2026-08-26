@@ -8,6 +8,8 @@ import kotlin.time.Clock
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 import kotlinx.coroutines.test.runTest
+import no.nav.tpt.infrastructure.datacollector.Severity.HIGH
+import no.nav.tpt.infrastructure.datacollector.Severity.LOW
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.junit.jupiter.api.AfterAll
@@ -63,7 +65,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with good results and read them back`() = runTest {
-        val checkResult = CheckResult.AllGood("TheGoodCheck", now)
+        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", whenChecked = now)
         val crr = CheckResultsForRepo("firstRepo", listOf("firstTeam"),
             listOf(checkResult))
         repository.insert(crr)
@@ -74,7 +76,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with failures and read them back`() = runTest {
-        val checkResult = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
+        val checkResult = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"))
         val crr = CheckResultsForRepo("secondRepo", listOf("secondTeam"), listOf(checkResult))
         repository.insert(crr)
         val expected = mapOf("secondRepo" to crr.results)
@@ -86,12 +88,12 @@ class DataCollectorRepositoryTest {
     @Test
     fun `all results for owner with multiple repos`() = runTest{
         val repoWithTeam4 = CheckResultsForRepo("thirdRepo", listOf("thirdTeam", "fourthTeam"), listOf(
-            CheckResult.NeedsWork("AnotherFailingCheck", now, listOf("yolo", "whats", "up")),
-            CheckResult.AllGood("AnotherGoodCheck", now)
+            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("yolo", "whats", "up")),
+            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now)
         ))
         val repoWithoutTeam4 = CheckResultsForRepo("fourthRepo", listOf("thirdTeam"), listOf(
-            CheckResult.NeedsWork("AnotherFailingCheck", now, listOf("jau", "dill", "dall")),
-            CheckResult.AllGood("AnotherGoodCheck", Clock.System.now())
+            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall")),
+            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now)
         ))
         repository.insert(repoWithTeam4)
         repository.insert(repoWithoutTeam4)
@@ -103,14 +105,25 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `existing checks with same name and repo should be replaced`() = runTest {
-        val checkResult1 = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "dall"))
-        val checkResult2 = CheckResult.NeedsWork("TheFailingCheck", now, listOf("jau", "dill", "replaced"))
+        val checkResult1 = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"))
+        val checkResult2 = CheckResult.NeedsWork(name = "TheFailingCheck", desc = "a description", severity = LOW, whenChecked = now, reasons = listOf("jau", "dill", "replaced"))
         val crr1 = CheckResultsForRepo("fifthRepo", listOf("anotherTeam"), listOf(checkResult1))
         val crr2 = CheckResultsForRepo("fifthRepo", listOf("anotherTeam"), listOf(checkResult2))
         repository.insert(crr1)
         repository.insert(crr2)
         val expected = mapOf("fifthRepo" to crr2.results)
         val actual = repository.allForOwner(listOf("anotherTeam"))
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `added columns desc and severity are mapped correctly`() = runTest {
+        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", desc = "A thing", severity = HIGH, whenChecked = now)
+        val crr = CheckResultsForRepo("bogusRepo", listOf("bogusTeam"),
+            listOf(checkResult))
+        repository.insert(crr)
+        val expected = mapOf("bogusRepo" to listOf(checkResult))
+        val actual = repository.allForOwner(listOf("bogusTeam"))
         assertEquals(expected, actual)
     }
 
