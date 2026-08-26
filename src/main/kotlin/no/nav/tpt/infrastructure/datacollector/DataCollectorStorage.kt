@@ -139,12 +139,15 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         DataCollectorChecks.selectAll()
             .where { id inList ids }
             .map {
+                val severityAsString = it[severity].let { s ->
+                    if (s.isNullOrBlank()) "UNKNOWN" else s
+                }
                 it[repo] to if (it[result] == AllGood::class.java.simpleName) {
-                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(severityAsString),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
                     val reasons = reasonMapping.get(it[id].value) ?: emptyList()
-                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(severityAsString),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
                 }
             }
