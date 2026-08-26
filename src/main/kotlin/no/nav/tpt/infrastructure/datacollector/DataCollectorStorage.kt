@@ -140,11 +140,11 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .where { id inList ids }
             .map {
                 it[repo] to if (it[result] == AllGood::class.java.simpleName) {
-                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity]),
+                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
                     val reasons = reasonMapping.get(it[id].value) ?: emptyList()
-                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity]),
+                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
                 }
             }
