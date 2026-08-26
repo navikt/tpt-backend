@@ -37,7 +37,7 @@ private val ulid = ULID()
 
 object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val checkName = text("check_name")
-    val description = text("description")
+    val description = text("description").nullable()
     val severity = text("severity").nullable()
     val repo = text("repo")
     val result = text("result")
@@ -140,11 +140,11 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .where { id inList ids }
             .map {
                 it[repo] to if (it[result] == AllGood::class.java.simpleName) {
-                    AllGood(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                    AllGood(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
                 } else {
-                    val reasons = reasonMapping.get(it[id].value) ?: emptyList()
-                    NeedsWork(name = it[checkName], desc = it[description], severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                    val reasons = reasonMapping[it[id].value] ?: emptyList()
+                    NeedsWork(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
                         whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
                 }
             }
