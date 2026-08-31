@@ -1,16 +1,14 @@
 package no.nav.tpt.infrastructure.kafka
 
+import java.time.Duration
 import kotlinx.serialization.json.Json
-import no.nav.tpt.infrastructure.datacollector.CheckResult
+import no.nav.tpt.infrastructure.datacollector.CheckResultsForRepo
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import no.nav.tpt.metrics.TPTMetrics
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
-
-import java.time.Duration
-import no.nav.tpt.infrastructure.datacollector.CheckResultsForRepo
 
 class DataCollectorConsumer(
     kafkaConfig: KafkaConfig,
@@ -61,6 +59,7 @@ class DataCollectorConsumer(
         try {
             val resultsForRepo = json.decodeFromString<CheckResultsForRepo>(record.value())
             storeCheckResults(resultsForRepo)
+            logger.info("Stored ${resultsForRepo.results.size} results for ${resultsForRepo.repoOwners}")
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
         }
