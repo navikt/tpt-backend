@@ -3,7 +3,7 @@ kotlin = "2.4.10"
 ktor = "3.5.2"
 logback = "1.6.3"
 logstash-encoder = "9.0"
-logback-mdc = "2.30.0-alpha"
+logback-mdc = "2.31.1-alpha"
 kotlin-test = "2.4.10"
 testcontainers = "1.21.4"
 kotlinx-coroutines = "1.11.0"
@@ -16,7 +16,7 @@ hikaricp = "7.1.0"
 flyway = "13.3.0"
 kafka = "4.3.1"
 ulid = "8.3.0"
-micrometer = "1.17.0"
+micrometer = "1.17.1"
 
 [libraries]
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
