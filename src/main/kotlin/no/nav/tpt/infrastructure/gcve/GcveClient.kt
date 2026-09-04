@@ -210,6 +210,68 @@ class GcveClient(
         }
     }
 
+    /**
+     * Fetches sightings created on or after [dateFrom] and invokes [onPage] for each page.
+     * Paginates until a partial page is received. Returns `false` if any page fetch fails
+     * so callers can avoid advancing the sync cursor past an unobserved window.
+     *
+     * Each page is processed and discarded before fetching the next, keeping memory usage
+     * bounded to a single page (~350 KB) regardless of how many pages exist.
+     */
+    suspend fun getSightingsSince(
+        dateFrom: java.time.LocalDate,
+        onPage: suspend (List<GcveSighting>) -> Unit,
+    ): Boolean {
+        if (circuitBreaker.isOpen()) {
+            logger.warn("Circuit breaker is OPEN - skipping GCVE sightings fetch")
+            return false
+        }
+
+        var page = 1
+        var totalFetched = 0
+        while (true) {
+            val response = try {
+                executeWithRetry {
+                    httpClient.get("$baseUrl/sighting/") {
+                        parameter("date_from", dateFrom.toString())
+                        parameter("per_page", 1000)
+                        parameter("page", page)
+                        applyCommonHeaders()
+                    }
+                } ?: return false
+            } catch (e: Exception) {
+                logger.error("Failed to fetch sightings from GCVE: ${e::class.simpleName}: ${e.message}", e)
+                circuitBreaker.recordFailure()
+                return false
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.warn("GCVE sightings fetch returned ${response.status.value}")
+                circuitBreaker.recordFailure()
+                return false
+            }
+
+            circuitBreaker.recordSuccess()
+            val bodyText = response.bodyAsText()
+            val envelope = try {
+                lenientJson.decodeFromString<GcveSightingsResponse>(bodyText)
+            } catch (e: Exception) {
+                logger.warn("Failed to deserialize sightings page $page: ${e.message}")
+                return false
+            }
+
+            onPage(envelope.data)
+            totalFetched += envelope.data.size
+            logger.debug("Fetched sightings page $page (${envelope.data.size} entries, $totalFetched total so far)")
+
+            if (envelope.data.size < 1000) break
+            page++
+        }
+
+        logger.info("Fetched $totalFetched sightings in $page page(s) since $dateFrom")
+        return true
+    }
+
     private fun HttpRequestBuilder.applyCommonHeaders() {
         apiKey?.let { header("X-API-KEY", it) }
     }

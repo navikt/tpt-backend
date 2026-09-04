@@ -304,6 +304,31 @@ data class GcveAffectedProduct(
     val versions: List<GcveVersion>,
 )
 
+// Sighting feed model
+
+@Serializable
+data class GcveSighting(
+    val uuid: String? = null,
+    val type: String,
+    @SerialName("creation_timestamp")
+    val creationTimestamp: String,
+    val vulnerability: String,
+)
+
+@Serializable
+data class GcveSightingsResponse(
+    val metadata: GcveSightingsMetadata,
+    val data: List<GcveSighting>,
+)
+
+@Serializable
+data class GcveSightingsMetadata(
+    val count: Long,
+    val page: Int,
+    @SerialName("per_page")
+    val perPage: Int,
+)
+
 // Domain model (what we store in the database)
 
 data class GcveCveData(
