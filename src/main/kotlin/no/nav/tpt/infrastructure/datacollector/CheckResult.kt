@@ -3,7 +3,6 @@ package no.nav.tpt.infrastructure.datacollector
 import kotlin.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import no.nav.tpt.infrastructure.datacollector.Severity.MEDIUM
 import no.nav.tpt.infrastructure.datacollector.Severity.UNKNOWN
 
 enum class Severity {
@@ -32,7 +31,7 @@ sealed class CheckResult {
     data class NeedsWork(
         override val name: String,
         override val desc: String = "missing desc",
-        override val severity: Severity = MEDIUM,
+        override val severity: Severity = UNKNOWN,
         override val whenChecked: Instant,
         val reasons: List<String>
     ) : CheckResult()
