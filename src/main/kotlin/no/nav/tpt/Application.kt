@@ -14,7 +14,7 @@ import io.ktor.server.request.*
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
-import io.micrometer.core.instrument.binder.logging.LogbackMetrics
+import io.micrometer.core.instrument.binder.logging.Log4j2Metrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import kotlinx.serialization.json.Json
@@ -68,7 +68,7 @@ fun Application.module() {
     install(MicrometerMetrics) {
         registry = TPTMetrics.registry
         meterBinders = listOf(
-            LogbackMetrics(),
+            Log4j2Metrics(),
             JvmGcMetrics(),
             JvmMemoryMetrics(),
             JvmThreadMetrics(),
