@@ -4,9 +4,6 @@
         <Console name="stdout_json" target="SYSTEM_OUT">
             <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
         </Console>
-        <Console name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
-            <appender-ref ref="stdout_json"/>
-        </Console>
     </Appenders>
     <Loggers>
         <Logger name="org.apache.kafka" level="WARN"/>
