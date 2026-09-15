@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: 25
           distribution: temurin
@@ -27,7 +27,7 @@ jobs:
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@8e41f1f58749b9248e376c25d33bfbdd2b1163c0
+        uses: nais/docker-build-push@0e73849f69ff260ee27597553c0a7848ca4e9795
         id: docker-push
         with:
           team: appsec
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199
+      - uses: nais/deploy/actions/deploy@027a91857992525139798892f2804b0ca21f4af6
         env:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
@@ -76,6 +76,6 @@ jobs:
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+      - uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: 'trivy.sarif'
