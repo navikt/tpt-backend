@@ -34,6 +34,9 @@ import no.nav.tpt.infrastructure.datacollector.RealGitHubDataCollector
 import no.nav.tpt.infrastructure.gcve.GcveClient
 import no.nav.tpt.infrastructure.gcve.GcveRepository
 import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
+import no.nav.tpt.infrastructure.gcve.GcveSightingsRepository
+import no.nav.tpt.infrastructure.gcve.GcveSightingsRepositoryImpl
+import no.nav.tpt.infrastructure.gcve.GcveSightingsSyncService
 import no.nav.tpt.infrastructure.gcve.GcveSyncService
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentService
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentServiceImpl
@@ -78,6 +81,8 @@ class Dependencies(
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
+    val gcveSightingsRepository: GcveSightingsRepository,
+    val gcveSightingsSyncService: GcveSightingsSyncService,
     val sseEventBus: SseEventBus,
     val kafkaProducerService: KafkaProducerService?,
     val dataCollector: DataCollector,
@@ -160,12 +165,15 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
     val gcveRepository = GcveRepositoryImpl(database)
     val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
+    val gcveSightingsRepository = GcveSightingsRepositoryImpl(database)
+    val gcveSightingsSyncService = GcveSightingsSyncService(gcveClient, gcveSightingsRepository)
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         riskScorer = riskScorer,
         userContextService = userContextService,
         gcveRepository = gcveRepository,
+        sightingsRepository = gcveSightingsRepository,
     )
 
     val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
@@ -214,6 +222,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
+        gcveSightingsRepository = gcveSightingsRepository,
+        gcveSightingsSyncService = gcveSightingsSyncService,
         sseEventBus = sseEventBus,
         kafkaProducerService = kafkaProducerService,
         dataCollector = dataCollector,

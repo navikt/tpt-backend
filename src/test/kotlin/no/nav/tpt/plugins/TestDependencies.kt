@@ -85,14 +85,17 @@ fun Application.installTestDependencies(
     )
 
     val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
+    val mockGcveSightingsRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveSightingsRepository()
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
     val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
+    val mockGcveSightingsSyncService = no.nav.tpt.infrastructure.gcve.GcveSightingsSyncService(mockGcveClient, mockGcveSightingsRepository)
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gcveRepository = mockGcveRepository,
+        sightingsRepository = mockGcveSightingsRepository,
     )
 
     val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
@@ -163,6 +166,8 @@ fun Application.installTestDependencies(
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
+        gcveSightingsRepository = mockGcveSightingsRepository,
+        gcveSightingsSyncService = mockGcveSightingsSyncService,
         sseEventBus = sseEventBus,
         kafkaProducerService = null,
         dataCollector = dataCollector,
