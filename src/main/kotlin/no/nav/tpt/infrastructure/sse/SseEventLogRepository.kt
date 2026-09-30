@@ -23,7 +23,6 @@ class SseEventLogRepository(
 
     override suspend fun publish(event: SseEvent): SseEventEnvelope =
         suspendTransaction(database) {
-            exec("SELECT pg_advisory_xact_lock(874503212)")
             val payload = json.encodeToString(SseEvent.serializer(), event)
             val id = SseEventLogTable.insertAndGetId {
                 it[type] = eventType(event)

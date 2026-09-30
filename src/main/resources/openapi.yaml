@@ -465,11 +465,20 @@ paths:
 
         Each event `data` field is a JSON object matching the event type. Every event carries an `id`.
         On reconnect, send the `Last-Event-ID` header to replay events missed while disconnected
-        (events are retained for about one hour). A malformed value returns 400.
+        (events are retained for about one hour).
       tags:
         - Events
       security:
         - bearerAuth: []
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+          description: Id of the last event received; events after it are replayed before live streaming resumes.
       responses:
         '200':
           description: SSE stream opened successfully
@@ -478,8 +487,14 @@ paths:
               schema:
                 type: string
                 description: |
-                  Stream of Server-Sent Events. Each event has an `event` field (the type)
+                  Stream of Server-Sent Events. Each event has an `id`, an `event` field (the type)
                   and a `data` field (JSON payload).
+        '400':
+          description: Bad request - Last-Event-ID is not a non-negative integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
         '401':
           description: Unauthorized - missing or invalid bearer token
           content:

@@ -1,15 +1,12 @@
 package no.nav.tpt.infrastructure.kafka
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.infrastructure.sse.SseEventLogRepository
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.TopicPartition
 import org.slf4j.LoggerFactory
 import java.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 class SseEventLogConsumer(
     kafkaConfig: KafkaConfig,
@@ -45,13 +42,12 @@ class SseEventLogConsumer(
             if (event != null) {
                 eventLog.publish(event)
             }
-            commitCurrentOffset()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.error("Error persisting SSE event record key=${record.key()}, retrying", e)
-            consumer?.seek(TopicPartition(record.topic(), record.partition()), record.offset())
-            delay(5.seconds)
+            // SSE events are only refresh hints for the frontend, so a lost event is acceptable.
+            logger.error("Error persisting SSE event record key=${record.key()}, skipping", e)
         }
+        commitCurrentOffset()
     }
 }

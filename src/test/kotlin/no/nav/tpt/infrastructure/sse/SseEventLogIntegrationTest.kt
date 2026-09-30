@@ -93,6 +93,27 @@ class SseEventLogIntegrationTest {
         }
     }
 
+    @Test
+    fun `should replay only events after the given id in order`() = runBlocking {
+        val eventLog = SseEventLogRepository(database)
+        val first = eventLog.publish(SseEvent.GcveSyncComplete(1, "2026-09-29T00:00:00Z"))
+        val second = eventLog.publish(SseEvent.TeamSyncStarted("replay-team", "2026-09-29T00:00:01Z"))
+        val third = eventLog.publish(SseEvent.TeamSyncComplete("replay-team", "2026-09-29T00:00:02Z"))
+
+        assertEquals(listOf(second, third), eventLog.eventsAfter(first.id))
+        assertEquals(third.id, eventLog.latestEventId())
+    }
+
+    @Test
+    fun `should keep recent events when cleaning up`() = runBlocking {
+        val eventLog = SseEventLogRepository(database)
+        val recent = eventLog.publish(SseEvent.GcveSyncComplete(2, "2026-09-29T00:00:00Z"))
+
+        eventLog.deleteOlderThanOneHour()
+
+        assertTrue(eventLog.eventsAfter(recent.id - 1).contains(recent))
+    }
+
     private fun listener(eventLog: SseEventLogRepository, eventBus: SseEventBus) =
         SseEventLogListener(
             connectionFactory = {

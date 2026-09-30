@@ -22,6 +22,7 @@ class SseEventLogListener(
 ) {
     private val logger = LoggerFactory.getLogger(SseEventLogListener::class.java)
     private val healthy = AtomicBoolean(false)
+    private val connectedOnce = AtomicBoolean(false)
     private var listenerJob: Job? = null
 
     fun start(scope: CoroutineScope) {
@@ -37,6 +38,7 @@ class SseEventLogListener(
                         val postgresConnection = connection.unwrap(PGConnection::class.java)
                         val startingCursor = lastSeenId ?: eventLog.latestEventId()
                         lastSeenId = startingCursor
+                        connectedOnce.set(true)
                         setHealthy(true)
                         logger.info("SSE event log listener connected at id=$startingCursor")
 
@@ -66,6 +68,8 @@ class SseEventLogListener(
     }
 
     fun isHealthy(): Boolean = healthy.get()
+
+    fun hasConnected(): Boolean = connectedOnce.get()
 
     private suspend fun publishEventsAfter(lastSeenId: Long): Long {
         var cursor = lastSeenId

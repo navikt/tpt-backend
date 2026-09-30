@@ -8,6 +8,7 @@ import io.ktor.server.sse.*
 import io.ktor.sse.ServerSentEvent
 import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -20,6 +21,8 @@ import no.nav.tpt.plugins.BadRequestException
 import no.nav.tpt.plugins.TokenPrincipal
 import no.nav.tpt.plugins.dependencies
 import kotlin.time.Duration.Companion.seconds
+
+private const val LIVE_BUFFER_SIZE = 256
 
 private val LastEventIdValidation = createRouteScopedPlugin("LastEventIdValidation") {
     onCall { call ->
@@ -50,22 +53,26 @@ fun Route.sseRoutes(sseEventBus: SseEventBus) {
             }
 
             try {
-                val liveEvents = Channel<SseEventEnvelope>(Channel.UNLIMITED)
+                val liveEvents = Channel<SseEventEnvelope>(
+                    capacity = LIVE_BUFFER_SIZE,
+                    onBufferOverflow = BufferOverflow.DROP_LATEST,
+                )
                 val subscription = launch(start = CoroutineStart.UNDISPATCHED) {
                     sseEventBus.events.collect { liveEvents.send(it) }
                 }
                 try {
                     var lastSentId = lastEventId ?: 0L
+
                     if (lastEventId != null) {
                         while (true) {
-                            val replay = call.dependencies.sseEventLogRepository.eventsAfter(lastSentId)
-                            replay.forEach { envelope ->
+                            val missed = call.dependencies.sseEventLogRepository.eventsAfter(lastSentId)
+                            missed.forEach { envelope ->
                                 lastSentId = envelope.id
                                 if (isRelevant(envelope.event, userTeamSlugs)) {
                                     send(toServerSentEvent(envelope, json))
                                 }
                             }
-                            if (replay.size < SseEventLogRepository.BATCH_SIZE) break
+                            if (missed.size < SseEventLogRepository.BATCH_SIZE) break
                         }
                     }
 
