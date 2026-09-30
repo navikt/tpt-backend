@@ -18,7 +18,6 @@ import no.nav.tpt.infrastructure.datacollector.DatacollectorCheckFailureReasons.
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepoOwners.owner
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ReferenceOption.CASCADE
-import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
@@ -66,7 +65,7 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 
 interface DatacollectorRepository {
     suspend fun insert(checks: CheckResultsForRepo)
-    suspend fun allForOwner(teamSlugs: List<String>): Map<String, List<CheckResult>>
+    suspend fun allForOwner(teamSlugs: List<String>): List<CheckResultsForRepo>
 }
 
 class DataCollectorRepositoryImpl(private val database: Database) : DatacollectorRepository {
@@ -120,7 +119,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         }
     }
 
-    override suspend fun allForOwner(teamSlugs: List<String>): Map<String, List<CheckResult>> = dbQuery {
+    override suspend fun allForOwner(teamSlugs: List<String>): List<CheckResultsForRepo> = dbQuery {
         val ids =
             DatacollectorRepoOwners.selectAll().where {
                 owner inList  teamSlugs
@@ -131,28 +130,39 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         val reasonRows = DatacollectorCheckFailureReasons.selectAll()
             .where { checkId inList ids }
 
+        val ownerRows = DatacollectorRepoOwners.selectAll()
+            .where { DatacollectorRepoOwners.checkId inList ids }
+
         val reasonMapping = reasonRows
             .groupBy { it[checkId].value }
-            .mapValues { it.value.extractReasons() }
+            .mapValues { it.value.map { it[DatacollectorCheckFailureReasons.reason] } }
+            .toMap()
+
+        val ownerMapping = ownerRows
+            .groupBy { it[DatacollectorRepoOwners.checkId].value }
+            .mapValues { it.value.map { it[owner] } }
             .toMap()
 
         DataCollectorChecks.selectAll()
             .where { id inList ids }
             .map {
-                it[repo] to if (it[result] == AllGood::class.java.simpleName) {
-                    AllGood(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
-                        whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
-                } else {
-                    val reasons = reasonMapping[it[id].value] ?: emptyList()
-                    NeedsWork(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
-                        whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
-                }
+                val checkResult = if (it[result] == AllGood::class.java.simpleName) {
+                        AllGood(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
+                    } else {
+                        val reasons = reasonMapping[it[id].value] ?: emptyList()
+                        NeedsWork(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
+                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
+                    }
+                CheckResultWithId(it[id].value, it[repo], checkResult)
             }
-            .groupBy { it.first }
-            .mapValues { groupedByRepo -> groupedByRepo.value.map { (_, checks) -> checks } }
+            .groupBy { it.repo }
+            .map { (k, v) -> CheckResultsForRepo(k, ownerMapping[v[0].id] ?: emptyList(), v.toRegularCheckResults()) }
     }
 
-    private fun List<ResultRow>.extractReasons() = this.map { it[DatacollectorCheckFailureReasons.reason] }
-
 }
+
+private data class CheckResultWithId(val id: String, val repo: String, val checkResult: CheckResult)
+
+private fun List<CheckResultWithId>.toRegularCheckResults() = this.map { it.checkResult }
 

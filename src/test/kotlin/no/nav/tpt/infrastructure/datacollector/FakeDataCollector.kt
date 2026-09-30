@@ -5,7 +5,7 @@ class FakeDataCollector : DataCollector {
 
     override suspend fun startCollectingDataFor(teamSlugs: List<String>) { }
 
-    override suspend fun allChecksFor(teamSlugs: List<String>): Map<String, List<CheckResult>> =
+    override suspend fun allChecksFor(teamSlugs: List<String>): List<CheckResultsForRepo> =
         fakeRepo.allForOwner(teamSlugs)
 }
 

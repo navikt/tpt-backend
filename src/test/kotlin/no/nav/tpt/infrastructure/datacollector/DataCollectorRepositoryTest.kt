@@ -69,7 +69,7 @@ class DataCollectorRepositoryTest {
         val crr = CheckResultsForRepo("firstRepo", listOf("firstTeam"),
             listOf(checkResult))
         repository.insert(crr)
-        val expected = mapOf("firstRepo" to listOf(checkResult))
+        val expected = listOf(crr)
         val actual = repository.allForOwner(listOf("firstTeam"))
         assertEquals(expected, actual)
     }
@@ -79,7 +79,7 @@ class DataCollectorRepositoryTest {
         val checkResult = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"))
         val crr = CheckResultsForRepo("secondRepo", listOf("secondTeam"), listOf(checkResult))
         repository.insert(crr)
-        val expected = mapOf("secondRepo" to crr.results)
+        val expected = listOf(crr)
         val actual = repository.allForOwner(listOf("secondTeam"))
 
         assertEquals(expected, actual)
@@ -98,7 +98,7 @@ class DataCollectorRepositoryTest {
         repository.insert(repoWithTeam4)
         repository.insert(repoWithoutTeam4)
 
-        val expected = mapOf("thirdRepo" to repoWithTeam4.results)
+        val expected = listOf(repoWithTeam4)
         val actual = repository.allForOwner(listOf("fourthTeam"))
         assertEquals(expected, actual)
     }
@@ -111,7 +111,7 @@ class DataCollectorRepositoryTest {
         val crr2 = CheckResultsForRepo("fifthRepo", listOf("anotherTeam"), listOf(checkResult2))
         repository.insert(crr1)
         repository.insert(crr2)
-        val expected = mapOf("fifthRepo" to crr2.results)
+        val expected = listOf(crr2)
         val actual = repository.allForOwner(listOf("anotherTeam"))
         assertEquals(expected, actual)
     }
@@ -122,7 +122,7 @@ class DataCollectorRepositoryTest {
         val crr = CheckResultsForRepo("bogusRepo", listOf("bogusTeam"),
             listOf(checkResult))
         repository.insert(crr)
-        val expected = mapOf("bogusRepo" to listOf(checkResult))
+        val expected = listOf(crr)
         val actual = repository.allForOwner(listOf("bogusTeam"))
         assertEquals(expected, actual)
     }
