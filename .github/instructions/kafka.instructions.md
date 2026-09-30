@@ -22,3 +22,10 @@ Kafka is **optional**, gated on configuration:
 - **Readiness**: reflects consumer health — `503` if the consumer is unhealthy (e.g. polling failed), `200` once
   reconnected. This lets old pods keep serving traffic during a Kafka outage instead of being killed.
 - On poll failure: log the error, mark unhealthy, wait 5s, retry.
+
+## SSE Event Log
+
+SSE events are never fanned out through Kafka. Publishers (sync services, `GcveSyncConsumer`) write via
+`SseEventPublisher` to the Postgres `sse_event_log` table (insert + `pg_notify` in one transaction); every pod's
+`SseEventLogListener` (LISTEN/NOTIFY) feeds its local `SseEventBus`. `SseEventLogConsumer` only ingests the
+`github_vuln_sync_*` events from tpt-data-collector into that log. Publishing must be best-effort and never fail a sync.

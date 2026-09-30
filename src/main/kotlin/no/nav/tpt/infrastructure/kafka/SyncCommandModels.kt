@@ -12,15 +12,6 @@ data class VulnerabilityDataSyncCommand(val triggeredAt: String)
 data class GcveSyncCommand(val triggeredAt: String)
 
 @Serializable
-data class TeamSyncCompleteEvent(val teamSlug: String)
-
-@Serializable
-data class TeamSyncStartedEvent(val teamSlug: String, val timestamp: String)
-
-@Serializable
-data class GcveSyncCompleteEvent(val cveCount: Int)
-
-@Serializable
 data class GitHubVulnSyncStartedEvent(val teams: List<String>, val timestamp: String)
 
 @Serializable

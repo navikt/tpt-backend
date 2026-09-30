@@ -33,7 +33,6 @@ fun Application.configureKafka() {
         TeamSyncConsumer(
             kafkaConfig = kafkaConfig,
             vulnerabilityTeamSyncService = dependencies.vulnerabilityTeamSyncService,
-            kafkaProducer = producer,
         ),
         VulnerabilityDataSyncConsumer(
             kafkaConfig = kafkaConfig,
@@ -43,11 +42,11 @@ fun Application.configureKafka() {
             kafkaConfig = kafkaConfig,
             gcveSyncService = dependencies.gcveSyncService,
             gcveRepository = dependencies.gcveRepository,
-            kafkaProducer = producer,
+            sseEventPublisher = dependencies.sseEventLogRepository,
         ),
-        SseFanoutConsumer(
+        SseEventLogConsumer(
             kafkaConfig = kafkaConfig,
-            sseEventBus = dependencies.sseEventBus,
+            eventLog = dependencies.sseEventLogRepository,
         ),
     )
 

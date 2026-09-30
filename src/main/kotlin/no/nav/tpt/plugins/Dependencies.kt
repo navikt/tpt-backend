@@ -45,6 +45,8 @@ import no.nav.tpt.infrastructure.kafka.KafkaProducerService
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
+import no.nav.tpt.infrastructure.sse.SseEventLogListener
+import no.nav.tpt.infrastructure.sse.SseEventLogRepository
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenClient
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
@@ -79,6 +81,8 @@ class Dependencies(
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
     val sseEventBus: SseEventBus,
+    val sseEventLogRepository: SseEventLogRepository,
+    val sseEventLogListener: SseEventLogListener?,
     val kafkaProducerService: KafkaProducerService?,
     val dataCollector: DataCollector,
     val gitHubDataCollector: GitHubDataCollector,
@@ -140,13 +144,19 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl(slaPolicy)
 
     val sseEventBus = SseEventBus()
+    val sseEventLogRepository = SseEventLogRepository(database)
+    val sseEventLogListener = SseEventLogListener(
+        connectionFactory = { java.sql.DriverManager.getConnection(config.dbJdbcUrl) },
+        eventLog = sseEventLogRepository,
+        eventBus = sseEventBus,
+    )
 
     val kafkaProducerService = KafkaConfig.fromEnvironment()?.let { KafkaProducerService(it) }
 
     val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
         naisApiService = naisApiClient,
         vulnerabilityRepository = vulnerabilityRepository,
-        syncPublisher = kafkaProducerService,
+        sseEventPublisher = sseEventLogRepository,
     )
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
@@ -215,6 +225,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,
         sseEventBus = sseEventBus,
+        sseEventLogRepository = sseEventLogRepository,
+        sseEventLogListener = sseEventLogListener,
         kafkaProducerService = kafkaProducerService,
         dataCollector = dataCollector,
         gitHubDataCollector = gitHubDataCollector,

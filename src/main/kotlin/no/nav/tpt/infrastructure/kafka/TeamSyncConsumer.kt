@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
 class TeamSyncConsumer(
     kafkaConfig: KafkaConfig,
     private val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
-    private val kafkaProducer: SyncPublisher,
     pollTimeout: Duration = Duration.ofSeconds(1),
 ) : KafkaConsumerService(kafkaConfig, groupId = "tpt-backend-team-sync", autoCommit = false, pollTimeout = pollTimeout) {
 
@@ -31,7 +30,6 @@ class TeamSyncConsumer(
 
             if (!result.lockSkipped) {
                 logger.info("Team sync complete for $teamSlug")
-                kafkaProducer.publish(KafkaKey.TEAM_SYNC_COMPLETE, json.encodeToString(TeamSyncCompleteEvent(teamSlug)))
             } else {
                 logger.info("Team sync skipped for $teamSlug — lock already held or data is fresh")
             }
