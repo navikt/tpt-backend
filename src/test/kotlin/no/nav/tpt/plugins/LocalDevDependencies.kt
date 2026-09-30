@@ -32,14 +32,9 @@ import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.containers.wait.strategy.WaitStrategy
-import org.testcontainers.kafka.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 private var postgresContainer: PostgreSQLContainer<*>? = null
-private var kafkaContainer: KafkaContainer? = null
-val KAFKA_WAIT_STRATEGY: WaitStrategy = Wait.forLogMessage(".*Transitioning from RECOVERY to RUNNING.*", 1)
 
 fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     if (postgresContainer == null) {
@@ -52,18 +47,8 @@ fun getOrCreatePostgresContainer(): PostgreSQLContainer<*> {
     return postgresContainer!!
 }
 
-fun getOrCreateKafkaContainer(): KafkaContainer {
-
-    if (kafkaContainer == null) {
-        kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
-        kafkaContainer!!.start()
-    }
-    return kafkaContainer!!
-}
-
 val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDependencies") {
     val postgres = getOrCreatePostgresContainer()
-    val kafka = getOrCreateKafkaContainer()
 
     val httpClient = HttpClient(CIO) {
         install(UserAgent) {
@@ -194,17 +179,18 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         vulnerabilitySearchService = mockVulnerabilitySearchService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         gcveRepository = localGcveRepository,
-        gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
+        gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(
+            localGcveClient,
+            localGcveRepository,
+            sseEventLogRepository,
+        ),
         sseEventBus = sseEventBus,
         sseEventLogRepository = sseEventLogRepository,
         sseEventLogListener = sseEventLogListener,
-        kafkaProducerService = null,
         dataCollector = dataCollector,
         gitHubDataCollector = FakeGitHubDataCollector(),
     )
 
     application.attributes.put(DependenciesKey, dependencies)
 
-    // Set Kafka environment variables for local development
-    System.setProperty("KAFKA_BROKERS", "localhost:${kafka.getMappedPort(9092)}")
 }

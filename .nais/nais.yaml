@@ -37,8 +37,6 @@ spec:
           - name: tpt
   image: {{image}}
   port: 8080
-  kafka:
-    pool: nav-prod
   leaderElection: true
   liveness:
     initialDelay: 60
@@ -70,8 +68,6 @@ spec:
       value: "https://console.nav.cloud.nais.io/graphql"
     - name: TEAMKATALOGEN_URL
       value: "https://teamkatalog-api.intern.nav.no"
-    - name: KAFKA_TOPIC
-      value: "appsec.tpt"
     - name: OTEL_LOGS_EXPORTER
       value: otlp
     - name: ADMIN_GROUPS

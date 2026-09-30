@@ -1,18 +1,32 @@
 package no.nav.tpt.infrastructure.gcve
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
+import no.nav.tpt.infrastructure.sse.SseEvent
+import no.nav.tpt.infrastructure.sse.SseEventPublisher
 import org.slf4j.LoggerFactory
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class GcveSyncService(
     private val gcveClient: GcveClient,
     private val gcveRepository: GcveRepository,
+    private val sseEventPublisher: SseEventPublisher? = null,
 ) {
     private val logger = LoggerFactory.getLogger(GcveSyncService::class.java)
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
         coerceInputValues = true
+    }
+
+    suspend fun performScheduledIncrementalSync(): Int {
+        val sinceInstant = gcveRepository.getLastSyncTimestamp() ?: Instant.now().minusSeconds(86400)
+        val since = sinceInstant.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        val trackedCveIds = gcveRepository.getTrackedCveIds()
+        logger.info("Starting GCVE incremental sync since=$since, tracked CVEs: ${trackedCveIds.size}")
+        return performIncrementalSync(since = since, trackedCveIds = trackedCveIds)
     }
 
     suspend fun performIncrementalSync(
@@ -67,6 +81,15 @@ class GcveSyncService(
         } else {
             gcveRepository.updateSyncTimestamp(Instant.now())
             logger.info("GCVE incremental sync complete. Total upserted: $totalUpserted")
+        }
+
+        val timestamp = Instant.now().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        try {
+            sseEventPublisher?.publish(SseEvent.GcveSyncComplete(totalUpserted, timestamp))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Failed to publish gcve_sync_complete SSE event", e)
         }
 
         return totalUpserted

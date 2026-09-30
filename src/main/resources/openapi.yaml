@@ -127,7 +127,7 @@ paths:
       summary: Trigger GitHub vulnerability data refresh for authenticated user's teams
       description: |
         Triggers collection of GitHub vulnerability data from tpt-data-collector for all teams the
-        authenticated user belongs to. Returns 202 Accepted immediately; data arrives asynchronously via Kafka.
+        authenticated user belongs to. Returns 202 Accepted immediately; data arrives asynchronously via callbacks.
       tags:
         - Vulnerabilities
       security:
@@ -539,8 +539,7 @@ paths:
       summary: Deliver GitHub vulnerability data for one repository
       description: |
         Callback from tpt-data-collector with the GitHub vulnerability data for a single repository
-        (same content as the `github_vulnerability_data` Kafka message). Replaces the stored teams and
-        vulnerabilities for the repository. Unknown fields are ignored.
+        Replaces the stored teams and vulnerabilities for the repository. Unknown fields are ignored.
         Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
       tags:
         - Data collector callbacks
@@ -565,8 +564,8 @@ paths:
     post:
       summary: Deliver check results for one repository
       description: |
-        Callback from tpt-data-collector with check results for a single repository (same content as the
-        `CheckResult` Kafka message). Existing results with the same repository and check name are replaced.
+        Callback from tpt-data-collector with check results for a single repository. Existing results with
+        the same repository and check name are replaced.
         Unknown fields are ignored.
         Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
       tags:
@@ -1550,4 +1549,3 @@ components:
           format: int64
           description: Maximum number of days any vulnerability is overdue in this team
           example: 45
-

@@ -12,7 +12,6 @@ postgresql = "42.7.13"
 exposed = "1.5.0"
 hikaricp = "7.1.0"
 flyway = "13.6.0"
-kafka = "4.3.1"
 ulid = "8.3.0"
 micrometer = "1.17.1"
 
@@ -45,7 +44,6 @@ exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "e
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
-kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
 ulid = { module = "de.huxhorn.sulky:de.huxhorn.sulky.ulid", version.ref = "ulid" }
 micrometer = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
@@ -58,7 +56,6 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
-testcontainers-kafka = { module = "org.testcontainers:kafka", version.ref = "testcontainers" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -111,7 +108,6 @@ testing = [
     "testcontainers",
     "testcontainers-junit",
     "testcontainers-postgresql",
-    "testcontainers-kafka",
     "junit-jupiter",
     "junit-platform-launcher"
 ]

@@ -13,30 +13,18 @@ import no.nav.tpt.infrastructure.datacollector.DataCollectorRepositoryImpl
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
-import no.nav.tpt.infrastructure.kafka.DataCollectorConsumer
-import no.nav.tpt.infrastructure.kafka.KafkaConfig
-import no.nav.tpt.infrastructure.kafka.KafkaKey
-import no.nav.tpt.infrastructure.kafka.TEST_POLL_TIMEOUT
-import no.nav.tpt.infrastructure.kafka.awaitCondition
 import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.infrastructure.sse.SseEventLogRepository
-import no.nav.tpt.plugins.KAFKA_WAIT_STRATEGY
 import no.nav.tpt.plugins.testModule
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.StringSerializer
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.kafka.KafkaContainer
-import org.testcontainers.utility.DockerImageName
-import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @Testcontainers
 class DataCollectorCallbackIntegrationTest {
@@ -48,10 +36,6 @@ class DataCollectorCallbackIntegrationTest {
             withUsername("test")
             withPassword("test")
         }
-
-        @Container
-        private val kafkaContainer = KafkaContainer(DockerImageName.parse("apache/kafka:4.1.1"))
-            .waitingFor(KAFKA_WAIT_STRATEGY)
 
         private lateinit var gitHubRepository: GitHubRepository
         private lateinit var dataCollectorRepository: DatacollectorRepository
@@ -124,37 +108,6 @@ class DataCollectorCallbackIntegrationTest {
         }
     """.trimIndent()
 
-    private fun sendViaKafka(key: String, value: String, stored: suspend () -> Boolean) = runBlocking {
-        val topic = "callback-comparison-topic"
-        val kafkaConfig = KafkaConfig(
-            brokers = kafkaContainer.bootstrapServers,
-            certificatePath = "",
-            privateKeyPath = "",
-            caPath = "",
-            credstorePassword = "",
-            keystorePath = "",
-            truststorePath = "",
-            topic = topic,
-        )
-        val consumer = DataCollectorConsumer(kafkaConfig, gitHubRepository, dataCollectorRepository, TEST_POLL_TIMEOUT)
-        val producer = KafkaProducer<String, String>(
-            mapOf(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to kafkaContainer.bootstrapServers,
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java.name,
-            )
-        )
-        try {
-            consumer.start(this)
-            awaitCondition(timeoutMs = 15000, message = "Consumer did not become ready") { consumer.isReady() }
-            producer.send(ProducerRecord(topic, key, value)).get()
-            awaitCondition(message = "Kafka message with key $key was not stored", condition = stored)
-        } finally {
-            producer.close()
-            consumer.stop()
-        }
-    }
-
     private fun postCallback(path: String, body: String) = testApplication {
         application {
             testModule(
@@ -166,7 +119,7 @@ class DataCollectorCallbackIntegrationTest {
         }
 
         val response = client.post(path) {
-            header(HttpHeaders.Authorization, "Bearer data-collector")
+            header(HttpHeaders.Authorization, "Bearer test-token")
             contentType(ContentType.Application.Json)
             setBody(body)
         }
@@ -175,40 +128,27 @@ class DataCollectorCallbackIntegrationTest {
     }
 
     @Test
-    fun `should store vulnerability data identically via callback and Kafka`() {
-        sendViaKafka(KafkaKey.GITHUB_VULNERABILITY_DATA, repositoryPayload("navikt/via-kafka")) {
-            gitHubRepository.getVulnerabilities("navikt/via-kafka").size == 2
-        }
-        postCallback("/callbacks/github/vulnerabilities", repositoryPayload("navikt/via-callback"))
+    fun `should persist vulnerability data delivered by callback`() {
+        val nameWithOwner = "navikt/callback-integration"
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(nameWithOwner))
 
         runBlocking {
-            val kafkaRepo = gitHubRepository.getRepository("navikt/via-kafka")!!
-            val callbackRepo = gitHubRepository.getRepository("navikt/via-callback")!!
-            assertEquals(kafkaRepo.naisTeams, callbackRepo.naisTeams)
-
-            suspend fun normalize(name: String) =
-                gitHubRepository.getVulnerabilities(name)
-                    .map { it.copy(id = 0, nameWithOwner = "", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) }
-                    .sortedBy { it.severity }
-
-            val callbackVulnerabilities = normalize("navikt/via-callback")
-            assertEquals(2, callbackVulnerabilities.size)
-            assertEquals(normalize("navikt/via-kafka"), callbackVulnerabilities)
+            val repository = gitHubRepository.getRepository(nameWithOwner)
+            assertNotNull(repository)
+            assertEquals(listOf("team-a", "team-b"), repository.naisTeams)
+            assertEquals(2, gitHubRepository.getVulnerabilities(nameWithOwner).size)
         }
     }
 
     @Test
-    fun `should store check results identically via callback and Kafka`() {
-        sendViaKafka("CheckResult", checksPayload("navikt/checks-kafka", "team-kafka")) {
-            dataCollectorRepository.allForOwner(listOf("team-kafka")).isNotEmpty()
-        }
-        postCallback("/callbacks/checks", checksPayload("navikt/checks-callback", "team-callback"))
+    fun `should persist check results delivered by callback`() {
+        val repoName = "navikt/check-callback-integration"
+        postCallback("/callbacks/checks", checksPayload(repoName, "team-callback"))
 
         runBlocking {
-            val viaKafka = dataCollectorRepository.allForOwner(listOf("team-kafka"))["navikt/checks-kafka"]!!
-            val viaCallback = dataCollectorRepository.allForOwner(listOf("team-callback"))["navikt/checks-callback"]!!
-            assertEquals(2, viaCallback.size)
-            assertEquals(viaKafka.sortedBy { it.name }, viaCallback.sortedBy { it.name })
+            val results = dataCollectorRepository.allForOwner(listOf("team-callback"))[repoName]
+            assertNotNull(results)
+            assertEquals(listOf("branch-protection", "codeowners"), results.map { it.name }.sorted())
         }
     }
 
