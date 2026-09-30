@@ -23,8 +23,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── config/                                # Application configuration
 │   ├── database/                              # Database factory and connection management
 │   ├── datacollector/                         # Triggers on-demand data collection from the external tpt-data-collector service
-│   ├── github/                                # GitHub repository metadata, Kafka messages, vulnerability service
-│   ├── kafka/                                 # Kafka consumer + producer for sync commands
+│   ├── github/                                # GitHub repository metadata and vulnerability service
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
 │   ├── enrichment/                            # Vulnerability aggregation and enrichment service (VulnerabilityEnrichmentService)
@@ -35,11 +34,10 @@ src/main/kotlin/no/nav/tpt/
 ├── plugins/                                   # Ktor plugins and application lifecycle
 │   ├── Authentication.kt                      # JWT authentication configuration
 │   ├── Dependencies.kt                        # Dependency injection setup
-│   ├── Kafka.kt                               # Kafka consumer + producer lifecycle management
-│   ├── LeaderElection.kt                      # Kubernetes leader election (used by sync schedulers as publishers)
+│   ├── LeaderElection.kt                      # Kubernetes leader election for in-process sync schedulers
 │   ├── StatusPages.kt                         # RFC 9457 Problem Details error responses
-│   ├── GcveSync.kt                            # Scheduled GCVE sync (leader publishes Kafka command)
-│   └── VulnerabilityDataSync.kt               # Scheduled vuln sync (leader publishes Kafka command)
+│   ├── GcveSync.kt                            # Scheduled GCVE sync (leader runs sync in-process)
+│   └── VulnerabilityDataSync.kt               # Scheduled vuln sync (leader runs sync in-process)
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
@@ -81,9 +79,6 @@ src/test/                                      # Test suite mirroring main struc
 - `SLA_CRITICAL_WORKDAYS` - SLA deadline for critical vulnerabilities, in workdays (default: `1`)
 - `SLA_NON_CRITICAL_MONTHS` - SLA deadline for non-critical vulnerabilities, in months (default: `3`)
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
-- `KAFKA_BROKERS` - Kafka broker addresses (auto-injected by Nais)
-- `KAFKA_TOPIC` - Topic to consume
-- `KAFKA_*` - Additional Kafka SSL configuration (auto-injected by Nais)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
 
@@ -119,24 +114,23 @@ To develop against realistic data instead of the small built-in mocks:
 ./gradlew test
 ```
 
-Docker must be running — tests use testcontainers to spin up PostgreSQL & Kafka, so there is no separate
-local setup for those dependencies.
+Docker must be running — tests use testcontainers to spin up PostgreSQL.
 
 ## Data Sources
 
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
-- **Kafka** - Receives GitHub repository/vulnerability data and dispatches sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
 - **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
-- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive via Kafka and, during the Kafka migration, via `POST /callbacks/*` (GitHub vulnerability data, check results, GitHub sync started/complete), stored the same way as the Kafka messages
+- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive through authenticated `POST /callbacks/*` endpoints (GitHub vulnerability data, check results, GitHub sync started/complete).
 
 ### Data Persistence Strategy
 
 All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
-- Synced at 6am and 6pm Oslo time from Nais API — leader publishes a Kafka command, consumer executes
-- On user request, stale teams trigger a `team_sync` Kafka command; SSE `team_sync_started` and `team_sync_complete` events are recorded in PostgreSQL
+- Synced at 6am and 6pm Oslo time from Nais API by the elected leader
+- On user request, stale teams sync in the background on the serving pod; a PostgreSQL sync lock prevents duplicate work across pods
+- `team_sync_started` and `team_sync_complete` signals are recorded in PostgreSQL for each successful team sync
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)
   - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)
@@ -144,7 +138,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - Automatic cleanup of stale data (deleted apps/teams) and orphaned CVEs
 - Supports search by team, CVE, severity, ingress type
 
-**GCVE data:** Incremental sync every 2 hours — leader publishes `gcve_sync` Kafka command, consumer executes. Missing CVEs fetched on demand via miss path (async, fire-and-forget). Stores KEV, EPSS, SSVC, CVSS, ransomware campaign signal per CVE.
+**GCVE data:** Incremental sync every 2 hours on the elected leader. `gcve_sync_complete` is recorded in PostgreSQL after each run. Missing CVEs are fetched on demand via the miss path (async, fire-and-forget). Stores KEV, EPSS, SSVC, CVSS, ransomware campaign signal per CVE.
 
 **SSE Events (`GET /events`, authenticated):**
 - `team_sync_started` — backend is fetching fresh vulnerability data for a team

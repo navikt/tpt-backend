@@ -29,7 +29,6 @@ Loaded automatically by Copilot when editing matching files — no need to open 
 - [API design](instructions/api-design.instructions.md) — OpenAPI sync, REST conventions
 - [Common patterns](instructions/patterns.instructions.md) — use case, factory, leader election
 - [Database & sync jobs](instructions/database-kotlin.instructions.md) — repository pattern, transactions, NVD/Vulnrichment sync, performance
-- [Kafka integration](instructions/kafka.instructions.md) — optional consumer, SSL config, health-check contract
 - [Security](instructions/security.instructions.md) — input validation, error responses, CORS
 - [Testing conventions](instructions/testing.instructions.md) — naming, structure, patterns
 - [Migration file standards](instructions/database.instructions.md) — Flyway SQL naming and structure

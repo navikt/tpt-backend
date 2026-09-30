@@ -7,17 +7,11 @@ metadata:
   namespace: appsec
 spec:
   acl:
-    - access: readwrite
-      application: tpt-backend
-      team: appsec
     - access: read
       application: tpt-kafka-manager
       team: appsec
     - access: write
       application: appsec-stats
-      team: appsec
-    - access: write
-      application: tpt-data-collector
       team: appsec
     - access: write
       application: appsec-vulnerability-stats

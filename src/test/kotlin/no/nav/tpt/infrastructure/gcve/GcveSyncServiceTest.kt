@@ -8,6 +8,9 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import no.nav.tpt.infrastructure.common.InMemoryCircuitBreaker
+import no.nav.tpt.infrastructure.sse.SseEvent
+import no.nav.tpt.infrastructure.sse.SseEventEnvelope
+import no.nav.tpt.infrastructure.sse.SseEventPublisher
 import kotlin.test.*
 
 class GcveSyncServiceTest {
@@ -41,7 +44,8 @@ class GcveSyncServiceTest {
         }
 
         val client = createGcveClient(mockEngine)
-        val syncService = GcveSyncService(client, gcveRepository)
+        val eventPublisher = GcveTestSseEventPublisher()
+        val syncService = GcveSyncService(client, gcveRepository, eventPublisher)
 
         val count = syncService.performIncrementalSync(
             since = "2026-07-01T00:00:00",
@@ -51,6 +55,7 @@ class GcveSyncServiceTest {
         assertEquals(1, count)
         assertNotNull(gcveRepository.getCveData("CVE-2026-54431"))
         assertNull(gcveRepository.getCveData("CVE-2026-54430"))
+        assertIs<SseEvent.GcveSyncComplete>(eventPublisher.events.single())
     }
 
     @Test
@@ -231,5 +236,14 @@ class GcveSyncServiceTest {
         val result = gcveRepository.getCveDataWithRaw("CVE-2021-44228")
         assertNotNull(result)
         assertNotNull(result.second)
+    }
+}
+
+private class GcveTestSseEventPublisher : SseEventPublisher {
+    val events = mutableListOf<SseEvent>()
+
+    override suspend fun publish(event: SseEvent): SseEventEnvelope {
+        events.add(event)
+        return SseEventEnvelope(events.size.toLong(), event)
     }
 }

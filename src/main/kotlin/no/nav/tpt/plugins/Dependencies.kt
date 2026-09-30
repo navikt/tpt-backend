@@ -9,6 +9,8 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.admin.AdminService
 import no.nav.tpt.domain.user.AdminAuthorizationService
@@ -41,7 +43,6 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityService
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
-import no.nav.tpt.infrastructure.kafka.KafkaProducerService
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
@@ -57,7 +58,6 @@ import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
-import no.nav.tpt.infrastructure.kafka.KafkaConfig
 
 @Suppress("unused")
 class Dependencies(
@@ -83,7 +83,6 @@ class Dependencies(
     val sseEventBus: SseEventBus,
     val sseEventLogRepository: SseEventLogRepository,
     val sseEventLogListener: SseEventLogListener?,
-    val kafkaProducerService: KafkaProducerService?,
     val dataCollector: DataCollector,
     val gitHubDataCollector: GitHubDataCollector,
 )
@@ -151,8 +150,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         eventBus = sseEventBus,
     )
 
-    val kafkaProducerService = KafkaConfig.fromEnvironment()?.let { KafkaProducerService(it) }
-
     val vulnerabilityTeamSyncService = VulnerabilityTeamSyncService(
         naisApiService = naisApiClient,
         vulnerabilityRepository = vulnerabilityRepository,
@@ -161,7 +158,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
         vulnerabilityRepository = vulnerabilityRepository,
-        kafkaProducer = kafkaProducerService,
+        vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
+        backgroundScope = CoroutineScope(application.coroutineContext + Dispatchers.IO),
     )
 
     val adminReportRepository: AdminReportRepository = AdminReportRepositoryImpl(database)
@@ -169,7 +167,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveCircuitBreaker = InMemoryCircuitBreaker(failureThreshold = 3, openDurationSeconds = 300)
     val gcveClient = GcveClient(httpClient, config.gcveApiUrl, config.gcveApiKey, gcveCircuitBreaker)
     val gcveRepository = GcveRepositoryImpl(database)
-    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository)
+    val gcveSyncService = GcveSyncService(gcveClient, gcveRepository, sseEventLogRepository)
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
@@ -227,7 +225,6 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         sseEventBus = sseEventBus,
         sseEventLogRepository = sseEventLogRepository,
         sseEventLogListener = sseEventLogListener,
-        kafkaProducerService = kafkaProducerService,
         dataCollector = dataCollector,
         gitHubDataCollector = gitHubDataCollector,
     )

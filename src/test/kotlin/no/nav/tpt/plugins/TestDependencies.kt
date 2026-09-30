@@ -84,27 +84,40 @@ fun Application.installTestDependencies(
 
     val mockVulnerabilityRepository = vulnerabilityRepository ?: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository()
 
+    val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
+        url = "jdbc:postgresql://stub:5432/stub",
+        driver = "org.postgresql.Driver",
+        user = "stub",
+        password = "stub"
+    )
+
+    val sseEventBus = SseEventBus()
+    val resolvedSseEventLogRepository = sseEventLogRepository ?: SseEventLogRepository(stubDatabase)
+
+    val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
+        naisApiService = naisApiService,
+        vulnerabilityRepository = mockVulnerabilityRepository,
+    )
+
     val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService(
         vulnerabilityRepository = mockVulnerabilityRepository,
-        kafkaProducer = null,
+        vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
+        backgroundScope = this,
     )
 
     val mockGcveRepository = no.nav.tpt.infrastructure.gcve.InMemoryGcveRepository()
     val mockGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(client, "http://localhost:8080/mock-gcve-api")
-    val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(mockGcveClient, mockGcveRepository)
+    val mockGcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(
+        mockGcveClient,
+        mockGcveRepository,
+        resolvedSseEventLogRepository,
+    )
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
         riskScorer = riskScorer,
         userContextService = actualUserContextService,
         gcveRepository = mockGcveRepository,
-    )
-
-    val stubDatabase = org.jetbrains.exposed.v1.jdbc.Database.connect(
-        url = "jdbc:postgresql://stub:5432/stub",
-        driver = "org.postgresql.Driver",
-        user = "stub",
-        password = "stub"
     )
 
     val mockLeaderElection = LeaderElection(client)
@@ -116,11 +129,6 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
         userContextService = actualUserContextService,
         riskScorer = riskScorer,
-    )
-
-    val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
-        naisApiService = naisApiService,
-        vulnerabilityRepository = mockVulnerabilityRepository
     )
 
     val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
@@ -141,8 +149,6 @@ fun Application.installTestDependencies(
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
         adminReportRepository = mockAdminReportRepository,
     )
-
-    val sseEventBus = SseEventBus()
 
     val dataCollector = FakeDataCollector()
 
@@ -169,9 +175,8 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
-        sseEventLogRepository = sseEventLogRepository ?: SseEventLogRepository(stubDatabase),
+        sseEventLogRepository = resolvedSseEventLogRepository,
         sseEventLogListener = null,
-        kafkaProducerService = null,
         dataCollector = dataCollector,
         gitHubDataCollector = gitHubDataCollector
     )

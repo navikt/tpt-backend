@@ -28,7 +28,6 @@ dependencies {
     implementation(libs.bundles.logging)
     implementation(libs.bundles.database)
     implementation(libs.jakarta.validation.api)
-    implementation(libs.kafka.clients)
     implementation(libs.ulid)
     implementation(libs.micrometer)
 

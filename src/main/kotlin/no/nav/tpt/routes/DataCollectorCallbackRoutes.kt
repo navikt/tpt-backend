@@ -17,7 +17,6 @@ import no.nav.tpt.metrics.TPTMetrics
 import no.nav.tpt.plugins.BadRequestException
 import no.nav.tpt.plugins.dependencies
 
-// Same decoding rules as the Kafka consumers, so both paths accept the same payloads.
 private val callbackJson = Json { ignoreUnknownKeys = true }
 
 fun Route.dataCollectorCallbackRoutes() {

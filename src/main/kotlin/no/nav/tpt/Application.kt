@@ -20,7 +20,6 @@ import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.DependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
-import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureGcveSync
 import no.nav.tpt.plugins.configureStatusPages
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
@@ -84,7 +83,6 @@ fun Application.module() {
     configureVulnerabilityDataSync()
     configureGcveSync()
     configureSseEventLog()
-    configureKafka()
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")

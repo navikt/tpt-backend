@@ -20,7 +20,7 @@ class NaisRoutesTest {
     }
 
     @Test
-    fun `should return OK for isready when Kafka is not configured`() = testApplication {
+    fun `should return OK for isready when SSE listener is not configured`() = testApplication {
         application { testModule() }
 
         val response = client.get("/internal/isready")
@@ -28,4 +28,3 @@ class NaisRoutesTest {
         assertEquals("KIROV REPORTING", response.bodyAsText())
     }
 }
-
