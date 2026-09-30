@@ -59,7 +59,7 @@ class DataCollectorConsumer(
         try {
             val resultsForRepo = json.decodeFromString<CheckResultsForRepo>(record.value())
             storeCheckResults(resultsForRepo)
-            logger.info("Stored ${resultsForRepo.results.size} results for ${resultsForRepo.repoOwners}")
+            logger.debug("Stored {} results for {}", resultsForRepo.results.size, resultsForRepo.repoOwners)
         } catch (e: Exception) {
             logger.error("Error parsing CheckResult message: ${record.value()}", e)
         }

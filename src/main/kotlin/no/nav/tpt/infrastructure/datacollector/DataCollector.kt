@@ -48,7 +48,7 @@ class RealDataCollector(
                     async { makeHttpRequest<HttpResponse>(httpMethod = Post, url = url, authToken = authToken) }
                 }.awaitAll()
             }
-            logger.info("Collected ${responses.value.size} responses for ${teamSlugs.size} teams in ${responses.duration}")
+            logger.debug("Collected ${responses.value.size} responses for ${teamSlugs.size} teams in ${responses.duration}")
         }
 
     override suspend fun allChecksFor(teamSlugs: List<String>) =
@@ -57,10 +57,10 @@ class RealDataCollector(
     private suspend fun retrieveAccessToken(): String {
         val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
         val requestBody = TokenRequest("entra_id", "api://$cluster.appsec.tpt-data-collector/.default")
-        logger.info("Retrieving token: {}", requestBody)
+        logger.debug("Retrieving token: {}", requestBody)
         val tokenResponse =
             makeHttpRequest<TokenResponse>(httpMethod = Post, url = naisTokenEndpoint, requestBody = requestBody)
-        logger.info("Got token response, expires in: {}", tokenResponse.expiresIn)
+        logger.debug("Got token response, expires in: {}", tokenResponse.expiresIn)
         return tokenResponse.accessToken
     }
 
@@ -73,7 +73,7 @@ class RealDataCollector(
         httpClient.request(url) {
             method = httpMethod
             authToken?.let {
-                logger.info("Adding Bearer token of length ${it.length} to request")
+                logger.debug("Adding Bearer token of length ${it.length} to request")
                 bearerAuth(it)
             }
             header(Accept, "application/json")
@@ -126,7 +126,7 @@ class RealGitHubDataCollector(
                 "tpt-data-collector returned ${response.status.value} for GitHub collection request"
             )
         }
-        logger.info("Triggered GitHub vulnerability collection for ${teamSlugs.size} teams")
+        logger.debug("Triggered GitHub vulnerability collection for ${teamSlugs.size} teams")
     }
 
     private suspend fun retrieveAccessToken(): String {
