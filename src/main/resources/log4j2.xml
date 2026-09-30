@@ -6,7 +6,6 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="org.apache.kafka" level="WARN"/>
         <Root level="INFO">
             <AppenderRef ref="stdout_json"/>
         </Root>
