@@ -8,97 +8,54 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class SseEventBusTest {
-
     @Test
-    fun `should deliver emitted events to all collectors`() = runBlocking {
+    fun `should deliver events with ids to all collectors`() = runBlocking {
         val eventBus = SseEventBus()
-        val receivedA = mutableListOf<SseEvent>()
-        val receivedB = mutableListOf<SseEvent>()
+        val receivedA = mutableListOf<SseEventEnvelope>()
+        val receivedB = mutableListOf<SseEventEnvelope>()
 
         val jobA = launch { eventBus.events.collect { receivedA.add(it) } }
         val jobB = launch { eventBus.events.collect { receivedB.add(it) } }
         yield()
 
-        eventBus.emit(SseEvent.TeamSyncStarted("team-a", "2024-01-01T00:00:00Z"))
+        val envelope = SseEventEnvelope(25, SseEvent.TeamSyncStarted("team-a", "2024-01-01T00:00:00Z"))
+        eventBus.emit(envelope)
         yield()
 
         jobA.cancel()
         jobB.cancel()
 
-        assertEquals(1, receivedA.size)
-        assertEquals(1, receivedB.size)
-        val eventA = receivedA[0]
-        assertIs<SseEvent.TeamSyncStarted>(eventA)
-        assertEquals("team-a", eventA.teamSlug)
+        assertEquals(listOf(envelope), receivedA)
+        assertEquals(listOf(envelope), receivedB)
+        assertIs<SseEvent.TeamSyncStarted>(receivedA.single().event)
+        assertEquals("team-a", (receivedA.single().event as SseEvent.TeamSyncStarted).teamSlug)
     }
 
     @Test
-    fun `should deliver TeamSyncComplete event`() = runBlocking {
+    fun `should preserve event order`() = runBlocking {
         val eventBus = SseEventBus()
-        val received = mutableListOf<SseEvent>()
-
+        val received = mutableListOf<SseEventEnvelope>()
         val job = launch { eventBus.events.collect { received.add(it) } }
         yield()
 
-        eventBus.emit(SseEvent.TeamSyncComplete("team-b", "2024-01-01T01:00:00Z"))
+        eventBus.emit(SseEventEnvelope(1, SseEvent.TeamSyncStarted("team-a", "t1")))
+        eventBus.emit(SseEventEnvelope(2, SseEvent.TeamSyncComplete("team-a", "t2")))
         yield()
-
         job.cancel()
 
-        assertEquals(1, received.size)
-        val event = received[0]
-        assertIs<SseEvent.TeamSyncComplete>(event)
-        assertEquals("team-b", event.teamSlug)
+        assertEquals(listOf(1L, 2L), received.map { it.id })
+        assertIs<SseEvent.TeamSyncStarted>(received[0].event)
+        assertIs<SseEvent.TeamSyncComplete>(received[1].event)
     }
 
     @Test
-    fun `should deliver GcveSyncComplete event`() = runBlocking {
+    fun `should not replay events emitted before a collector starts`() = runBlocking {
         val eventBus = SseEventBus()
-        val received = mutableListOf<SseEvent>()
+        eventBus.emit(SseEventEnvelope(1, SseEvent.TeamSyncStarted("team-a", "t")))
 
+        val received = mutableListOf<SseEventEnvelope>()
         val job = launch { eventBus.events.collect { received.add(it) } }
         yield()
-
-        eventBus.emit(SseEvent.GcveSyncComplete(42, "2024-01-01T02:00:00Z"))
-        yield()
-
-        job.cancel()
-
-        assertEquals(1, received.size)
-        val event = received[0]
-        assertIs<SseEvent.GcveSyncComplete>(event)
-        assertEquals(42, event.cveCount)
-    }
-
-    @Test
-    fun `should deliver multiple events in order`() = runBlocking {
-        val eventBus = SseEventBus()
-        val received = mutableListOf<SseEvent>()
-
-        val job = launch { eventBus.events.collect { received.add(it) } }
-        yield()
-
-        eventBus.emit(SseEvent.TeamSyncStarted("team-a", "2024-01-01T00:00:00Z"))
-        eventBus.emit(SseEvent.TeamSyncComplete("team-a", "2024-01-01T00:01:00Z"))
-        yield()
-
-        job.cancel()
-
-        assertEquals(2, received.size)
-        assertIs<SseEvent.TeamSyncStarted>(received[0])
-        assertIs<SseEvent.TeamSyncComplete>(received[1])
-    }
-
-    @Test
-    fun `should not deliver events to collectors that start after emission`() = runBlocking {
-        val eventBus = SseEventBus()
-
-        eventBus.emit(SseEvent.TeamSyncStarted("team-a", "2024-01-01T00:00:00Z"))
-
-        val received = mutableListOf<SseEvent>()
-        val job = launch { eventBus.events.collect { received.add(it) } }
-        yield()
-
         job.cancel()
 
         assertEquals(0, received.size)

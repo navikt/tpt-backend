@@ -9,6 +9,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.plugins.swagger.swaggerUI
+import io.ktor.server.sse.SSE
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.uri
 import io.ktor.server.routing.routing
@@ -16,6 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.json.Json
 import no.nav.tpt.plugins.LocalDevDependenciesPlugin
 import no.nav.tpt.plugins.configureAuthentication
+import no.nav.tpt.plugins.configureSseEventLog
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
@@ -23,6 +25,7 @@ import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
+import no.nav.tpt.routes.sseRoutes
 import org.slf4j.event.Level
 
 fun main() {
@@ -32,6 +35,7 @@ fun main() {
 
 fun Application.localDevModule() {
     install(LocalDevDependenciesPlugin)
+    install(SSE)
 
     install(CallLogging) {
         level = Level.INFO
@@ -55,6 +59,7 @@ fun Application.localDevModule() {
     }
 
     configureAuthentication(dependencies.tokenIntrospectionService)
+    configureSseEventLog()
 
     routing {
         swaggerUI(path = "swagger", swaggerFile = "openapi.yaml")
@@ -64,6 +69,7 @@ fun Application.localDevModule() {
         vulnerabilityRoutes()
         gitHubVulnerabilityRoutes()
         dataCollectorRoutes()
+        sseRoutes(dependencies.sseEventBus)
     }
 
     log.info("=".repeat(80))
@@ -75,4 +81,3 @@ fun Application.localDevModule() {
     log.info("Authentication: Any Bearer token accepted")
     log.info("=".repeat(80))
 }
-

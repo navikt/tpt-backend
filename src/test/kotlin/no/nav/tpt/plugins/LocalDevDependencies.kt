@@ -22,6 +22,8 @@ import no.nav.tpt.infrastructure.github.MockGitHubVulnerabilityService
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
+import no.nav.tpt.infrastructure.sse.SseEventLogListener
+import no.nav.tpt.infrastructure.sse.SseEventLogRepository
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
@@ -106,6 +108,15 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     flyway.migrate()
 
     val database = Database.connect(dataSource)
+    val sseEventBus = SseEventBus()
+    val sseEventLogRepository = SseEventLogRepository(database)
+    val sseEventLogListener = SseEventLogListener(
+        connectionFactory = {
+            java.sql.DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password)
+        },
+        eventLog = sseEventLogRepository,
+        eventBus = sseEventBus,
+    )
 
     val leaderElection = LeaderElection(httpClient)
 
@@ -127,7 +138,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     
     val mockVulnerabilityTeamSyncService = no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService(
         naisApiService = naisApiService,
-        vulnerabilityRepository = mockVulnerabilityRepository
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        sseEventPublisher = sseEventLogRepository,
     )
     
     val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
@@ -160,7 +172,6 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
     )
 
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
-    val sseEventBus = SseEventBus()
     val dataCollector = FakeDataCollector()
     val datacollectorRepository = FakeDatacollectorRepository()
 
@@ -185,6 +196,8 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(localGcveClient, localGcveRepository),
         sseEventBus = sseEventBus,
+        sseEventLogRepository = sseEventLogRepository,
+        sseEventLogListener = sseEventLogListener,
         kafkaProducerService = null,
         dataCollector = dataCollector,
         gitHubDataCollector = FakeGitHubDataCollector(),

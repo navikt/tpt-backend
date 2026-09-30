@@ -24,6 +24,7 @@ import no.nav.tpt.plugins.configureKafka
 import no.nav.tpt.plugins.configureGcveSync
 import no.nav.tpt.plugins.configureStatusPages
 import no.nav.tpt.plugins.configureVulnerabilityDataSync
+import no.nav.tpt.plugins.configureSseEventLog
 import no.nav.tpt.plugins.dependencies
 import no.nav.tpt.routes.adminRoutes
 import no.nav.tpt.routes.configRoutes
@@ -81,6 +82,7 @@ fun Application.module() {
     configureStatusPages()
     configureVulnerabilityDataSync()
     configureGcveSync()
+    configureSseEventLog()
     configureKafka()
 
     routing {
@@ -95,4 +97,3 @@ fun Application.module() {
         dataCollectorRoutes()
     }
 }
-

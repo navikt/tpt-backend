@@ -18,6 +18,7 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
+import no.nav.tpt.infrastructure.sse.SseEventLogRepository
 import no.nav.tpt.infrastructure.teamkatalogen.MockTeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
@@ -164,6 +165,8 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
+        sseEventLogRepository = SseEventLogRepository(stubDatabase),
+        sseEventLogListener = null,
         kafkaProducerService = null,
         dataCollector = dataCollector,
         gitHubDataCollector = gitHubDataCollector

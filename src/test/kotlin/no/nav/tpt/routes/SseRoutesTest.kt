@@ -37,6 +37,18 @@ class SseRoutesTest {
     }
 
     @Test
+    fun `should reject malformed Last-Event-ID`() = testApplication {
+        application { testModule() }
+
+        val response = client.get("/events") {
+            header(HttpHeaders.Authorization, "******")
+            header("Last-Event-ID", "not-an-id")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `should accept authenticated request and return event-stream content type`() = testApplication {
         application { testModule() }
 

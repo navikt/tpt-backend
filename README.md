@@ -125,7 +125,8 @@ local setup for those dependencies.
 
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
-- **Kafka** - Receives GitHub repository/vulnerability data; also used to dispatch sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
+- **Kafka** - Receives GitHub repository/vulnerability data and dispatches sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
+- **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
 - **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams
 
 ### Data Persistence Strategy
@@ -134,7 +135,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
 - Synced at 6am and 6pm Oslo time from Nais API — leader publishes a Kafka command, consumer executes
-- On user request, stale teams trigger a `team_sync` Kafka command; SSE event `team_sync_started` is sent immediately, `team_sync_complete` when done
+- On user request, stale teams trigger a `team_sync` Kafka command; SSE `team_sync_started` and `team_sync_complete` events are recorded in PostgreSQL
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)
   - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)
@@ -148,6 +149,8 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - `team_sync_started` — backend is fetching fresh vulnerability data for a team
 - `team_sync_complete` — team data is updated and ready to fetch
 - `gcve_sync_complete` — GCVE incremental sync finished
+- `github_vuln_sync_started` and `github_vuln_sync_complete` — GitHub vulnerability data collection progress
+- Events include an SSE `id`; reconnecting with `Last-Event-ID` replays retained events (about one hour)
 
 ## API Endpoints
 Full API documentation available at `/swagger` or see `src/main/resources/openapi.yaml`
