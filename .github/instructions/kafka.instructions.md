@@ -28,4 +28,5 @@ Kafka is **optional**, gated on configuration:
 SSE events are never fanned out through Kafka. Publishers (sync services, `GcveSyncConsumer`) write via
 `SseEventPublisher` to the Postgres `sse_event_log` table (insert + `pg_notify` in one transaction); every pod's
 `SseEventLogListener` (LISTEN/NOTIFY) feeds its local `SseEventBus`. `SseEventLogConsumer` only ingests the
-`github_vuln_sync_*` events from tpt-data-collector into that log. Publishing must be best-effort and never fail a sync.
+`github_vuln_sync_*` events from tpt-data-collector into that log (the `/callbacks/github/sync/*` endpoints do the
+same over HTTP). Publishing must be best-effort and never fail a sync.

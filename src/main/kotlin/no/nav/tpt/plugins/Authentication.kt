@@ -13,10 +13,30 @@ data class TokenPrincipal(
     val groups: List<String> = emptyList()
 )
 
+data class ApplicationPrincipal(val clientName: String?)
+
 fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospectionService) {
     val logger = LoggerFactory.getLogger("Authentication")
 
     install(Authentication) {
+        // Machine-to-machine tokens only; Entra ID issues them solely to apps in our inbound access policy.
+        bearer("m2m-bearer") {
+            authenticate { credential ->
+                try {
+                    val introspectionResult = tokenIntrospectionService.introspect(credential.token)
+                    val idtyp = introspectionResult.claims["idtyp"]?.jsonPrimitive?.content
+                    if (!introspectionResult.active || idtyp != "app") {
+                        logger.warn("Rejected machine-to-machine token (active=${introspectionResult.active}, idtyp=$idtyp)")
+                        return@authenticate null
+                    }
+                    ApplicationPrincipal(introspectionResult.claims["azp_name"]?.jsonPrimitive?.content)
+                } catch (e: Exception) {
+                    logger.error("Token introspection failed: ${e.message}", e)
+                    null
+                }
+            }
+        }
+
         bearer("auth-bearer") {
             authenticate { credential ->
                 try {
