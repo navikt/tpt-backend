@@ -74,7 +74,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         suspendTransaction(db = database) { block() }
 
     override suspend fun insert(checks: CheckResultsForRepo) {
-        transaction {
+        transaction(database) {
             checks.results.forEach { check ->
                 val existingIds = DataCollectorChecks.selectAll().where {
                     repo eq checks.repoName and(checkName eq check.name)

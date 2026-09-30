@@ -44,6 +44,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
 │   ├── DataCollectorRoutes.kt                 # On-demand data collection trigger endpoint
+│   ├── DataCollectorCallbackRoutes.kt         # Callbacks from tpt-data-collector (`/callbacks/*`, M2M only)
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── SseRoutes.kt                           # Server-Sent Events endpoint (`/events`)
 │   ├── VulnerabilityRoutes.kt                 # NAIS vulnerability query endpoints
@@ -127,7 +128,7 @@ local setup for those dependencies.
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
 - **Kafka** - Receives GitHub repository/vulnerability data and dispatches sync commands (`team_sync`, `vuln_data_sync`, `gcve_sync`) for decoupled execution
 - **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
-- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams
+- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive via Kafka and, during the Kafka migration, via `POST /callbacks/*` (GitHub vulnerability data, check results, GitHub sync started/complete), stored the same way as the Kafka messages
 
 ### Data Persistence Strategy
 
@@ -159,6 +160,9 @@ Full API documentation available at `/swagger` or see `src/main/resources/openap
 
 Endpoints require a valid JWT Bearer token with:
 - `preferred_username` claim for email
+
+`/callbacks/*` endpoints only accept Entra ID machine-to-machine tokens (`idtyp=app`). Which applications can
+obtain such tokens is controlled by the inbound access policy in `.nais/nais.yaml`.
 
 ## License
 

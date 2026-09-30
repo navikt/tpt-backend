@@ -32,9 +32,11 @@ import no.nav.tpt.routes.gitHubVulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
+import no.nav.tpt.infrastructure.datacollector.DatacollectorRepository
 import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
 import no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector
+import no.nav.tpt.routes.dataCollectorCallbackRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
 
 fun Application.installTestDependencies(
@@ -47,6 +49,8 @@ fun Application.installTestDependencies(
     vulnerabilityRepository: no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository? = null,
     gitHubDataCollector: no.nav.tpt.infrastructure.datacollector.GitHubDataCollector = FakeGitHubDataCollector(),
     gitHubRepository: GitHubRepository? = null,
+    dataCollectorRepository: DatacollectorRepository? = null,
+    sseEventLogRepository: SseEventLogRepository? = null,
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -142,7 +146,7 @@ fun Application.installTestDependencies(
 
     val dataCollector = FakeDataCollector()
 
-    val datacollectorRepository = FakeDatacollectorRepository()
+    val datacollectorRepository = dataCollectorRepository ?: FakeDatacollectorRepository()
 
     val dependencies = Dependencies(
         appConfig = testConfig,
@@ -165,7 +169,7 @@ fun Application.installTestDependencies(
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
         sseEventBus = sseEventBus,
-        sseEventLogRepository = SseEventLogRepository(stubDatabase),
+        sseEventLogRepository = sseEventLogRepository ?: SseEventLogRepository(stubDatabase),
         sseEventLogListener = null,
         kafkaProducerService = null,
         dataCollector = dataCollector,
@@ -184,6 +188,8 @@ fun Application.testModule(
     gitHubDataCollector: no.nav.tpt.infrastructure.datacollector.GitHubDataCollector = no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector(),
     gitHubRepository: GitHubRepository? = null,
     userContextService: UserContextService? = null,
+    dataCollectorRepository: DatacollectorRepository? = null,
+    sseEventLogRepository: SseEventLogRepository? = null,
 ) {
     installTestDependencies(
         tokenIntrospectionService,
@@ -194,6 +200,8 @@ fun Application.testModule(
         gitHubDataCollector = gitHubDataCollector,
         gitHubRepository = gitHubRepository,
         userContextService = userContextService,
+        dataCollectorRepository = dataCollectorRepository,
+        sseEventLogRepository = sseEventLogRepository,
     )
 
     install(SSE)
@@ -216,5 +224,6 @@ fun Application.testModule(
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()
+        dataCollectorCallbackRoutes()
     }
 }

@@ -36,6 +36,7 @@ import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
 import no.nav.tpt.metrics.TPTMetrics
 import no.nav.tpt.routes.dataCollectorRoutes
+import no.nav.tpt.routes.dataCollectorCallbackRoutes
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
@@ -95,5 +96,6 @@ fun Application.module() {
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()
+        dataCollectorCallbackRoutes()
     }
 }

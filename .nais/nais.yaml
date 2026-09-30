@@ -21,6 +21,7 @@ spec:
     inbound:
       rules:
         - application: tpt-frontend
+        - application: tpt-data-collector
     outbound:
       rules:
         - application: tpt-data-collector
