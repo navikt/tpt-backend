@@ -83,6 +83,20 @@ class DataCollectorCallbackRoutesTest {
     }
 
     @Test
+    fun `should return 401 when token is from a different application`() = testApplication {
+        val frontendToken = appToken(mapOf("idtyp" to "app", "azp_name" to "dev-gcp:appsec:tpt-frontend"))
+        application { testModule(tokenIntrospectionService = frontendToken) }
+
+        val response = client.post("/callbacks/github/vulnerabilities") {
+            header(HttpHeaders.Authorization, "Bearer frontend")
+            contentType(ContentType.Application.Json)
+            setBody(repositoryPayload)
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
     fun `should return 204 when data collector posts vulnerability data`() = testApplication {
         application { testModule(tokenIntrospectionService = dataCollectorToken) }
 
