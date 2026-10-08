@@ -17,6 +17,8 @@ data class ApplicationPrincipal(val clientName: String?)
 
 fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospectionService) {
     val logger = LoggerFactory.getLogger("Authentication")
+    val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
+    val expectedDataCollectorName = "$cluster:appsec:tpt-data-collector"
 
     install(Authentication) {
         // Machine-to-machine tokens only; Entra ID issues them solely to apps in our inbound access policy.
@@ -30,6 +32,31 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                         return@authenticate null
                     }
                     ApplicationPrincipal(introspectionResult.claims["azp_name"]?.jsonPrimitive?.content)
+                } catch (e: Exception) {
+                    logger.error("Token introspection failed: ${e.message}", e)
+                    null
+                }
+            }
+        }
+
+        bearer("data-collector-bearer") {
+            authenticate { credential ->
+                try {
+                    val introspectionResult = tokenIntrospectionService.introspect(credential.token)
+                    val idtyp = introspectionResult.claims["idtyp"]?.jsonPrimitive?.content
+                    val azpName = introspectionResult.claims["azp_name"]?.jsonPrimitive?.content
+                    
+                    if (!introspectionResult.active || idtyp != "app") {
+                        logger.warn("Rejected data collector token (active=${introspectionResult.active}, idtyp=$idtyp)")
+                        return@authenticate null
+                    }
+                    
+                    if (azpName != expectedDataCollectorName) {
+                        logger.warn("Rejected data collector token: azp_name=$azpName does not match expected=$expectedDataCollectorName")
+                        return@authenticate null
+                    }
+                    
+                    ApplicationPrincipal(azpName)
                 } catch (e: Exception) {
                     logger.error("Token introspection failed: ${e.message}", e)
                     null

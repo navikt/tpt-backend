@@ -20,7 +20,7 @@ import no.nav.tpt.plugins.dependencies
 private val callbackJson = Json { ignoreUnknownKeys = true }
 
 fun Route.dataCollectorCallbackRoutes() {
-    authenticate("m2m-bearer") {
+    authenticate("data-collector-bearer") {
         route("/callbacks") {
             post("/github/vulnerabilities") {
                 val message = call.decodeBody<GitHubRepositoryMessage>()
