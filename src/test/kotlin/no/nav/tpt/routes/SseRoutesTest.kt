@@ -1,9 +1,13 @@
 package no.nav.tpt.routes
 
-import io.ktor.client.plugins.timeout
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
+import io.ktor.server.auth.authenticate
+import io.ktor.server.routing.routing
+import io.ktor.server.sse.*
 import io.ktor.server.testing.*
+import io.ktor.sse.ServerSentEvent
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.plugins.testModule
@@ -50,22 +54,25 @@ class SseRoutesTest {
 
     @Test
     fun `should accept authenticated request and return event-stream content type`() = testApplication {
-        application { testModule() }
-
-        val client = createClient {
-            followRedirects = false
+        application {
+            testModule()
+            routing {
+                authenticate("auth-bearer") {
+                    sse("/test-events") {
+                        send(ServerSentEvent(data = "test"))
+                    }
+                }
+            }
         }
 
-        val (status, contentType) = client.prepareGet("/events") {
+        val response = client.get("/test-events") {
             header(HttpHeaders.Authorization, "Bearer valid-token")
             header(HttpHeaders.Accept, "text/event-stream")
-            timeout { requestTimeoutMillis = 500 }
-        }.execute { resp ->
-            resp.status to resp.headers[HttpHeaders.ContentType]
         }
 
-        assertEquals(HttpStatusCode.OK, status)
-        assertEquals("text/event-stream", contentType?.substringBefore(";")?.trim())
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Text.EventStream, response.contentType()?.withoutParameters())
+        assertTrue(response.bodyAsText().contains("data: test"))
     }
 
     // ---------------------------------------------------------------------------
