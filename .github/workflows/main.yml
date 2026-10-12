@@ -23,11 +23,11 @@ jobs:
         with:
           java-version: 25
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@0e73849f69ff260ee27597553c0a7848ca4e9795
+        uses: nais/docker-build-push@423a915c9b72edf2ba848b88171ccb0489e2a40a
         id: docker-push
         with:
           team: appsec
@@ -35,7 +35,7 @@ jobs:
           push_image: ${{ github.ref == 'refs/heads/main' }}
       - name: Generate and submit dependency graph
         if: github.ref == 'refs/heads/main'
-        uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199
+      - uses: nais/deploy/actions/deploy@7ad7c2b833e1db74a80954e3ee6bb6ac060a8ae7
         env:
           RESOURCE: .nais/nais.yaml
           CLUSTER: prod-gcp
@@ -76,6 +76,6 @@ jobs:
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: 'trivy.sarif'
