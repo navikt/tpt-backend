@@ -30,6 +30,7 @@ import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.securityStatusRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import org.slf4j.event.Level
@@ -91,6 +92,7 @@ fun Application.module() {
         vulnerabilityRoutes()
         gitHubVulnerabilityRoutes()
         vulnerabilitySearchRoutes()
+        securityStatusRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()

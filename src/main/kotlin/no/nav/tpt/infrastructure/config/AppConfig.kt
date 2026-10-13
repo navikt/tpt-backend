@@ -1,5 +1,7 @@
 package no.nav.tpt.infrastructure.config
 
+import no.nav.tpt.domain.securitystatus.SecurityStatusConfig
+
 data class AppConfig(
     val naisTokenIntrospectionEndpoint: String,
     val naisTokenRetrievalEndpoint: String,
@@ -15,6 +17,7 @@ data class AppConfig(
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
     val slaCriticalWorkdays: Int = DEFAULT_SLA_CRITICAL_WORKDAYS,
     val slaNonCriticalMonths: Long = DEFAULT_SLA_NON_CRITICAL_MONTHS,
+    val securityStatus: SecurityStatusConfig = SecurityStatusConfig(),
 ) {
     companion object {
         const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
@@ -58,6 +61,21 @@ data class AppConfig(
                 gcveApiKey = gcveApiKey,
                 slaCriticalWorkdays = System.getenv("SLA_CRITICAL_WORKDAYS")?.toIntOrNull() ?: DEFAULT_SLA_CRITICAL_WORKDAYS,
                 slaNonCriticalMonths = System.getenv("SLA_NON_CRITICAL_MONTHS")?.toLongOrNull() ?: DEFAULT_SLA_NON_CRITICAL_MONTHS,
+                securityStatus = securityStatusFromEnvironment(),
+            )
+        }
+
+        private fun securityStatusFromEnvironment(): SecurityStatusConfig {
+            val defaults = SecurityStatusConfig()
+            return SecurityStatusConfig(
+                deployMaxAgeDays = System.getenv("DEPLOY_MAX_AGE_DAYS")?.toLongOrNull() ?: defaults.deployMaxAgeDays,
+                exposedRedWorkdays = System.getenv("SECURITY_STATUS_RED_WORKDAYS")?.toIntOrNull() ?: defaults.exposedRedWorkdays,
+                maintenanceYellowRatio = System.getenv("SECURITY_STATUS_MAINTENANCE_YELLOW_RATIO")?.toDoubleOrNull() ?: defaults.maintenanceYellowRatio,
+                trendWindowDays = System.getenv("SECURITY_STATUS_TREND_WINDOW_DAYS")?.toLongOrNull() ?: defaults.trendWindowDays,
+                trendStableRatio = System.getenv("SECURITY_STATUS_TREND_STABLE_RATIO")?.toDoubleOrNull() ?: defaults.trendStableRatio,
+                historyMonths = System.getenv("SECURITY_STATUS_HISTORY_MONTHS")?.toLongOrNull() ?: defaults.historyMonths,
+                levelNewWorkdays = System.getenv("SECURITY_STATUS_LEVEL_NEW_WORKDAYS")?.toIntOrNull() ?: defaults.levelNewWorkdays,
+                levelChronicMonths = System.getenv("SECURITY_STATUS_LEVEL_CHRONIC_MONTHS")?.toLongOrNull() ?: defaults.levelChronicMonths,
             )
         }
     }
