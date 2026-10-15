@@ -15,8 +15,11 @@ class SecurityStatusEvaluator(
 ) {
     private val zone = SlaPolicy.OSLO
 
+    private fun earliestHistoryDate(today: LocalDate): LocalDate =
+        YearMonth.from(today).minusMonths(config.historyMonths - 1).atDay(1)
+
     fun historyStart(now: Instant): Instant =
-        now.atZone(zone).toLocalDate().minusMonths(config.historyMonths).atStartOfDay(zone).toInstant()
+        earliestHistoryDate(now.atZone(zone).toLocalDate()).atStartOfDay(zone).toInstant()
 
     fun evaluate(
         team: String,
@@ -28,12 +31,14 @@ class SecurityStatusEvaluator(
 
         val today = now.atZone(zone).toLocalDate()
         val baseline = workloads.minOf { it.firstSeenAt }
-        val startDate = maxOf(baseline.atZone(zone).toLocalDate(), today.minusMonths(config.historyMonths))
+        val startDate = maxOf(baseline.atZone(zone).toLocalDate(), earliestHistoryDate(today))
         val dates = generateSequence(startDate) { it.plusDays(1) }.takeWhile { !it.isAfter(today) }.toList()
         val n = dates.size
+        val dayStart = dates.map { it.atStartOfDay(zone).toInstant() }
         val evalAt = dates.map { if (it == today) now else it.plusDays(1).atStartOfDay(zone).toInstant() }
 
-        val exposure = computeExposure(vulnerabilities, evalAt)
+        val exposure = computeExposure(vulnerabilities, dayStart, evalAt, pointInTime = false)
+        val monthEndExposure = computeExposure(vulnerabilities, dayStart, evalAt, pointInTime = true)
         val exposedColors = exposure.overdueApps.indices.map { i ->
             when {
                 exposure.redApps[i] > 0 || exposure.overdueApps[i] >= 2 -> SecurityStatusColor.RED
@@ -82,7 +87,7 @@ class SecurityStatusEvaluator(
                 status = trendColors[last],
                 since = since(trendColors, dates),
                 direction = trendDirections[last],
-                appsWithOverduePerMonth = months.values.map { idx -> exposure.overdueApps[idx.last()] },
+                appsWithOverduePerMonth = months.values.map { idx -> monthEndExposure.overdueApps[idx.last()] },
             ),
             maintenance = MaintenanceStatus(
                 status = maintenanceColors[last],
@@ -98,7 +103,9 @@ class SecurityStatusEvaluator(
 
     private fun computeExposure(
         vulnerabilities: List<VulnerabilityLifecycle>,
+        dayStart: List<Instant>,
         evalAt: List<Instant>,
+        pointInTime: Boolean,
     ): Exposure {
         val n = evalAt.size
         val overdueDiff = mutableMapOf<String, IntArray>()
@@ -106,21 +113,30 @@ class SecurityStatusEvaluator(
 
         for (vuln in vulnerabilities) {
             val deadline = slaPolicy.evaluate(vuln.severity, vuln.discoveredAt, vuln.discoveredAt).deadline
-            val start = firstIndex(0, n) { evalAt[it].isAfter(deadline) }
-            val end = vuln.resolvedAt?.let { resolved -> firstIndex(0, n) { !evalAt[it].isBefore(resolved) } } ?: n
-            if (start >= end) continue
 
-            overdueDiff.getOrPut(vuln.appNaisId) { IntArray(n + 1) }.also {
-                it[start]++
-                it[end]--
-            }
-            val redStart = firstIndex(start, end) {
-                slaPolicy.workdaysOverdue(deadline, evalAt[it]) >= config.exposedRedWorkdays
-            }
-            if (redStart < end) {
-                redDiff.getOrPut(vuln.appNaisId) { IntArray(n + 1) }.also {
-                    it[redStart]++
+            for ((periodStart, periodEnd) in activePeriods(vuln)) {
+                val overdueFrom = maxOf(periodStart, deadline)
+                val start = firstIndex(0, n) { evalAt[it].isAfter(overdueFrom) }
+                val end = when {
+                    periodEnd == null -> n
+                    pointInTime -> firstIndex(0, n) { !evalAt[it].isBefore(periodEnd) }
+                    else -> firstIndex(0, n) { !dayStart[it].isBefore(periodEnd) }
+                }
+                if (start >= end) continue
+
+                overdueDiff.getOrPut(vuln.appNaisId) { IntArray(n + 1) }.also {
+                    it[start]++
                     it[end]--
+                }
+                val redStart = firstIndex(start, end) {
+                    val at = if (periodEnd != null && periodEnd.isBefore(evalAt[it])) periodEnd else evalAt[it]
+                    slaPolicy.workdaysOverdue(deadline, at) >= config.exposedRedWorkdays
+                }
+                if (redStart < end) {
+                    redDiff.getOrPut(vuln.appNaisId) { IntArray(n + 1) }.also {
+                        it[redStart]++
+                        it[end]--
+                    }
                 }
             }
         }
@@ -130,6 +146,17 @@ class SecurityStatusEvaluator(
         overdueDiff.values.forEach { accumulate(it, overdueApps) }
         redDiff.values.forEach { accumulate(it, redApps) }
         return Exposure(overdueApps, redApps)
+    }
+
+    private fun activePeriods(vuln: VulnerabilityLifecycle): List<Pair<Instant, Instant?>> {
+        val periods = mutableListOf<Pair<Instant, Instant?>>()
+        var start = vuln.discoveredAt
+        for (gap in vuln.gaps.sortedBy { it.resolvedAt }) {
+            periods.add(start to gap.resolvedAt)
+            start = gap.reappearedAt
+        }
+        periods.add(start to vuln.resolvedAt)
+        return periods
     }
 
     private fun accumulate(diff: IntArray, target: IntArray) {
@@ -145,10 +172,10 @@ class SecurityStatusEvaluator(
             .filter { it.resolvedAt == null }
             .mapNotNull { vuln ->
                 val result = slaPolicy.evaluate(vuln.severity, vuln.discoveredAt, now)
-                if (!result.isOverdue) null else vuln.appName to slaPolicy.workdaysOverdue(result.deadline, now)
+                if (!result.isOverdue) null else vuln to slaPolicy.workdaysOverdue(result.deadline, now)
             }
-            .groupBy({ it.first }, { it.second })
-            .map { (app, days) -> AppPastDeadline(app, days.max()) }
+            .groupBy({ it.first.appNaisId }, { it })
+            .map { (_, entries) -> AppPastDeadline(entries.first().first.appName, entries.maxOf { it.second }) }
             .sortedWith(compareByDescending<AppPastDeadline> { it.workdaysOver }.thenBy { it.app })
 
     private fun trendDirection(
@@ -162,8 +189,9 @@ class SecurityStatusEvaluator(
         val new = vulnerabilities.count {
             it.discoveredAt.isAfter(baseline) && it.discoveredAt.isAfter(windowStart) && !it.discoveredAt.isAfter(at)
         }
-        val fixed = vulnerabilities.count {
-            it.resolvedAt != null && it.resolvedAt.isAfter(windowStart) && !it.resolvedAt.isAfter(at)
+        val fixed = vulnerabilities.sumOf { vuln ->
+            (vuln.gaps.map { it.resolvedAt } + listOfNotNull(vuln.resolvedAt))
+                .count { it.isAfter(windowStart) && !it.isAfter(at) }
         }
         val difference = kotlin.math.abs(new - fixed)
         return when {
@@ -173,17 +201,23 @@ class SecurityStatusEvaluator(
         }
     }
 
-    private fun maintenanceAt(workloads: List<WorkloadFact>, at: Instant): Pair<Int, Int> {
-        var upToDate = 0
-        var total = 0
-        for (workload in workloads) {
-            if (workload.firstSeenAt.isAfter(at)) continue
-            if (workload.removedAt != null && !workload.removedAt.isAfter(at)) continue
-            val latest = workload.deployments.filter { !it.isAfter(at) }.maxOrNull() ?: continue
-            total++
-            if (Duration.between(latest, at).toDays() <= config.deployMaxAgeDays) upToDate++
+    private fun isPresent(workload: WorkloadFact, at: Instant): Boolean {
+        if (workload.firstSeenAt.isAfter(at)) return false
+        if (workload.removedAt != null && !workload.removedAt.isAfter(at)) return false
+        return workload.absences.none { !it.removedAt.isAfter(at) && it.returnedAt.isAfter(at) }
+    }
+
+    private fun lastDeployment(workload: WorkloadFact, at: Instant): Instant? =
+        if (workload.deployments.isEmpty()) {
+            workload.firstSeenAt
+        } else {
+            workload.deployments.filter { !it.isAfter(at) }.maxOrNull()
         }
-        return upToDate to total
+
+    private fun maintenanceAt(workloads: List<WorkloadFact>, at: Instant): Pair<Int, Int> {
+        val tracked = workloads.filter { isPresent(it, at) }.mapNotNull { w -> lastDeployment(w, at) }
+        val upToDate = tracked.count { Duration.between(it, at).toDays() <= config.deployMaxAgeDays }
+        return upToDate to tracked.size
     }
 
     private fun maintenanceColor(upToDate: Int, total: Int): SecurityStatusColor =
@@ -197,8 +231,8 @@ class SecurityStatusEvaluator(
         workloads
             .filter { it.removedAt == null }
             .mapNotNull { workload ->
-                val latest = workload.deployments.maxOrNull() ?: return@mapNotNull null
-                val daysOver = Duration.between(latest, now).toDays() - config.deployMaxAgeDays
+                val reference = lastDeployment(workload, now) ?: return@mapNotNull null
+                val daysOver = Duration.between(reference, now).toDays() - config.deployMaxAgeDays
                 if (daysOver > 0) AppOverdueRebuild(workload.appName, daysOver.toInt()) else null
             }
             .sortedWith(compareByDescending<AppOverdueRebuild> { it.daysOver }.thenBy { it.app })

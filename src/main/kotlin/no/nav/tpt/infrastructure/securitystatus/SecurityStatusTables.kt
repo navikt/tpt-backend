@@ -21,3 +21,11 @@ object WorkloadDeployments : Table("workload_deployments") {
 
     override val primaryKey = PrimaryKey(appNaisId, deployedAt)
 }
+
+object WorkloadAbsences : Table("workload_absences") {
+    val appNaisId = varchar("app_nais_id", 255).references(Workloads.appNaisId)
+    val removedAt = timestamp("removed_at")
+    val returnedAt = timestamp("returned_at")
+
+    override val primaryKey = PrimaryKey(appNaisId, removedAt)
+}

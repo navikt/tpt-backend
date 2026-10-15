@@ -10,6 +10,11 @@ data class WorkloadSnapshot(
     val deployedAt: Instant?,
 )
 
+data class WorkloadAbsence(
+    val removedAt: Instant,
+    val returnedAt: Instant,
+)
+
 data class WorkloadFact(
     val teamSlug: String,
     val appNaisId: String,
@@ -17,6 +22,7 @@ data class WorkloadFact(
     val firstSeenAt: Instant,
     val removedAt: Instant?,
     val deployments: List<Instant>,
+    val absences: List<WorkloadAbsence> = emptyList(),
 )
 
 interface WorkloadRepository {

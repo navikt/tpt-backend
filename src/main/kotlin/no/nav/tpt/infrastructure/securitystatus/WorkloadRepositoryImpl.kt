@@ -1,11 +1,13 @@
 package no.nav.tpt.infrastructure.securitystatus
 
+import no.nav.tpt.domain.securitystatus.WorkloadAbsence
 import no.nav.tpt.domain.securitystatus.WorkloadFact
 import no.nav.tpt.domain.securitystatus.WorkloadRepository
 import no.nav.tpt.domain.securitystatus.WorkloadSnapshot
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
@@ -27,6 +29,19 @@ class WorkloadRepositoryImpl : WorkloadRepository {
             val seenIds = workloads.map { it.appNaisId }.distinct()
 
             if (workloads.isNotEmpty()) {
+                val returning =
+                    Workloads
+                        .selectAll()
+                        .where { (Workloads.appNaisId inList seenIds) and Workloads.removedAt.isNotNull() }
+                        .map { it[Workloads.appNaisId] to it[Workloads.removedAt]!! }
+                if (returning.isNotEmpty()) {
+                    WorkloadAbsences.batchInsert(returning, ignore = true, shouldReturnGeneratedValues = false) { (id, removed) ->
+                        this[WorkloadAbsences.appNaisId] = id
+                        this[WorkloadAbsences.removedAt] = removed
+                        this[WorkloadAbsences.returnedAt] = syncTime
+                    }
+                }
+
                 Workloads.batchUpsert(
                     workloads.distinctBy { it.appNaisId },
                     Workloads.appNaisId,
@@ -74,6 +89,20 @@ class WorkloadRepositoryImpl : WorkloadRepository {
                         .groupBy({ it[WorkloadDeployments.appNaisId] }, { it[WorkloadDeployments.deployedAt] })
                 }
 
+            val ids = workloads.map { it[Workloads.appNaisId] }
+            val absencesById =
+                if (ids.isEmpty()) {
+                    emptyMap()
+                } else {
+                    WorkloadAbsences
+                        .selectAll()
+                        .where { WorkloadAbsences.appNaisId inList ids }
+                        .groupBy(
+                            { it[WorkloadAbsences.appNaisId] },
+                            { WorkloadAbsence(it[WorkloadAbsences.removedAt], it[WorkloadAbsences.returnedAt]) },
+                        )
+                }
+
             workloads.map { row ->
                 WorkloadFact(
                     teamSlug = row[Workloads.teamSlug],
@@ -82,6 +111,7 @@ class WorkloadRepositoryImpl : WorkloadRepository {
                     firstSeenAt = row[Workloads.firstSeenAt],
                     removedAt = row[Workloads.removedAt],
                     deployments = deploymentsById[row[Workloads.appNaisId]].orEmpty(),
+                    absences = absencesById[row[Workloads.appNaisId]].orEmpty(),
                 )
             }
         }

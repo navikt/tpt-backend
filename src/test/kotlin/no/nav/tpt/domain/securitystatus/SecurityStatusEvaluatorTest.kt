@@ -1,6 +1,7 @@
 package no.nav.tpt.domain.securitystatus
 
 import no.nav.tpt.domain.vulnerability.SlaPolicy
+import no.nav.tpt.domain.vulnerability.ResolutionGap
 import no.nav.tpt.domain.vulnerability.VulnerabilityLifecycle
 import java.time.Duration
 import java.time.Instant
@@ -156,7 +157,7 @@ class SecurityStatusEvaluatorTest {
     fun `should cap history at configured months`() {
         val status = evaluator.evaluate("team", emptyList(), listOf(workload(firstSeenDaysAgo = 900)), now)!!
 
-        assertEquals(7, status.history.size)
+        assertEquals(6, status.history.size)
     }
 
     @Test
@@ -211,5 +212,63 @@ class SecurityStatusEvaluatorTest {
         val status = evaluator.evaluate("team", vulns, listOf(workload(firstSeenDaysAgo = 200)), now)!!
 
         assertEquals(SecurityLevel.CHRONIC, status.level)
+    }
+
+    @Test
+    fun `should count exposure for a vulnerability that went overdue and was resolved the same day`() {
+        val discovered = now.minus(Duration.ofDays(5))
+        val deadline = SlaPolicy().evaluate("CRITICAL", discovered, discovered).deadline
+        val resolved = deadline.plus(Duration.ofHours(2))
+        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "CRITICAL", discovered, resolved)
+
+        val status = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
+
+        assertTrue(status.history.any { it != SecurityStatusColor.GREEN })
+    }
+
+    @Test
+    fun `should list same-named apps in different environments separately`() {
+        val vulns = listOf(
+            vuln(appId = "a-dev", appName = "app", discoveredDaysAgo = 20),
+            vuln(appId = "a-prod", appName = "app", discoveredDaysAgo = 20),
+        )
+        val workloads = listOf(workload(id = "a-dev"), workload(id = "a-prod"))
+
+        val status = evaluator.evaluate("team", vulns, workloads, now)!!
+
+        assertEquals(2, status.exposed.appsPastDeadline.size)
+    }
+
+    @Test
+    fun `should count workload without deployment using first seen time`() {
+        val status = evaluator.evaluate("team", emptyList(), listOf(workload(firstSeenDaysAgo = 100, deployedDaysAgo = null)), now)!!
+
+        assertEquals(1, status.maintenance.total)
+        assertEquals(0, status.maintenance.upToDate)
+        assertEquals(SecurityStatusColor.RED, status.maintenance.status)
+    }
+
+    @Test
+    fun `should not count time between resolution and reappearance as overdue`() {
+        val discovered = daysAgo(60)
+        val gap = ResolutionGap(daysAgo(50), daysAgo(1))
+        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "LOW", discovered, null, listOf(gap))
+        val flat = VulnerabilityLifecycle("team", "app-1", "app", "LOW", discovered, null)
+
+        val withGap = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
+        val without = evaluator.evaluate("team", listOf(flat), listOf(workload()), now)!!
+
+        val gapDays = withGap.history.count { it != SecurityStatusColor.GREEN }
+        val flatDays = without.history.count { it != SecurityStatusColor.GREEN }
+        assertTrue(gapDays <= flatDays)
+        assertEquals(SecurityStatusColor.GREEN, withGap.history.first())
+    }
+
+    @Test
+    fun `should not count workload as present during absence`() {
+        val absent = workload(firstSeenDaysAgo = 100).copy(absences = listOf(WorkloadAbsence(daysAgo(30), daysAgo(1))))
+        val status = evaluator.evaluate("team", emptyList(), listOf(absent), now)!!
+
+        assertEquals(1, status.maintenance.total)
     }
 }

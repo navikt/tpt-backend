@@ -18,3 +18,17 @@ CREATE TABLE workload_deployments (
     deployed_at TIMESTAMP    NOT NULL,
     PRIMARY KEY (app_nais_id, deployed_at)
 );
+
+CREATE TABLE workload_absences (
+    app_nais_id VARCHAR(255) NOT NULL REFERENCES workloads (app_nais_id) ON DELETE CASCADE,
+    removed_at  TIMESTAMP    NOT NULL,
+    returned_at TIMESTAMP    NOT NULL,
+    PRIMARY KEY (app_nais_id, removed_at)
+);
+
+CREATE TABLE vulnerability_resolution_gaps (
+    vulnerability_id INTEGER   NOT NULL REFERENCES workload_vulnerabilities (id) ON DELETE CASCADE,
+    resolved_at      TIMESTAMP NOT NULL,
+    reappeared_at    TIMESTAMP NOT NULL,
+    PRIMARY KEY (vulnerability_id, resolved_at)
+);
