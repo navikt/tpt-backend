@@ -534,6 +534,49 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /security-status:
+    get:
+      summary: Get security status for user's teams
+      description: |
+        Returns three compliance questions per team (exposed now, trend, maintenance), an overall level
+        and monthly history. History starts when TPT began recording the data and is capped at the configured
+        number of months, so it can contain fewer entries than the cap. Thresholds are configurable.
+      tags:
+        - Security status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: teams
+          in: query
+          required: false
+          description: Comma-separated team slugs. Intersected with the user's teams, so it can only narrow the result.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully computed security status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityStatusResponse'
+        '400':
+          description: Bad request - preferred_username claim not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /callbacks/github/vulnerabilities:
     post:
       summary: Deliver GitHub vulnerability data for one repository
@@ -1251,6 +1294,103 @@ components:
           nullable: true
           description: CVSS score for the vulnerability
           example: 7.0
+    SecurityStatusColor:
+      type: string
+      enum: [green, yellow, red]
+    SecurityStatusResponse:
+      type: object
+      required: [teams, generatedAt]
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSecurityStatus'
+        generatedAt:
+          type: string
+          format: date-time
+    TeamSecurityStatus:
+      type: object
+      required: [team, applicationCount, history, historyAvailableFrom, exposed, trend, maintenance]
+      properties:
+        team:
+          type: string
+        applicationCount:
+          type: integer
+        level:
+          type: string
+          nullable: true
+          enum: [new, ongoing, chronic]
+          description: Null when all three questions are green
+        history:
+          type: array
+          description: Worst overall status per calendar month, oldest first
+          items:
+            $ref: '#/components/schemas/SecurityStatusColor'
+        historyAvailableFrom:
+          type: string
+          format: date-time
+        exposed:
+          type: object
+          required: [status, appsPastDeadline]
+          properties:
+            status:
+              $ref: '#/components/schemas/SecurityStatusColor'
+            since:
+              type: string
+              format: date-time
+              nullable: true
+            appsPastDeadline:
+              type: array
+              items:
+                type: object
+                required: [app, workdaysOver]
+                properties:
+                  app:
+                    type: string
+                  workdaysOver:
+                    type: integer
+        trend:
+          type: object
+          required: [status, direction, appsWithOverduePerMonth]
+          properties:
+            status:
+              $ref: '#/components/schemas/SecurityStatusColor'
+            since:
+              type: string
+              format: date-time
+              nullable: true
+            direction:
+              type: string
+              enum: [worse, stable, improving]
+            appsWithOverduePerMonth:
+              type: array
+              description: Apps with overdue vulnerabilities at the end of each month in history, oldest first
+              items:
+                type: integer
+        maintenance:
+          type: object
+          required: [status, upToDate, total, overdueRebuild]
+          properties:
+            status:
+              $ref: '#/components/schemas/SecurityStatusColor'
+            since:
+              type: string
+              format: date-time
+              nullable: true
+            upToDate:
+              type: integer
+            total:
+              type: integer
+            overdueRebuild:
+              type: array
+              items:
+                type: object
+                required: [app, daysOver]
+                properties:
+                  app:
+                    type: string
+                  daysOver:
+                    type: integer
     SlaOverdueResponse:
       type: object
       required:

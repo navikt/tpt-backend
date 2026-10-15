@@ -45,6 +45,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── DataCollectorCallbackRoutes.kt         # Callbacks from tpt-data-collector (`/callbacks/*`, M2M only)
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── SseRoutes.kt                           # Server-Sent Events endpoint (`/events`)
+│   ├── SecurityStatusRoutes.kt                # Security status (compliance) endpoint
 │   ├── VulnerabilityRoutes.kt                 # NAIS vulnerability query endpoints
 │   ├── GitHubVulnerabilityRoutes.kt           # GitHub Dependabot vulnerability endpoints
 │   └── VulnerabilitySearchRoutes.kt           # Vulnerability search and SLA endpoints
@@ -78,6 +79,14 @@ src/test/                                      # Test suite mirroring main struc
 - `ADMIN_GROUPS` - Comma-separated Entra ID group IDs granted admin access
 - `SLA_CRITICAL_WORKDAYS` - SLA deadline for critical vulnerabilities, in workdays (default: `1`)
 - `SLA_NON_CRITICAL_MONTHS` - SLA deadline for non-critical vulnerabilities, in months (default: `3`)
+- `DEPLOY_MAX_AGE_DAYS` - Maximum days between deployments for security status maintenance (default: `60`)
+- `SECURITY_STATUS_RED_WORKDAYS` - Workdays overdue before the exposed status turns red (default: `5`)
+- `SECURITY_STATUS_MAINTENANCE_YELLOW_RATIO` - Share of up-to-date apps required for yellow maintenance (default: `0.75`)
+- `SECURITY_STATUS_TREND_WINDOW_DAYS` - Window for comparing new and resolved vulnerabilities (default: `30`)
+- `SECURITY_STATUS_TREND_STABLE_RATIO` - Relative difference treated as a stable trend (default: `0.05`)
+- `SECURITY_STATUS_HISTORY_MONTHS` - Maximum months of history in the security status (default: `6`)
+- `SECURITY_STATUS_LEVEL_NEW_WORKDAYS` - Workdays off track before the level changes from new to ongoing (default: `5`)
+- `SECURITY_STATUS_LEVEL_CHRONIC_MONTHS` - Months off track before the level becomes chronic (default: `3`)
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
