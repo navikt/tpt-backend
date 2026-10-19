@@ -58,7 +58,3 @@ fabrikt {
         }
     }
 }
-
-dependencyLocking {
-    lockAllConfigurations()
-}
