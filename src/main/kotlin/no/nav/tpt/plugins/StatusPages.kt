@@ -7,6 +7,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.ProblemDetail
 import org.slf4j.LoggerFactory
 
@@ -22,7 +24,7 @@ class NaisApiException(message: String, cause: Throwable? = null) : Exception(me
 fun Application.configureStatusPages() {
     install(StatusPages) {
         status(HttpStatusCode.Unauthorized) { call, status ->
-            call.respond(
+            call.respondProblem(
                 status,
                 ProblemDetail(
                     type = "about:blank",
@@ -35,7 +37,7 @@ fun Application.configureStatusPages() {
         }
 
         status(HttpStatusCode.Forbidden) { call, status ->
-            call.respond(
+            call.respondProblem(
                 status,
                 ProblemDetail(
                     type = "about:blank",
@@ -48,7 +50,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<BadRequestException> { call, cause ->
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.BadRequest,
                 ProblemDetail(
                     type = "about:blank",
@@ -61,7 +63,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<UnauthorizedException> { call, cause ->
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.Unauthorized,
                 ProblemDetail(
                     type = "about:blank",
@@ -74,7 +76,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<ForbiddenException> { call, cause ->
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.Forbidden,
                 ProblemDetail(
                     type = "about:blank",
@@ -87,7 +89,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<ServiceUnavailableException> { call, cause ->
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.ServiceUnavailable,
                 ProblemDetail(
                     type = "about:blank",
@@ -101,7 +103,7 @@ fun Application.configureStatusPages() {
 
         exception<NaisApiException> { call, cause ->
             logger.error("Nais API error for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.ServiceUnavailable,
                 ProblemDetail(
                     type = "about:blank",
@@ -115,7 +117,7 @@ fun Application.configureStatusPages() {
 
         exception<InternalServerException> { call, cause ->
             logger.error("${cause.context} for request ${call.request.httpMethod.value} ${call.request.uri}", cause.cause)
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.InternalServerError,
                 ProblemDetail(
                     type = "about:blank",
@@ -129,7 +131,7 @@ fun Application.configureStatusPages() {
 
         exception<SerializationException> { call, cause ->
             logger.warn("Serialization error for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.BadRequest,
                 ProblemDetail(
                     type = "about:blank",
@@ -144,7 +146,7 @@ fun Application.configureStatusPages() {
         exception<Exception> { call, cause ->
             if (cause is ClosedWriteChannelException) return@exception
             logger.error("Unhandled exception for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
-            call.respond(
+            call.respondProblem(
                 HttpStatusCode.InternalServerError,
                 ProblemDetail(
                     type = "about:blank",
@@ -156,4 +158,12 @@ fun Application.configureStatusPages() {
             )
         }
     }
+}
+
+private suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, problem: ProblemDetail) {
+    respondText(
+        text = Json.encodeToString(problem),
+        contentType = ContentType("application", "problem+json"),
+        status = status
+    )
 }

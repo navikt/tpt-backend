@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Titt-På-Ting Backend API
-  description: API to help developers prioritize which security issues to fix first. Fetches vulnerability data from NAIS, enriches with KEV/EPSS data via GCVE, and returns prioritized results.
+  description: API to help developers prioritize which security issues to fix first. Fetches vulnerability data from NAIS and GitHub, enriches vulnerability metadata via GCVE, and returns prioritized results.
   version: 0.0.1
   contact:
     name: Appsec
@@ -9,7 +9,7 @@ servers:
   - url: http://localhost:8080
     description: Local development server
 paths:
-  /isalive:
+  /internal/isalive:
     get:
       summary: Liveness probe
       description: Returns liveness status of the application
@@ -23,10 +23,10 @@ paths:
               schema:
                 type: string
                 example: A-OK
-  /isready:
+  /internal/isready:
     get:
       summary: Readiness probe
-      description: Returns readiness status of the application
+      description: Returns readiness status of the application, including the SSE event listener when configured
       tags:
         - Health
       responses:
@@ -37,6 +37,92 @@ paths:
               schema:
                 type: string
                 example: KIROV REPORTING
+        '503':
+          description: Application is not ready
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: SSE event listener not ready
+  /internal/metrics:
+    get:
+      summary: Get application metrics
+      description: Returns application metrics in Prometheus text format
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Application metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+  /datacollector:
+    post:
+      summary: Trigger data collection for the authenticated user's teams
+      description: Starts data collection for the teams associated with the authenticated user.
+      tags:
+        - Data collector
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Data collection accepted
+        '400':
+          description: Bad request - preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid token or user has no teams
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /checks:
+    get:
+      summary: Get check results for the authenticated user's teams
+      description: Returns the latest data-collector check results grouped by repository.
+      tags:
+        - Data collector
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Check results grouped by repository
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CheckResult'
+        '400':
+          description: Bad request - preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid token or user has no teams
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /config:
     get:
       summary: Get application configuration
@@ -350,12 +436,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VulnerabilityResponse'
-        '400':
-          description: Bad request - missing teamSlug parameter
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
         '401':
           description: Unauthorized - missing or invalid bearer token
           content:
@@ -437,7 +517,7 @@ paths:
                   message:
                     type: string
                 example:
-                  message: "Full vulnerability sync started. Check application logs for progress."
+                  message: "Full vulnerability sync started on leader pod. Check application logs for progress."
         '401':
           description: Unauthorized - missing or invalid bearer token
           content:
@@ -583,11 +663,11 @@ paths:
       description: |
         Callback from tpt-data-collector with the GitHub vulnerability data for a single repository
         Replaces the stored teams and vulnerabilities for the repository. Unknown fields are ignored.
-        Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
+        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
       tags:
         - Data collector callbacks
       security:
-        - bearerAuth: []
+        - dataCollectorBearerAuth: []
       requestBody:
         required: true
         content:
@@ -610,11 +690,11 @@ paths:
         Callback from tpt-data-collector with check results for a single repository. Existing results with
         the same repository and check name are replaced.
         Unknown fields are ignored.
-        Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
+        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
       tags:
         - Data collector callbacks
       security:
-        - bearerAuth: []
+        - dataCollectorBearerAuth: []
       requestBody:
         required: true
         content:
@@ -636,11 +716,11 @@ paths:
       description: |
         Callback from tpt-data-collector. Written to the SSE event log and delivered to clients as a
         `github_vuln_sync_started` event.
-        Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
+        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
       tags:
         - Data collector callbacks
       security:
-        - bearerAuth: []
+        - dataCollectorBearerAuth: []
       requestBody:
         required: true
         content:
@@ -662,11 +742,11 @@ paths:
       description: |
         Callback from tpt-data-collector. Written to the SSE event log and delivered to clients as a
         `github_vuln_sync_complete` event.
-        Only accepts Entra ID machine-to-machine tokens from applications in the inbound access policy.
+        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
       tags:
         - Data collector callbacks
       security:
-        - bearerAuth: []
+        - dataCollectorBearerAuth: []
       requestBody:
         required: true
         content:
@@ -693,7 +773,7 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     CallbackUnauthorized:
-      description: Unauthorized - missing or invalid bearer token, or not a machine-to-machine token
+      description: Unauthorized - missing or invalid token, not a machine-to-machine token, or not issued to tpt-data-collector
       content:
         application/problem+json:
           schema:
@@ -710,7 +790,39 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Bearer token authentication using JWT
+    dataCollectorBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Machine-to-machine JWT issued to the tpt-data-collector application for the current cluster.
   schemas:
+    CheckResult:
+      type: object
+      description: The `reasons` property is required when `type` is `NeedsWork`.
+      required:
+        - type
+        - name
+        - whenChecked
+      properties:
+        type:
+          type: string
+          enum: [AllGood, NeedsWork]
+        name:
+          type: string
+        desc:
+          type: string
+          default: missing desc
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, UNKNOWN]
+          default: UNKNOWN
+        whenChecked:
+          type: string
+          format: date-time
+        reasons:
+          type: array
+          items:
+            type: string
     GitHubRepositoryCallback:
       type: object
       required:
@@ -794,32 +906,7 @@ components:
         results:
           type: array
           items:
-            type: object
-            required:
-              - type
-              - name
-              - whenChecked
-            properties:
-              type:
-                type: string
-                enum: [AllGood, NeedsWork]
-              name:
-                type: string
-              desc:
-                type: string
-                default: missing desc
-              severity:
-                type: string
-                enum: [LOW, MEDIUM, HIGH, UNKNOWN]
-                default: UNKNOWN
-              whenChecked:
-                type: string
-                format: date-time
-              reasons:
-                type: array
-                description: Required when `type` is `NeedsWork`
-                items:
-                  type: string
+            $ref: '#/components/schemas/CheckResult'
     GitHubSyncSignal:
       type: object
       required:
@@ -976,12 +1063,13 @@ components:
         riskScore:
           type: number
           format: double
-          description: Calculated risk score (0–100 point additive model). Sum of five weighted categories — severity, exploitation evidence, exposure, environment context, and actionability. Suppressed vulnerabilities receive 20% of their calculated score. Higher scores indicate higher priority.
+          description: Uncapped additive risk score from five weighted categories — severity, exploitation evidence, exposure, environment context, and actionability. Suppressed vulnerabilities receive 20% of their calculated score. Higher scores indicate higher priority.
           example: 68.0
         riskScoreBreakdown:
+          type: object
+          nullable: true
           allOf:
             - $ref: '#/components/schemas/RiskScoreBreakdown'
-          nullable: true
           description: Detailed breakdown of how the risk score was calculated
         dependencyScope:
           type: string
@@ -1033,8 +1121,6 @@ components:
       required:
         - totalScore
         - factors
-        - suppressed
-        - vexNotAffected
       properties:
         factors:
           type: array
@@ -1044,14 +1130,16 @@ components:
         totalScore:
           type: number
           format: double
-          description: Final calculated risk score (0–100, reduced to 20% if suppressed)
+          description: Final calculated additive risk score, reduced to 20% if suppressed
           example: 68.0
         suppressed:
           type: boolean
+          default: false
           description: Whether the score was reduced by the suppression multiplier (0.2x). When true, totalScore = sum(factor.points) * 0.2
           example: false
         vexNotAffected:
           type: boolean
+          default: false
           description: Whether the package version was confirmed outside all affected version ranges (VEX). When true, score is further reduced by 0.5x
           example: false
     RiskFactorExplanation:
@@ -1266,12 +1354,13 @@ components:
         riskScore:
           type: number
           format: double
-          description: Calculated risk score (0–100 point additive model). Higher scores indicate higher priority vulnerabilities.
+          description: Uncapped additive risk score from five weighted categories. Higher scores indicate higher priority vulnerabilities.
           example: 68.0
         riskScoreBreakdown:
+          type: object
+          nullable: true
           allOf:
             - $ref: '#/components/schemas/RiskScoreBreakdown'
-          nullable: true
           description: Detailed breakdown of how the risk score was calculated
         dependencyScope:
           type: string
@@ -1458,11 +1547,13 @@ components:
           example: 45
         criticalOverdueItems:
           type: array
+          nullable: true
           items:
             $ref: '#/components/schemas/OverdueItem'
           description: Optional list of critical vulnerabilities that are overdue
         nonCriticalOverdueItems:
           type: array
+          nullable: true
           items:
             $ref: '#/components/schemas/OverdueItem'
           description: Optional list of non-critical vulnerabilities that are overdue
@@ -1484,6 +1575,7 @@ components:
           example: "my-application"
         severity:
           type: string
+          nullable: true
           description: Vulnerability severity
           example: "CRITICAL"
         daysOverdue:
@@ -1493,6 +1585,7 @@ components:
           example: 5
         workdaysOverdue:
           type: integer
+          nullable: true
           description: Number of workdays overdue (only for critical vulnerabilities)
           example: 3
 
