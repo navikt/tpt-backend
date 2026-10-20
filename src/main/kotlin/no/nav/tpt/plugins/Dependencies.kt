@@ -13,12 +13,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import no.nav.tpt.domain.admin.AdminService
+import no.nav.tpt.domain.securitystatus.SecurityStatusEvaluator
 import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.SlaConfig
 import no.nav.tpt.domain.vulnerability.SlaPolicy
 import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
+import no.nav.tpt.infrastructure.securitystatus.SecurityStatusService
+import no.nav.tpt.infrastructure.securitystatus.WorkloadRepositoryImpl
 import no.nav.tpt.infrastructure.admin.AdminReportRepository
 import no.nav.tpt.infrastructure.admin.AdminReportRepositoryImpl
 import no.nav.tpt.infrastructure.admin.AdminServiceImpl
@@ -57,6 +60,7 @@ import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
+import no.nav.tpt.infrastructure.vulnerability.StaleTeamSyncTrigger
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityTeamSyncService
 
 @Suppress("unused")
@@ -77,6 +81,7 @@ class Dependencies(
     val gitHubVulnerabilityService: GitHubVulnerabilityService,
     val vulnerabilityDataSyncJob: VulnerabilityDataSyncJob,
     val vulnerabilitySearchService: VulnerabilitySearchService,
+    val securityStatusService: SecurityStatusService,
     val vulnerabilityTeamSyncService: VulnerabilityTeamSyncService,
     val gcveRepository: GcveRepository,
     val gcveSyncService: GcveSyncService,
@@ -142,6 +147,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl(slaPolicy)
 
+    val workloadRepository = WorkloadRepositoryImpl()
+
     val sseEventBus = SseEventBus()
     val sseEventLogRepository = SseEventLogRepository(database)
     val sseEventLogListener = SseEventLogListener(
@@ -154,6 +161,10 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         naisApiService = naisApiClient,
         vulnerabilityRepository = vulnerabilityRepository,
         sseEventPublisher = sseEventLogRepository,
+        workloadRepository = workloadRepository,
+        resolvedRetention = java.time.Duration.ofDays(
+            config.securityStatus.historyMonths * 31 + config.securityStatus.trendWindowDays
+        ),
     )
 
     val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
@@ -192,6 +203,18 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
 
     val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository, slaPolicy)
 
+    val securityStatusService = SecurityStatusService(
+        vulnerabilityRepository = vulnerabilityRepository,
+        workloadRepository = workloadRepository,
+        evaluator = SecurityStatusEvaluator(slaPolicy, config.securityStatus),
+        staleTeamSyncTrigger = StaleTeamSyncTrigger(
+            vulnerabilityRepository,
+            vulnerabilityTeamSyncService,
+            CoroutineScope(application.coroutineContext + Dispatchers.IO),
+        ),
+        config = config.securityStatus,
+    )
+
     val adminService = AdminServiceImpl(
         adminReportRepository = adminReportRepository,
     )
@@ -219,6 +242,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = vulnerabilityDataSyncJob,
         vulnerabilitySearchService = vulnerabilitySearchService,
+        securityStatusService = securityStatusService,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         gcveRepository = gcveRepository,
         gcveSyncService = gcveSyncService,

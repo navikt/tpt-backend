@@ -2,11 +2,8 @@ package no.nav.tpt.infrastructure.datacollector
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import java.time.temporal.ChronoUnit
 import kotlin.test.Test
-import kotlin.time.Clock
-import kotlin.time.toJavaInstant
-import kotlin.time.toKotlinInstant
+import kotlin.time.Instant
 import kotlinx.coroutines.test.runTest
 import no.nav.tpt.infrastructure.datacollector.Severity.HIGH
 import no.nav.tpt.infrastructure.datacollector.Severity.LOW
@@ -21,8 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 
 @Testcontainers
 class DataCollectorRepositoryTest {
-    // Dirty trick to truncate the Kotlin Instant to milliseconds
-    val now = Clock.System.now().toJavaInstant().truncatedTo(ChronoUnit.MILLIS).toKotlinInstant()
+    private val now = Instant.parse("2026-10-20T12:00:00Z")
 
     companion object {
         @Container

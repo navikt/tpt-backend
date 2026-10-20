@@ -142,6 +142,21 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         slaPolicy = no.nav.tpt.domain.vulnerability.SlaPolicy(),
     )
     
+    val mockSecurityStatusService = no.nav.tpt.infrastructure.securitystatus.SecurityStatusService(
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        workloadRepository = no.nav.tpt.infrastructure.securitystatus.InMemoryWorkloadRepository(),
+        evaluator = no.nav.tpt.domain.securitystatus.SecurityStatusEvaluator(
+            no.nav.tpt.domain.vulnerability.SlaPolicy(),
+            no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
+        ),
+        staleTeamSyncTrigger = no.nav.tpt.infrastructure.vulnerability.StaleTeamSyncTrigger(
+            mockVulnerabilityRepository,
+            mockVulnerabilityTeamSyncService,
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO),
+        ),
+        config = no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
+    )
+
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
         adminReportRepository = mockAdminReportRepository,
     )
@@ -177,6 +192,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
+        securityStatusService = mockSecurityStatusService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         gcveRepository = localGcveRepository,
         gcveSyncService = no.nav.tpt.infrastructure.gcve.GcveSyncService(

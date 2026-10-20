@@ -29,6 +29,7 @@ import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.sseRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.securityStatusRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import kotlin.time.Duration.Companion.seconds
@@ -146,6 +147,21 @@ fun Application.installTestDependencies(
         slaPolicy = no.nav.tpt.domain.vulnerability.SlaPolicy(),
     )
 
+    val mockSecurityStatusService = no.nav.tpt.infrastructure.securitystatus.SecurityStatusService(
+        vulnerabilityRepository = mockVulnerabilityRepository,
+        workloadRepository = no.nav.tpt.infrastructure.securitystatus.InMemoryWorkloadRepository(),
+        evaluator = no.nav.tpt.domain.securitystatus.SecurityStatusEvaluator(
+            no.nav.tpt.domain.vulnerability.SlaPolicy(),
+            no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
+        ),
+        staleTeamSyncTrigger = no.nav.tpt.infrastructure.vulnerability.StaleTeamSyncTrigger(
+            mockVulnerabilityRepository,
+            mockVulnerabilityTeamSyncService,
+            this,
+        ),
+        config = no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
+    )
+
     val mockAdminService = no.nav.tpt.infrastructure.admin.AdminServiceImpl(
         adminReportRepository = mockAdminReportRepository,
     )
@@ -171,6 +187,7 @@ fun Application.installTestDependencies(
         gitHubVulnerabilityService = gitHubVulnerabilityService,
         vulnerabilityDataSyncJob = mockVulnerabilityDataSyncJob,
         vulnerabilitySearchService = mockVulnerabilitySearchService,
+        securityStatusService = mockSecurityStatusService,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         gcveRepository = mockGcveRepository,
         gcveSyncService = mockGcveSyncService,
@@ -226,6 +243,7 @@ fun Application.testModule(
         vulnerabilityRoutes()
         gitHubVulnerabilityRoutes()
         vulnerabilitySearchRoutes()
+        securityStatusRoutes()
         adminRoutes()
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()

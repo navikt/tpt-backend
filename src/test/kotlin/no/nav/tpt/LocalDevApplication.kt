@@ -23,6 +23,7 @@ import no.nav.tpt.routes.configRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
 import no.nav.tpt.routes.naisRoutes
 import no.nav.tpt.routes.gitHubVulnerabilityRoutes
+import no.nav.tpt.routes.securityStatusRoutes
 import no.nav.tpt.routes.vulnerabilityRoutes
 import no.nav.tpt.routes.vulnerabilitySearchRoutes
 import no.nav.tpt.routes.sseRoutes
@@ -66,6 +67,7 @@ fun Application.localDevModule() {
         naisRoutes()
         configRoutes()
         vulnerabilitySearchRoutes()
+        securityStatusRoutes()
         vulnerabilityRoutes()
         gitHubVulnerabilityRoutes()
         dataCollectorRoutes()

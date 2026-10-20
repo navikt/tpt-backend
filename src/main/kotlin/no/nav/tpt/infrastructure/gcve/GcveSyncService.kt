@@ -26,7 +26,9 @@ class GcveSyncService(
         val since = sinceInstant.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val trackedCveIds = gcveRepository.getTrackedCveIds()
         logger.info("Starting GCVE incremental sync since=$since, tracked CVEs: ${trackedCveIds.size}")
-        return performIncrementalSync(since = since, trackedCveIds = trackedCveIds)
+        val incrementalUpserted = performIncrementalSync(since = since, trackedCveIds = trackedCveIds)
+        val backfillUpserted = backfillMissingTrackedCves(trackedCveIds)
+        return incrementalUpserted + backfillUpserted
     }
 
     suspend fun performIncrementalSync(
@@ -90,6 +92,49 @@ class GcveSyncService(
             throw e
         } catch (e: Exception) {
             logger.warn("Failed to publish gcve_sync_complete SSE event", e)
+        }
+
+        return totalUpserted
+    }
+
+    private suspend fun backfillMissingTrackedCves(trackedCveIds: Set<String>): Int {
+        if (trackedCveIds.isEmpty()) {
+            logger.debug("No tracked CVEs to backfill")
+            return 0
+        }
+
+        val storedCveIds = gcveRepository.getAllStoredCveIds()
+        val missingCveIds = trackedCveIds - storedCveIds
+
+        if (missingCveIds.isEmpty()) {
+            logger.debug("All tracked CVEs already have GCVE data")
+            return 0
+        }
+
+        logger.info("Backfilling ${missingCveIds.size} tracked CVEs missing GCVE data")
+        var totalUpserted = 0
+
+        for (cveId in missingCveIds) {
+            try {
+                val record = gcveClient.getVulnerability(cveId)
+                if (record != null) {
+                    val domainModel = GcveCveRecord.toDomainModel(record)
+                    val rawResponse = json.encodeToString(GcveCveRecord.serializer(), record)
+                    val stats = gcveRepository.upsertCve(domainModel, rawResponse)
+                    totalUpserted += stats.added + stats.updated
+                    logger.debug("Backfilled $cveId")
+                } else {
+                    logger.debug("CVE $cveId not found in GCVE (may not be published yet)")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.warn("Failed to backfill $cveId: ${e.message}")
+            }
+        }
+
+        if (totalUpserted > 0) {
+            logger.info("GCVE backfill complete. Upserted $totalUpserted CVEs")
         }
 
         return totalUpserted
