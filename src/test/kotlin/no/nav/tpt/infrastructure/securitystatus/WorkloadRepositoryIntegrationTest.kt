@@ -11,7 +11,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -52,8 +51,8 @@ class WorkloadRepositoryIntegrationTest {
     @Test
     fun `should keep first seen, accumulate deployments and mark missing workloads removed`() = runTest {
         val team = "workload-team"
-        val first = Instant.now().minusSeconds(86400).truncatedTo(ChronoUnit.MILLIS)
-        val second = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+        val first = Instant.parse("2026-10-19T12:00:00Z")
+        val second = first.plusSeconds(86400)
         val deploy1 = first.minusSeconds(1000)
         val deploy2 = second.minusSeconds(500)
 
