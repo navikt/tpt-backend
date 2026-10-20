@@ -146,9 +146,10 @@ class DataCollectorCallbackIntegrationTest {
         postCallback("/callbacks/checks", checksPayload(repoName, "team-callback"))
 
         runBlocking {
-            val results = dataCollectorRepository.allForOwner(listOf("team-callback"))[repoName]
+            val results = dataCollectorRepository.allForOwner(listOf("team-callback"))
+                .singleOrNull { it.repoName == repoName }
             assertNotNull(results)
-            assertEquals(listOf("branch-protection", "codeowners"), results.map { it.name }.sorted())
+            assertEquals(listOf("branch-protection", "codeowners"), results.results.map { it.name }.sorted())
         }
     }
 
