@@ -9,23 +9,23 @@ updates:
         patterns:
         - "*"
     cooldown:
-      default-days: 7
+      default-days: 3
 
   - package-ecosystem: gradle
     directory: "/"
     schedule:
       interval: weekly
-    groups:
-      gradle:
-        patterns:
-        - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      gradle-major:
-        patterns:
-        - "*"
-        update-types:
-          - "major"
+  #  groups:
+ #     gradle:
+ #       patterns:
+ #       - "*"
+ #       update-types:
+ #         - "minor"
+ #         - "patch"
+#      gradle-major:
+#        patterns:
+#        - "*"
+#        update-types:
+#          - "major"
     cooldown:
-      default-days: 7
+      default-days: 3
