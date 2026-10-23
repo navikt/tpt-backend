@@ -23,6 +23,10 @@ repositories {
     mavenCentral()
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 dependencies {
     implementation(libs.bundles.ktor)
     implementation(libs.bundles.logging)
