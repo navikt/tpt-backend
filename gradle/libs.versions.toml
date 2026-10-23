@@ -11,7 +11,7 @@ jakarta-validation = "3.1.1"
 postgresql = "42.7.14"
 exposed = "1.5.1"
 hikaricp = "7.1.0"
-flyway = "13.10.0"
+flyway = "13.10.3"
 ulid = "8.3.0"
 micrometer = "1.17.1"
 
