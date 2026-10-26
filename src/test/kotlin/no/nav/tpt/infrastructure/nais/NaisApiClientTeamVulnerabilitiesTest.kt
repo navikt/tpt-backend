@@ -7,6 +7,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -669,13 +670,23 @@ class NaisApiClientTeamVulnerabilitiesTest {
     @Test
     fun `should paginate vulnerabilities for multiple workloads in parallel`() =
         runTest {
-            var requestCount = 0
+            val requestCount = AtomicInteger(0)
             val mockEngine =
-                MockEngine {
-                    requestCount++
+                MockEngine { request ->
+                    requestCount.incrementAndGet()
+                    val graphqlRequest =
+                        Json.decodeFromString<TeamWorkloadVulnerabilitiesRequest>(
+                            request.body.toByteArray().decodeToString(),
+                        )
                     val responseJson =
-                        when (requestCount) {
-                            1 -> {
+                        when {
+                            graphqlRequest.query == JOB_VULNERABILITIES_FOR_TEAM_QUERY -> {
+                                """{ "data": { "team": { "slug": "test-team",
+                    "jobs": { "pageInfo": { "hasNextPage": false, "endCursor": null }, "nodes": [] }
+                  }}}"""
+                            }
+
+                            graphqlRequest.variables.vulnAfter == null -> {
                                 """
                     {
                       "data": { "team": { "slug": "test-team", "applications": {
@@ -699,12 +710,6 @@ class NaisApiClientTeamVulnerabilitiesTest {
                       }}}
                     }
                     """
-                            }
-
-                            4 -> {
-                                """{ "data": { "team": { "slug": "test-team",
-                    "jobs": { "pageInfo": { "hasNextPage": false, "endCursor": null }, "nodes": [] }
-                  }}}"""
                             }
 
                             else -> {
@@ -746,6 +751,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
             val response = naisApiClient.getVulnerabilitiesForTeam("test-team")
 
             assertNotNull(response)
+            assertEquals(4, requestCount.get())
             val workloads = response.teams.first().workloads
             assertEquals(2, workloads.size)
             val app1Vulns =
@@ -770,16 +776,20 @@ class NaisApiClientTeamVulnerabilitiesTest {
             val inFlight = AtomicInteger(0)
             val peakConcurrency = AtomicInteger(0)
 
-            // Build initial apps response: 8 workloads, each needing one more vuln page
             fun workloadNode(
                 id: Int,
                 hasNextPage: Boolean,
                 cursor: String?,
+                identifier: String = "CVE-000$id",
             ) = """
             { "id": "app-$id", "name": "app-$id", "ingresses": [], "deployments": { "nodes": [] },
               "image": { "name": "app-$id", "tag": "1.0.0", "vulnerabilities": {
-                "pageInfo": { "hasNextPage": $hasNextPage, "endCursor": ${if (cursor != null) "\"$cursor\"" else "null"} },
-                "nodes": [{ "identifier": "CVE-000$id", "description": "v", "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/CVE-000$id", "severity": "HIGH", "package": "pkg", "suppression": null }]
+                "pageInfo": {
+                  "hasNextPage": $hasNextPage, "endCursor": ${if (cursor != null) "\"$cursor\"" else "null"}
+                },
+                "nodes": [{ "identifier": "$identifier", "description": "v",
+                  "vulnerabilityDetailsLink": "https://nvd.nist.gov/vuln/detail/$identifier",
+                  "severity": "HIGH", "package": "pkg", "suppression": null }]
               }}}
         """
             val appsNodes = (1..8).joinToString(",") { workloadNode(it, true, "cursor-$it") }
@@ -789,58 +799,62 @@ class NaisApiClientTeamVulnerabilitiesTest {
             val jobsResponse = """{ "data": { "team": { "slug": "t",
             "jobs": { "pageInfo": { "hasNextPage": false, "endCursor": null }, "nodes": [] } } } }"""
 
-            var requestCount = 0
+            val requestCount = AtomicInteger(0)
             val mockEngine =
-                MockEngine {
-                    val reqNum = ++requestCount
-                    when {
-                        reqNum == 1 -> {
-                            respond(
-                                content = ByteReadChannel(initialResponse),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-
-                        reqNum == 10 -> {
-                            respond( // jobs query (1 initial + 8 pagination + 1 jobs)
-                                content = ByteReadChannel(jobsResponse),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-
-                        else -> {
-                            // Pagination request — track concurrency, simulate latency
-                            val current = inFlight.incrementAndGet()
-                            peakConcurrency.getAndUpdate { maxOf(it, current) }
-                            delay(100) // yields so other coroutines can interleave
-                            inFlight.decrementAndGet()
-                            val appId = reqNum - 1 // approximate
-                            respond(
-                                content =
-                                    ByteReadChannel(
+                MockEngine(
+                    MockEngineConfig().apply {
+                        dispatcher = StandardTestDispatcher(testScheduler)
+                        addHandler { request ->
+                            requestCount.incrementAndGet()
+                            val graphqlRequest =
+                                Json.decodeFromString<TeamWorkloadVulnerabilitiesRequest>(
+                                    request.body.toByteArray().decodeToString(),
+                                )
+                            val cursor = graphqlRequest.variables.vulnAfter
+                            val responseJson = when {
+                                graphqlRequest.query == JOB_VULNERABILITIES_FOR_TEAM_QUERY -> jobsResponse
+                                cursor == null -> initialResponse
+                                else -> {
+                                    val appId = cursor.removePrefix("cursor-").toInt()
+                                    require(appId in 1..8)
+                                    val current = inFlight.incrementAndGet()
+                                    peakConcurrency.getAndUpdate { maxOf(it, current) }
+                                    try {
+                                        delay(100)
+                                        val node = workloadNode(appId, false, null, "CVE-100$appId")
                                         """{ "data": { "team": { "slug": "t", "applications": {
-                            "pageInfo": { "hasNextPage": false, "endCursor": null },
-                            "nodes": [{ "id": "app-$appId", "name": "app-$appId", "ingresses": [], "deployments": { "nodes": [] },
-                              "image": { "name": "app-$appId", "tag": "1.0.0", "vulnerabilities": {
-                                "pageInfo": { "hasNextPage": false, "endCursor": null },
-                                "nodes": [] } } }] } } } }""",
-                                    ),
+                            "pageInfo": { "hasNextPage": false, "endCursor": null }, "nodes": [$node] } } } }"""
+                                    } finally {
+                                        inFlight.decrementAndGet()
+                                    }
+                                }
+                            }
+                            respond(
+                                content = ByteReadChannel(responseJson),
                                 status = HttpStatusCode.OK,
                                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
                             )
                         }
-                    }
-                }
+                    },
+                )
 
             val httpClient = createTestHttpClient(mockEngine)
             val naisApiClient = NaisApiClient(httpClient, "https://api.nais.io", tokenFile.absolutePath)
 
-            naisApiClient.getVulnerabilitiesForTeam("t")
+            val response = naisApiClient.getVulnerabilitiesForTeam("t")
 
-            assertEquals(8, requestCount - 2, "Should have made one pagination request per workload")
-            assertTrue(peakConcurrency.get() <= 4, "Peak concurrency was ${peakConcurrency.get()}, expected <= 4")
+            assertEquals(8, requestCount.get() - 2, "Should have made one pagination request per workload")
+            assertEquals(4, peakConcurrency.get(), "Should paginate four workloads concurrently")
+            val workloads = response.teams.single().workloads
+            assertEquals((1..8).map { "app-$it" }.toSet(), workloads.map { it.name }.toSet())
+            workloads.forEach { workload ->
+                val appId = workload.name.removePrefix("app-")
+                assertEquals(
+                    setOf("CVE-000$appId", "CVE-100$appId"),
+                    workload.vulnerabilities.map { it.identifier }.toSet(),
+                    "Should collect both vulnerability pages for ${workload.name}",
+                )
+            }
         }
 
     private fun createTestHttpClient(mockEngine: MockEngine) =
