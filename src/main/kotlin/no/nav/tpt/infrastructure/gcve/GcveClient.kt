@@ -40,6 +40,11 @@ class GcveClient(
     )
 
     suspend fun getVulnerability(cveId: String): GcveCveRecord? {
+        if (!cveId.startsWith("CVE-", ignoreCase = true)) {
+            logger.debug("Skipping non-CVE advisory $cveId: GCVE enrichment requires CVE Record v5")
+            return null
+        }
+
         if (circuitBreaker.isOpen()) {
             logger.warn("Circuit breaker is OPEN - skipping GCVE API call for $cveId")
             return null

@@ -148,6 +148,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - Supports search by team, CVE, severity, ingress type
 
 **GCVE data:** Incremental sync every 2 hours on the elected leader. `gcve_sync_complete` is recorded in PostgreSQL after each run. Missing CVEs are fetched on demand via the miss path (async, fire-and-forget). Stores KEV, EPSS, SSVC, CVSS, ransomware campaign signal per CVE.
+Backfill and single-record enrichment only fetch `CVE-` IDs; RHSA, PYSEC and GHSA advisories are not parsed as CVE records.
 
 **SSE Events (`GET /events`, authenticated):**
 - `team_sync_started` — backend is fetching fresh vulnerability data for a team

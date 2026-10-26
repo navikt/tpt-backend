@@ -104,10 +104,11 @@ class GcveSyncService(
         }
 
         val storedCveIds = gcveRepository.getAllStoredCveIds()
-        val missingCveIds = trackedCveIds - storedCveIds
+        val missingCveIds = (trackedCveIds - storedCveIds)
+            .filter { it.startsWith("CVE-", ignoreCase = true) }
 
         if (missingCveIds.isEmpty()) {
-            logger.debug("All tracked CVEs already have GCVE data")
+            logger.debug("No tracked CVEs need GCVE backfill")
             return 0
         }
 

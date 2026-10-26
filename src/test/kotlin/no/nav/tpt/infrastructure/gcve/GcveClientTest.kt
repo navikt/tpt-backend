@@ -50,6 +50,26 @@ class GcveClientTest {
     }
 
     @Test
+    fun `should skip non-CVE advisory IDs without making HTTP requests`() = runTest {
+        var requestCount = 0
+        val mockEngine = MockEngine { request ->
+            requestCount++
+            respond(
+                content = """{"id": "${request.url.rawSegments.last()}", "containers": {}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = createClient(mockEngine)
+
+        for (id in listOf("RHSA-2026:65339", "PYSEC-2026-2275", "GHSA-q4gf-8mx6-v5v3")) {
+            assertNull(client.getVulnerability(id))
+        }
+
+        assertEquals(0, requestCount)
+    }
+
+    @Test
     fun `should return null for 404`() = runTest {
         val mockEngine = MockEngine {
             respond(content = "Not Found", status = HttpStatusCode.NotFound)

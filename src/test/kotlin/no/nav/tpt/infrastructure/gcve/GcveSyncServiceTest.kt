@@ -31,6 +31,42 @@ class GcveSyncServiceTest {
     }
 
     @Test
+    fun `should backfill missing CVEs without fetching non-CVE advisories on repeated scheduled syncs`() = runTest {
+        val gcveRepository = InMemoryGcveRepository()
+        val advisoryIds = setOf("RHSA-2026:65339", "PYSEC-2026-2275", "GHSA-q4gf-8mx6-v5v3")
+        gcveRepository.setTrackedCveIds(advisoryIds + "CVE-2021-44228")
+        val requestedIds = mutableListOf<String>()
+
+        val mockEngine = MockEngine { request ->
+            val id = request.url.rawSegments.last()
+            val content = when (id) {
+                "" -> "[]"
+                "CVE-2021-44228" -> {
+                    requestedIds.add(id)
+                    GcveModelsTest.LOG4J_RESPONSE
+                }
+                else -> {
+                    requestedIds.add(id)
+                    """{"id": "$id", "containers": {}}"""
+                }
+            }
+            respond(
+                content = content,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val syncService = GcveSyncService(createGcveClient(mockEngine), gcveRepository)
+
+        assertEquals(1, syncService.performScheduledIncrementalSync())
+        assertEquals(0, syncService.performScheduledIncrementalSync())
+        assertEquals(listOf("CVE-2021-44228"), requestedIds)
+        assertNotNull(gcveRepository.getCveData("CVE-2021-44228"))
+        advisoryIds.forEach { assertNull(gcveRepository.getCveData(it)) }
+    }
+
+    @Test
     fun `should only upsert CVEs that exist in tracked set`() = runTest {
         val gcveRepository = InMemoryGcveRepository()
         val trackedCveIds = setOf("CVE-2026-54431")
