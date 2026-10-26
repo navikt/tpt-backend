@@ -7,16 +7,16 @@ workflows:
         - 'navikt/automerge-dependabot@v1.5'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-java@v6.0.1'
-        - 'github/codeql-action@v4.38.2'
+        - 'actions/setup-java@v6.1.0'
+        - 'github/codeql-action@v4.39.1'
         - 'gradle/actions@v6.4.0'
     '.github/workflows/main.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-java@v6.0.1'
+        - 'actions/setup-java@v6.1.0'
         - 'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25'
-        - 'github/codeql-action@v4.38.2'
+        - 'github/codeql-action@v4.39.1'
         - 'gradle/actions@v6.4.0'
-        - 'nais/deploy@9850be311389ca754d9a9f2280615419d738c891'
+        - 'nais/deploy@6a9dcd6df697ec2d38edc78cadb0b9acd1232f50'
         - 'nais/docker-build-push@v0'
         - 'nais/login@40b72a35a18ddf2ad74b632461139ab838cc2a2f'
 dependencies:
@@ -45,9 +45,9 @@ dependencies:
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
-    'actions/setup-java@v6.0.1':
-        ref: 'v6.0.1'
-        commit: 'sha1-de7274f081f381c8f8158605e0321c36c376e2e6'
+    'actions/setup-java@v6.1.0':
+        ref: 'v6.1.0'
+        commit: 'sha1-b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
         owner_id: 44036562
         repo_id: 196057608
     'aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514':
@@ -86,9 +86,9 @@ dependencies:
         commit: 'sha1-4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd'
         owner_id: 5429470
         repo_id: 288485773
-    'github/codeql-action@v4.38.2':
-        ref: 'v4.38.2'
-        commit: 'sha1-2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2'
+    'github/codeql-action@v4.39.1':
+        ref: 'v4.39.1'
+        commit: 'sha1-9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
         owner_id: 9919
         repo_id: 259445878
     'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093':
@@ -111,13 +111,13 @@ dependencies:
             - 'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25'
             - 'oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4'
             - 'sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6'
-    'nais/deploy@9850be311389ca754d9a9f2280615419d738c891':
-        ref: 'deploy-v3'
-        commit: 'sha1-9850be311389ca754d9a9f2280615419d738c891'
+    'nais/deploy@6a9dcd6df697ec2d38edc78cadb0b9acd1232f50':
+        ref: 'v3'
+        commit: 'sha1-6a9dcd6df697ec2d38edc78cadb0b9acd1232f50'
         owner_id: 29488289
         repo_id: 166402203
         uses:
-            - 'nais/setup@688b8fc05d8b3cbe5b9d17d579efc8db302cf274'
+            - 'nais/setup@fb8692f65df9c904e2cdac5d395630ac876abdcf'
     'nais/docker-build-push@v0':
         ref: 'v0'
         commit: 'sha1-dd7421d5068057a020ca46ead966c26190c516b1'
@@ -137,9 +137,9 @@ dependencies:
             - 'docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121'
             - 'docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd'
             - 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093'
-    'nais/setup@688b8fc05d8b3cbe5b9d17d579efc8db302cf274':
-        ref: 'v1.0.0-next.7'
-        commit: 'sha1-688b8fc05d8b3cbe5b9d17d579efc8db302cf274'
+    'nais/setup@fb8692f65df9c904e2cdac5d395630ac876abdcf':
+        ref: 'v1.0.3'
+        commit: 'sha1-fb8692f65df9c904e2cdac5d395630ac876abdcf'
         owner_id: 29488289
         repo_id: 1048418871
     'navikt/automerge-dependabot@v1.5':
