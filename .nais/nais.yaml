@@ -15,6 +15,9 @@ spec:
       claims:
         groups:
           - id: "d633d27b-a470-4b9d-984e-85499f126e18"
+          - id: "b0c13827-8451-4c52-9ed8-bdf09a2985a3"
+          - id: "5f8b7bac-c3bf-4597-a9b1-42be0c8410f8"
+          - id: "45e54224-3309-4797-89ed-a62aa76df3d0"
         extra:
           - "NAVident"
   accessPolicy:
@@ -71,6 +74,6 @@ spec:
     - name: OTEL_LOGS_EXPORTER
       value: otlp
     - name: ADMIN_GROUPS
-      value: "d633d27b-a470-4b9d-984e-85499f126e18"
+      value: "d633d27b-a470-4b9d-984e-85499f126e18,b0c13827-8451-4c52-9ed8-bdf09a2985a3,5f8b7bac-c3bf-4597-a9b1-42be0c8410f8,45e54224-3309-4797-89ed-a62aa76df3d0"
   envFrom:
     - secret: tpt-backend
