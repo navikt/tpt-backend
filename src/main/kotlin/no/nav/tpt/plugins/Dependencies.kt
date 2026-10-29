@@ -42,6 +42,7 @@ import no.nav.tpt.infrastructure.gcve.GcveRepositoryImpl
 import no.nav.tpt.infrastructure.gcve.GcveSyncService
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentService
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentServiceImpl
+import no.nav.tpt.infrastructure.enrichment.VulnerabilityRiskAssessor
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityService
@@ -180,18 +181,18 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gcveRepository = GcveRepositoryImpl(database)
     val gcveSyncService = GcveSyncService(gcveClient, gcveRepository, sseEventLogRepository)
 
+    val riskAssessor = VulnerabilityRiskAssessor(gcveRepository, riskScorer)
+
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
-        riskScorer = riskScorer,
         userContextService = userContextService,
-        gcveRepository = gcveRepository,
+        riskAssessor = riskAssessor,
     )
 
     val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = gitHubRepository,
-        gcveRepository = gcveRepository,
         userContextService = userContextService,
-        riskScorer = riskScorer,
+        riskAssessor = riskAssessor,
     )
 
     val vulnerabilityDataSyncJob = VulnerabilityDataSyncJob(

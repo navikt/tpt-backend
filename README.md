@@ -26,7 +26,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── github/                                # GitHub repository metadata and vulnerability service
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
-│   ├── enrichment/                            # Vulnerability aggregation and enrichment service (VulnerabilityEnrichmentService)
+│   ├── enrichment/                            # Vulnerability enrichment; VulnerabilityRiskAssessor scores Nais and GitHub vulns (GCVE + VEX)
 │   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership

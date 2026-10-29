@@ -114,11 +114,12 @@ fun Application.installTestDependencies(
         resolvedSseEventLogRepository,
     )
 
+    val riskAssessor = no.nav.tpt.infrastructure.enrichment.VulnerabilityRiskAssessor(mockGcveRepository, riskScorer)
+
     val vulnService = VulnerabilityEnrichmentServiceImpl(
         vulnerabilityDataService = vulnerabilityDataService,
-        riskScorer = riskScorer,
         userContextService = actualUserContextService,
-        gcveRepository = mockGcveRepository,
+        riskAssessor = riskAssessor,
     )
 
     val mockLeaderElection = LeaderElection(client)
@@ -127,9 +128,8 @@ fun Application.installTestDependencies(
 
     val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = resolvedGitHubRepository,
-        gcveRepository = mockGcveRepository,
         userContextService = actualUserContextService,
-        riskScorer = riskScorer,
+        riskAssessor = riskAssessor,
     )
 
     val mockAdminReportRepository = no.nav.tpt.infrastructure.admin.InMemoryAdminReportRepository()
