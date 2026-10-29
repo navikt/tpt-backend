@@ -295,7 +295,7 @@ class SecurityStatusEvaluatorTest {
     }
 
     @Test
-    fun `should exclude days before tracking and during workload absence from the denominator`() {
+    fun `should exclude days before tracking and only fully absent days from the denominator`() {
         val baseline = Instant.parse("2026-10-10T00:00:00Z")
         val at = Instant.parse("2026-10-28T12:00:00Z")
         val app = workload().copy(
@@ -312,7 +312,88 @@ class SecurityStatusEvaluatorTest {
         val status = evaluator.evaluate("team", emptyList(), listOf(app), at)!!
 
         assertEquals(
-            listOf(MonthlySecurityHistory("2026-10", "2026-10-28", 16, 0, 0, 12, true)),
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-28", 17, 0, 0, 11, true)),
+            status.history,
+        )
+    }
+
+    @Test
+    fun `should retain overdue exposure on the day the last workload is removed`() {
+        val started = now.atZone(SlaPolicy.OSLO).toLocalDate().minusDays(1)
+            .atStartOfDay(SlaPolicy.OSLO).toInstant()
+        val removed = now.minus(Duration.ofHours(2))
+        val app = workload().copy(
+            firstSeenAt = started,
+            removedAt = removed,
+            deployments = listOf(started),
+        )
+        val finding = vuln(discoveredDaysAgo = 20).copy(resolvedAt = removed)
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), now)!!
+
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-14", 0, 0, 2, 12, true)),
+            status.history,
+        )
+        assertEquals(0, status.maintenance.total)
+    }
+
+    @Test
+    fun `should retain overdue exposure before an intraday absence starts`() {
+        val started = now.atZone(SlaPolicy.OSLO).toLocalDate().minusDays(1)
+            .atStartOfDay(SlaPolicy.OSLO).toInstant()
+        val absentFrom = now.minus(Duration.ofHours(2))
+        val app = workload().copy(
+            firstSeenAt = started,
+            deployments = listOf(started),
+            absences = listOf(WorkloadAbsence(absentFrom, now.plus(Duration.ofDays(1)))),
+        )
+        val finding = vuln(discoveredDaysAgo = 20).copy(resolvedAt = absentFrom)
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), now)!!
+
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-14", 0, 0, 2, 12, true)),
+            status.history,
+        )
+        assertEquals(0, status.maintenance.total)
+    }
+
+    @Test
+    fun `should count removal at Oslo midnight only on the preceding day`() {
+        val today = now.atZone(SlaPolicy.OSLO).toLocalDate()
+        val started = today.minusDays(2).atStartOfDay(SlaPolicy.OSLO).toInstant()
+        val removed = today.minusDays(1).atStartOfDay(SlaPolicy.OSLO).toInstant()
+        val app = workload().copy(
+            firstSeenAt = started,
+            removedAt = removed,
+            deployments = listOf(started),
+        )
+        val finding = vuln(discoveredDaysAgo = 20).copy(resolvedAt = removed)
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), now)!!
+
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-14", 0, 0, 1, 13, true)),
+            status.history,
+        )
+    }
+
+    @Test
+    fun `should count a workload created and removed between daily evaluation times`() {
+        val started = now.minus(Duration.ofHours(28))
+        val removed = now.minus(Duration.ofHours(26))
+        val app = workload().copy(
+            firstSeenAt = started,
+            removedAt = removed,
+            deployments = listOf(started),
+        )
+        val finding = vuln(discoveredDaysAgo = 20).copy(resolvedAt = removed)
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), now)!!
+
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-14", 0, 0, 1, 13, true)),
             status.history,
         )
     }

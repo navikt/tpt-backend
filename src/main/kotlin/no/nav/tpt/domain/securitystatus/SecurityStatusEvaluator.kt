@@ -91,7 +91,9 @@ class SecurityStatusEvaluator(
             applicationCount = workloads.count { it.removedAt == null },
             level = level,
             history = months.map { (month, indices) ->
-                val recorded = indices.filter { i -> workloads.any { isPresent(it, evalAt[i]) } }
+                val recorded = indices.filter { i ->
+                    workloads.any { wasPresentDuring(it, dayStart[i], evalAt[i]) }
+                }
                 val onTrackDays = recorded.count { overall[it] == SecurityStatusColor.GREEN }
                 val needsAttentionDays = recorded.count { overall[it] == SecurityStatusColor.YELLOW }
                 val actNowDays = recorded.count { overall[it] == SecurityStatusColor.RED }
@@ -234,6 +236,16 @@ class SecurityStatusEvaluator(
         if (workload.firstSeenAt.isAfter(at)) return false
         if (workload.removedAt != null && !workload.removedAt.isAfter(at)) return false
         return workload.absences.none { !it.removedAt.isAfter(at) && it.returnedAt.isAfter(at) }
+    }
+
+    private fun wasPresentDuring(workload: WorkloadFact, start: Instant, end: Instant): Boolean {
+        var presentFrom = maxOf(start, workload.firstSeenAt)
+        val presentUntil = minOf(end, workload.removedAt ?: end)
+        for (absence in workload.absences.sortedBy { it.removedAt }) {
+            if (absence.removedAt.isAfter(presentFrom)) break
+            presentFrom = maxOf(presentFrom, absence.returnedAt)
+        }
+        return presentFrom.isBefore(presentUntil)
     }
 
     private fun lastDeployment(workload: WorkloadFact, at: Instant): Instant? =

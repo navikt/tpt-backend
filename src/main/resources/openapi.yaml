@@ -1432,7 +1432,9 @@ components:
       required: [month, throughDate, onTrackDays, needsAttentionDays, actNowDays, missingDays, provisional]
       description: >
         Reconstructed daily results in Europe/Oslo. A recorded day's result is the worst of its three metrics.
-        Days with no tracked workloads are excluded. On-track percentage is
+        Coverage requires a tracked workload presence interval overlapping the evaluated day,
+        after subtracting recorded absences. Intervals end exclusively at the next local midnight
+        or the calculation time for today. Only days without any such overlap are excluded. On-track percentage is
         100 * onTrackDays / (onTrackDays + needsAttentionDays + actNowDays), undefined when the denominator is zero.
       properties:
         month:
@@ -1455,7 +1457,7 @@ components:
         missingDays:
           type: integer
           minimum: 0
-          description: Elapsed calendar days without tracked workloads, including days before tracking began
+          description: Elapsed calendar days with no workload presence during the evaluated day, including days before tracking began
         provisional:
           type: boolean
           description: True for the current month, including its unfinished current day
