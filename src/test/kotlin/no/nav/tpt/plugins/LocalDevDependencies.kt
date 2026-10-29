@@ -113,9 +113,11 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
 
     val fallbackGitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
         gitHubRepository = gitHubRepository,
-        gcveRepository = localGcveRepository,
         userContextService = userContextService,
-        riskScorer = no.nav.tpt.domain.risk.DefaultRiskScorer(),
+        riskAssessor = no.nav.tpt.infrastructure.enrichment.VulnerabilityRiskAssessor(
+            localGcveRepository,
+            no.nav.tpt.domain.risk.DefaultRiskScorer(),
+        ),
     )
     val gitHubVulnerabilityService = MockGitHubVulnerabilityService(fallbackGitHubVulnerabilityService)
 
