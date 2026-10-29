@@ -15,6 +15,20 @@ class SecurityStatusEvaluator(
 ) {
     private val zone = SlaPolicy.OSLO
 
+    val measurement = SecurityStatusMeasurement(
+        deployMaxAgeDays = config.deployMaxAgeDays,
+        exposedRedWorkdays = config.exposedRedWorkdays,
+        maintenanceYellowRatio = config.maintenanceYellowRatio,
+        trendWindowDays = config.trendWindowDays,
+        trendStableRatio = config.trendStableRatio,
+        historyMonths = config.historyMonths,
+        levelNewWorkdays = config.levelNewWorkdays,
+        levelChronicMonths = config.levelChronicMonths,
+        criticalWorkdays = slaPolicy.config.criticalWorkdays,
+        nonCriticalMonths = slaPolicy.config.nonCriticalMonths,
+        timeZone = zone.id,
+    )
+
     private fun earliestHistoryDate(today: LocalDate): LocalDate =
         YearMonth.from(today).minusMonths(config.historyMonths - 1).atDay(1)
 
@@ -76,7 +90,22 @@ class SecurityStatusEvaluator(
             team = team,
             applicationCount = workloads.count { it.removedAt == null },
             level = level,
-            history = months.values.map { idx -> idx.maxOf { overall[it] } },
+            history = months.map { (month, indices) ->
+                val recorded = indices.filter { i -> workloads.any { isPresent(it, evalAt[i]) } }
+                val onTrackDays = recorded.count { overall[it] == SecurityStatusColor.GREEN }
+                val needsAttentionDays = recorded.count { overall[it] == SecurityStatusColor.YELLOW }
+                val actNowDays = recorded.count { overall[it] == SecurityStatusColor.RED }
+                val throughDate = dates[indices.last()]
+                MonthlySecurityHistory(
+                    month = month.toString(),
+                    throughDate = throughDate.toString(),
+                    onTrackDays = onTrackDays,
+                    needsAttentionDays = needsAttentionDays,
+                    actNowDays = actNowDays,
+                    missingDays = throughDate.dayOfMonth - recorded.size,
+                    provisional = month == YearMonth.from(today),
+                )
+            },
             historyAvailableFrom = iso(dates.first().atStartOfDay(zone).toInstant()),
             exposed = ExposedStatus(
                 status = exposedColors[last],

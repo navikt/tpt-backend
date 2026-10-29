@@ -100,7 +100,7 @@ class SecurityStatusEvaluatorTest {
         val status = evaluator.evaluate("team", vulns, listOf(workload()), now)!!
 
         assertEquals(SecurityStatusColor.GREEN, status.exposed.status)
-        assertTrue(status.history.any { it != SecurityStatusColor.GREEN })
+        assertTrue(status.history.any { it.needsAttentionDays + it.actNowDays > 0 })
     }
 
     @Test
@@ -223,7 +223,7 @@ class SecurityStatusEvaluatorTest {
 
         val status = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
 
-        assertTrue(status.history.any { it != SecurityStatusColor.GREEN })
+        assertTrue(status.history.any { it.needsAttentionDays + it.actNowDays > 0 })
     }
 
     @Test
@@ -258,10 +258,10 @@ class SecurityStatusEvaluatorTest {
         val withGap = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
         val without = evaluator.evaluate("team", listOf(flat), listOf(workload()), now)!!
 
-        val gapDays = withGap.history.count { it != SecurityStatusColor.GREEN }
-        val flatDays = without.history.count { it != SecurityStatusColor.GREEN }
+        val gapDays = withGap.history.sumOf { it.needsAttentionDays + it.actNowDays }
+        val flatDays = without.history.sumOf { it.needsAttentionDays + it.actNowDays }
         assertTrue(gapDays <= flatDays)
-        assertEquals(SecurityStatusColor.GREEN, withGap.history.first())
+        assertEquals(0, withGap.history.first().needsAttentionDays + withGap.history.first().actNowDays)
     }
 
     @Test
@@ -270,5 +270,72 @@ class SecurityStatusEvaluatorTest {
         val status = evaluator.evaluate("team", emptyList(), listOf(absent), now)!!
 
         assertEquals(1, status.maintenance.total)
+    }
+
+    @Test
+    fun `should report recovery as on track days rather than a red month`() {
+        val baseline = Instant.parse("2026-10-01T00:00:00Z")
+        val at = Instant.parse("2026-10-28T12:00:00Z")
+        val app = workload().copy(firstSeenAt = baseline, deployments = listOf(baseline))
+        val finding = VulnerabilityLifecycle(
+            "team", "app-1", "app", "CRITICAL",
+            Instant.parse("2026-09-01T10:00:00Z"),
+            Instant.parse("2026-10-02T10:00:00Z"),
+        )
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), at)!!
+
+        assertEquals(SecurityStatusColor.GREEN, status.exposed.status)
+        assertEquals(SecurityStatusColor.GREEN, status.trend.status)
+        assertEquals(SecurityStatusColor.GREEN, status.maintenance.status)
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-28", 26, 0, 2, 0, true)),
+            status.history,
+        )
+    }
+
+    @Test
+    fun `should exclude days before tracking and during workload absence from the denominator`() {
+        val baseline = Instant.parse("2026-10-10T00:00:00Z")
+        val at = Instant.parse("2026-10-28T12:00:00Z")
+        val app = workload().copy(
+            firstSeenAt = baseline,
+            deployments = listOf(baseline),
+            absences = listOf(
+                WorkloadAbsence(
+                    Instant.parse("2026-10-15T00:00:00Z"),
+                    Instant.parse("2026-10-18T00:00:00Z"),
+                ),
+            ),
+        )
+
+        val status = evaluator.evaluate("team", emptyList(), listOf(app), at)!!
+
+        assertEquals(
+            listOf(MonthlySecurityHistory("2026-10", "2026-10-28", 16, 0, 0, 12, true)),
+            status.history,
+        )
+    }
+
+    @Test
+    fun `should date complete months across a year boundary and retain yellow days`() {
+        val baseline = Instant.parse("2025-12-01T00:00:00Z")
+        val at = Instant.parse("2026-01-03T12:00:00Z")
+        val app = workload().copy(firstSeenAt = baseline, deployments = listOf(baseline))
+        val finding = VulnerabilityLifecycle(
+            "team", "app-1", "app", "CRITICAL",
+            Instant.parse("2025-12-28T10:00:00Z"),
+            Instant.parse("2025-12-30T10:00:00Z"),
+        )
+
+        val status = evaluator.evaluate("team", listOf(finding), listOf(app), at)!!
+
+        assertEquals(
+            listOf(
+                MonthlySecurityHistory("2025-12", "2025-12-31", 29, 2, 0, 0, false),
+                MonthlySecurityHistory("2026-01", "2026-01-03", 3, 0, 0, 0, true),
+            ),
+            status.history,
+        )
     }
 }

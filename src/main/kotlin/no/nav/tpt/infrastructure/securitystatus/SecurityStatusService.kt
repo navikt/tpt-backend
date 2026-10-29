@@ -20,7 +20,7 @@ class SecurityStatusService(
     suspend fun getSecurityStatus(userTeams: List<String>, requestedTeams: Set<String>?): SecurityStatusResponse {
         val now = Instant.now()
         val teams = if (requestedTeams == null) userTeams else userTeams.filter { it in requestedTeams }
-        if (teams.isEmpty()) return SecurityStatusResponse(emptyList(), iso(now))
+        if (teams.isEmpty()) return SecurityStatusResponse(emptyList(), iso(now), evaluator.measurement)
 
         val resolvedSince = evaluator.historyStart(now).minus(Duration.ofDays(config.trendWindowDays))
         val vulnerabilities = vulnerabilityRepository.getVulnerabilityLifecycleForTeams(teams, resolvedSince).groupBy { it.teamSlug }
@@ -31,7 +31,7 @@ class SecurityStatusService(
         val statuses = teams.sorted().mapNotNull { team ->
             evaluator.evaluate(team, vulnerabilities[team].orEmpty(), workloads[team].orEmpty(), now)
         }
-        return SecurityStatusResponse(statuses, iso(now))
+        return SecurityStatusResponse(statuses, iso(now), evaluator.measurement)
     }
 
     private fun iso(instant: Instant): String = DateTimeFormatter.ISO_INSTANT.format(instant)

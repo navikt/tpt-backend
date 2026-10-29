@@ -1388,7 +1388,7 @@ components:
       enum: [green, yellow, red]
     SecurityStatusResponse:
       type: object
-      required: [teams, generatedAt]
+      required: [teams, generatedAt, measurement]
       properties:
         teams:
           type: array
@@ -1397,6 +1397,68 @@ components:
         generatedAt:
           type: string
           format: date-time
+          description: Calculation time, not the time of the last data collection
+        measurement:
+          $ref: '#/components/schemas/SecurityStatusMeasurement'
+    SecurityStatusMeasurement:
+      type: object
+      required: [deployMaxAgeDays, exposedRedWorkdays, maintenanceYellowRatio, trendWindowDays, trendStableRatio, historyMonths, levelNewWorkdays, levelChronicMonths, criticalWorkdays, nonCriticalMonths, timeZone]
+      properties:
+        timeZone:
+          type: string
+          example: Europe/Oslo
+        criticalWorkdays:
+          type: integer
+        nonCriticalMonths:
+          type: integer
+        deployMaxAgeDays:
+          type: integer
+        exposedRedWorkdays:
+          type: integer
+        maintenanceYellowRatio:
+          type: number
+        trendWindowDays:
+          type: integer
+        trendStableRatio:
+          type: number
+        historyMonths:
+          type: integer
+        levelNewWorkdays:
+          type: integer
+        levelChronicMonths:
+          type: integer
+    MonthlySecurityHistory:
+      type: object
+      required: [month, throughDate, onTrackDays, needsAttentionDays, actNowDays, missingDays, provisional]
+      description: >
+        Reconstructed daily results in Europe/Oslo. A recorded day's result is the worst of its three metrics.
+        Days with no tracked workloads are excluded. On-track percentage is
+        100 * onTrackDays / (onTrackDays + needsAttentionDays + actNowDays), undefined when the denominator is zero.
+      properties:
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2026-10'
+        throughDate:
+          type: string
+          format: date
+          description: Last evaluated date, inclusive; today for the current month
+        onTrackDays:
+          type: integer
+          minimum: 0
+        needsAttentionDays:
+          type: integer
+          minimum: 0
+        actNowDays:
+          type: integer
+          minimum: 0
+        missingDays:
+          type: integer
+          minimum: 0
+          description: Elapsed calendar days without tracked workloads, including days before tracking began
+        provisional:
+          type: boolean
+          description: True for the current month, including its unfinished current day
     TeamSecurityStatus:
       type: object
       required: [team, applicationCount, history, historyAvailableFrom, exposed, trend, maintenance]
@@ -1412,9 +1474,9 @@ components:
           description: Null when all three questions are green
         history:
           type: array
-          description: Worst overall status per calendar month, oldest first
+          description: Dated monthly day counts, oldest first; limited to available history and configured historyMonths
           items:
-            $ref: '#/components/schemas/SecurityStatusColor'
+            $ref: '#/components/schemas/MonthlySecurityHistory'
         historyAvailableFrom:
           type: string
           format: date-time

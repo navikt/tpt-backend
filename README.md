@@ -5,6 +5,10 @@ Fetches vulnerability data from Nais, enriches with external data, and returns p
 The API uses the preferred_username claim of a valid bearer token to fetch vulnerability data for the user's teams. 
 User Role is set depending on how the user is linked to one or more namespaces.
 
+Security status history reports monthly on-track, attention and action day counts, excluding days without
+tracked workloads. `/security-status` includes the active measurement thresholds and dated, provisional
+month-to-date results. History is reconstructed from stored lifecycle data rather than daily snapshots.
+
 ## Project Structure
 
 ```
