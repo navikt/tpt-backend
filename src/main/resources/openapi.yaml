@@ -145,7 +145,10 @@ paths:
   /vulnerabilities/user:
     get:
       summary: Get vulnerabilities for authenticated user
-      description: Fetches prioritized vulnerabilities for the authenticated user's teams and workloads
+      description: |
+        Reads stored vulnerabilities for the authenticated user's teams and workloads and returns prioritized results.
+        Stale teams are synced in the background. A failed database read returns 500 Problem Details,
+        not an empty success response.
       tags:
         - Vulnerabilities
       security:
@@ -415,8 +418,9 @@ paths:
     get:
       summary: Get vulnerabilities for a specific team
       description: |
-        Fetches fresh vulnerability data for a given team slug, bypassing user context resolution.
-        Syncs the team data from the NAIS API before returning results.
+        Reads stored vulnerability data for a given team slug, bypassing user context resolution.
+        Stale team data is synced from the NAIS API in the background.
+        A failed database read returns 500 Problem Details, not an empty success response.
         Only accessible to admin users.
       tags:
         - Admin

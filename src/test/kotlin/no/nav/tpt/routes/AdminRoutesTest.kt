@@ -3,17 +3,22 @@ package no.nav.tpt.routes
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import no.nav.tpt.domain.ProblemDetail
+import no.nav.tpt.infrastructure.auth.IntrospectionResponse
+import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
+import no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository
+import no.nav.tpt.plugins.testModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonPrimitive
-import no.nav.tpt.infrastructure.auth.IntrospectionResponse
-import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
-import no.nav.tpt.plugins.testModule
 
 class AdminRoutesTest {
 
@@ -94,6 +99,32 @@ class AdminRoutesTest {
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `should return 500 Problem Detail when admin team repository read fails`() = testApplication {
+        application {
+            testModule(
+                tokenIntrospectionService = AdminMockTokenIntrospectionService(),
+                adminAuthorizationService = no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl(
+                    "admin-group-1",
+                ),
+                vulnerabilityRepository = MockVulnerabilityRepository(throwException = true),
+            )
+        }
+
+        val response = client.get("/admin/vulnerabilities/team/team-appsec") {
+            header(HttpHeaders.Authorization, "Bearer valid_admin_token")
+        }
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertEquals(ContentType("application", "problem+json"), response.contentType()?.withoutParameters())
+
+        val problem = Json.decodeFromString<ProblemDetail>(response.bodyAsText())
+        assertEquals("about:blank", problem.type)
+        assertEquals("Internal Server Error", problem.title)
+        assertEquals(500, problem.status)
+        assertEquals("/admin/vulnerabilities/team/team-appsec", problem.instance)
     }
 
     @Test

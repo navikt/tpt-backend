@@ -18,7 +18,6 @@ import no.nav.tpt.domain.user.AdminAuthorizationService
 import no.nav.tpt.domain.user.UserContextService
 import no.nav.tpt.domain.vulnerability.SlaConfig
 import no.nav.tpt.domain.vulnerability.SlaPolicy
-import no.nav.tpt.domain.vulnerability.VulnerabilityDataService
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.securitystatus.SecurityStatusService
 import no.nav.tpt.infrastructure.securitystatus.WorkloadRepositoryImpl
@@ -57,7 +56,6 @@ import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenService
 import no.nav.tpt.infrastructure.teamkatalogen.TeamkatalogenServiceImpl
 import no.nav.tpt.infrastructure.user.AdminAuthorizationServiceImpl
 import no.nav.tpt.infrastructure.user.UserContextServiceImpl
-import no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityDataSyncJob
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilityRepositoryImpl
 import no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService
@@ -168,7 +166,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         ),
     )
 
-    val vulnerabilityDataService: VulnerabilityDataService = DatabaseVulnerabilityService(
+    val staleTeamSyncTrigger = StaleTeamSyncTrigger(
         vulnerabilityRepository = vulnerabilityRepository,
         vulnerabilityTeamSyncService = vulnerabilityTeamSyncService,
         backgroundScope = CoroutineScope(application.coroutineContext + Dispatchers.IO),
@@ -184,9 +182,10 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val riskAssessor = VulnerabilityRiskAssessor(gcveRepository, riskScorer)
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
-        vulnerabilityDataService = vulnerabilityDataService,
+        vulnerabilityRepository = vulnerabilityRepository,
         userContextService = userContextService,
         riskAssessor = riskAssessor,
+        staleTeamSyncTrigger = staleTeamSyncTrigger,
     )
 
     val gitHubVulnerabilityService = GitHubVulnerabilityServiceImpl(
@@ -208,11 +207,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         vulnerabilityRepository = vulnerabilityRepository,
         workloadRepository = workloadRepository,
         evaluator = SecurityStatusEvaluator(slaPolicy, config.securityStatus),
-        staleTeamSyncTrigger = StaleTeamSyncTrigger(
-            vulnerabilityRepository,
-            vulnerabilityTeamSyncService,
-            CoroutineScope(application.coroutineContext + Dispatchers.IO),
-        ),
+        staleTeamSyncTrigger = staleTeamSyncTrigger,
         config = config.securityStatus,
     )
 
