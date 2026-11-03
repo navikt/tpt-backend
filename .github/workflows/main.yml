@@ -23,7 +23,7 @@ jobs:
         with:
           java-version: 25
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@v6.4.0
+      - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Test & build
         run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
@@ -35,7 +35,7 @@ jobs:
           push_image: ${{ github.ref == 'refs/heads/main' }}
       - name: Generate and submit dependency graph
         if: github.ref == 'refs/heads/main'
-        uses: gradle/actions/dependency-submission@v6.4.0
+        uses: gradle/actions/dependency-submission@v6.4.1
 
   deploy:
     runs-on: ubuntu-latest
