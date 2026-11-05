@@ -2,27 +2,6 @@ package no.nav.tpt.infrastructure.nais
 
 import no.nav.tpt.infrastructure.common.PurlParser
 
-internal fun WorkloadVulnerabilitiesResponse.toData(): UserVulnerabilitiesData {
-    val teams = data?.user?.teams?.nodes?.map { teamNode ->
-        val appWorkloads = (teamNode.team.applications?.nodes ?: emptyList()).map { workloadNode ->
-            mapWorkloadNode(workloadNode, "app")
-        }
-
-        val jobWorkloads = (teamNode.team.jobs?.nodes ?: emptyList()).map { workloadNode ->
-            mapWorkloadNode(workloadNode, "job")
-        }
-
-        val allWorkloads = appWorkloads + jobWorkloads
-
-        TeamVulnerabilitiesData(
-            teamSlug = teamNode.team.slug,
-            workloads = allWorkloads
-        )
-    } ?: emptyList()
-
-    return UserVulnerabilitiesData(teams = teams)
-}
-
 internal fun mapToUserVulnerabilitiesData(
     teamSlug: String,
     appWorkloads: List<GraphQLTypes.WorkloadNode>,
@@ -33,17 +12,6 @@ internal fun mapToUserVulnerabilitiesData(
     return UserVulnerabilitiesData(
         teams = listOf(TeamVulnerabilitiesData(teamSlug = teamSlug, workloads = workloads))
     )
-}
-
-internal fun mapToUserVulnerabilitiesDataMultiTeam(
-    teamNodes: List<WorkloadVulnerabilitiesResponse.TeamNode>,
-): UserVulnerabilitiesData {
-    val teams = teamNodes.map { teamNode ->
-        val appWorkloads = (teamNode.team.applications?.nodes ?: emptyList()).map { mapWorkloadNode(it, "app") }
-        val jobWorkloads = (teamNode.team.jobs?.nodes ?: emptyList()).map { mapWorkloadNode(it, "job") }
-        TeamVulnerabilitiesData(teamSlug = teamNode.team.slug, workloads = appWorkloads + jobWorkloads)
-    }
-    return UserVulnerabilitiesData(teams = teams)
 }
 
 private fun mapWorkloadNode(
@@ -74,5 +42,4 @@ private fun mapWorkloadNode(
         vulnerabilities = vulnerabilities
     )
 }
-
 

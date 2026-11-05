@@ -1,7 +1,7 @@
 # Titt-På-Ting Backend
 
 API to help developers prioritize which security issues to fix first.
-Fetches vulnerability data from Nais, enriches with external data, and returns prioritized results.
+Reads stored Nais vulnerability data from PostgreSQL, enriches it with external data, and returns prioritized results.
 The API uses the preferred_username claim of a valid bearer token to fetch vulnerability data for the user's teams. 
 User Role is set depending on how the user is linked to one or more namespaces.
 
@@ -26,7 +26,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── github/                                # GitHub repository metadata and vulnerability service
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
-│   ├── enrichment/                            # Vulnerability enrichment; VulnerabilityRiskAssessor scores Nais and GitHub vulns (GCVE + VEX)
+│   ├── enrichment/                            # Repository-backed reads; VulnerabilityRiskAssessor scores Nais and GitHub vulns (GCVE + VEX)
 │   ├── sse/                                   # ServerSent Event classes EventBus and models.
 │   ├── teamkatalogen/                         # Team membership data from Teamkatalogen API
 │   ├── user/                                  # User role determination based on team membership
@@ -138,7 +138,9 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 
 **Vulnerability Tracking:**
 - Synced at 6am and 6pm Oslo time from Nais API by the elected leader
-- On user request, stale teams sync in the background on the serving pod; a PostgreSQL sync lock prevents duplicate work across pods
+- Enrichment reads active vulnerability rows directly from the repository and groups them by team and workload
+- Vulnerability and security-status reads share one stale-team sync trigger; stale teams sync in the background on the serving pod, with a PostgreSQL sync lock preventing duplicate work across pods
+- Failed vulnerability reads return 500 Problem Details, not an empty success response, for both user and admin per-team endpoints
 - `team_sync_started` and `team_sync_complete` signals are recorded in PostgreSQL for each successful team sync
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)

@@ -100,7 +100,7 @@ fun Application.installTestDependencies(
         vulnerabilityRepository = mockVulnerabilityRepository,
     )
 
-    val vulnerabilityDataService = no.nav.tpt.infrastructure.vulnerability.DatabaseVulnerabilityService(
+    val staleTeamSyncTrigger = no.nav.tpt.infrastructure.vulnerability.StaleTeamSyncTrigger(
         vulnerabilityRepository = mockVulnerabilityRepository,
         vulnerabilityTeamSyncService = mockVulnerabilityTeamSyncService,
         backgroundScope = this,
@@ -117,9 +117,10 @@ fun Application.installTestDependencies(
     val riskAssessor = no.nav.tpt.infrastructure.enrichment.VulnerabilityRiskAssessor(mockGcveRepository, riskScorer)
 
     val vulnService = VulnerabilityEnrichmentServiceImpl(
-        vulnerabilityDataService = vulnerabilityDataService,
+        vulnerabilityRepository = mockVulnerabilityRepository,
         userContextService = actualUserContextService,
         riskAssessor = riskAssessor,
+        staleTeamSyncTrigger = staleTeamSyncTrigger,
     )
 
     val mockLeaderElection = LeaderElection(client)
@@ -154,11 +155,7 @@ fun Application.installTestDependencies(
             no.nav.tpt.domain.vulnerability.SlaPolicy(),
             no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
         ),
-        staleTeamSyncTrigger = no.nav.tpt.infrastructure.vulnerability.StaleTeamSyncTrigger(
-            mockVulnerabilityRepository,
-            mockVulnerabilityTeamSyncService,
-            this,
-        ),
+        staleTeamSyncTrigger = staleTeamSyncTrigger,
         config = no.nav.tpt.domain.securitystatus.SecurityStatusConfig(),
     )
 
