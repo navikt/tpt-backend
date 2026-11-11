@@ -206,7 +206,16 @@ class SecurityStatusEvaluator(
                 if (!result.isOverdue) null else vuln to result.calendarDaysOverdue.toInt()
             }
             .groupBy({ it.first.appNaisId }, { it })
-            .map { (_, entries) -> AppPastDeadline(entries.first().first.appName, entries.maxOf { it.second }) }
+            .map { (_, entries) ->
+                val findings = entries
+                    .map { (vuln, daysOver) -> OverdueFinding(vuln.cveId, vuln.packageName, vuln.severity, daysOver) }
+                    .sortedWith(
+                        compareByDescending<OverdueFinding> { it.daysOver }
+                            .thenBy(nullsLast()) { it.packageName }
+                            .thenBy { it.cveId },
+                    )
+                AppPastDeadline(entries.first().first.appName, findings.first().daysOver, findings)
+            }
             .sortedWith(compareByDescending<AppPastDeadline> { it.daysOver }.thenBy { it.app })
 
     private fun trendDirection(
