@@ -142,8 +142,8 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val dataCollectorRepository = DataCollectorRepositoryImpl(database)
 
     val slaPolicy = SlaPolicy(SlaConfig(
-        criticalWorkdays = config.slaCriticalWorkdays,
-        nonCriticalMonths = config.slaNonCriticalMonths,
+        criticalDays = config.slaCriticalDays,
+        nonCriticalDays = config.slaNonCriticalDays,
     ))
 
     val vulnerabilityRepository: VulnerabilityRepository = VulnerabilityRepositoryImpl(slaPolicy)
@@ -202,7 +202,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         adminReportRepository = adminReportRepository,
     )
 
-    val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository, slaPolicy)
+    val vulnerabilitySearchService = VulnerabilitySearchService(vulnerabilityRepository)
 
     val securityStatusService = SecurityStatusService(
         vulnerabilityRepository = vulnerabilityRepository,

@@ -66,7 +66,7 @@ class SecurityStatusEvaluatorTest {
 
     @Test
     fun `should be yellow when one app has an overdue critical vulnerability`() {
-        val status = evaluator.evaluate("team", listOf(vuln(discoveredDaysAgo = 3)), listOf(workload()), now)!!
+        val status = evaluator.evaluate("team", listOf(vuln(discoveredDaysAgo = 8)), listOf(workload()), now)!!
 
         assertEquals(SecurityStatusColor.YELLOW, status.exposed.status)
         assertEquals(1, status.exposed.appsPastDeadline.size)
@@ -74,7 +74,7 @@ class SecurityStatusEvaluatorTest {
     }
 
     @Test
-    fun `should be red when one app is overdue by five workdays or more`() {
+    fun `should be red when one app is overdue by five calendar days or more`() {
         val status = evaluator.evaluate("team", listOf(vuln(discoveredDaysAgo = 20)), listOf(workload()), now)!!
 
         assertEquals(SecurityStatusColor.RED, status.exposed.status)
@@ -84,8 +84,8 @@ class SecurityStatusEvaluatorTest {
     fun `should be red when two apps are overdue`() {
         val workloads = listOf(workload("a", "a"), workload("b", "b"))
         val vulns = listOf(
-            vuln("a", "a", discoveredDaysAgo = 3),
-            vuln("b", "b", discoveredDaysAgo = 3),
+            vuln("a", "a", discoveredDaysAgo = 8),
+            vuln("b", "b", discoveredDaysAgo = 8),
         )
 
         val status = evaluator.evaluate("team", vulns, workloads, now)!!
@@ -104,9 +104,9 @@ class SecurityStatusEvaluatorTest {
     }
 
     @Test
-    fun `should use three month deadline for non critical vulnerabilities`() {
+    fun `should use sixty day deadline for non critical vulnerabilities`() {
         val within = evaluator.evaluate("team", listOf(vuln(severity = "HIGH", discoveredDaysAgo = 60)), listOf(workload()), now)!!
-        val past = evaluator.evaluate("team", listOf(vuln(severity = "HIGH", discoveredDaysAgo = 95)), listOf(workload()), now)!!
+        val past = evaluator.evaluate("team", listOf(vuln(severity = "HIGH", discoveredDaysAgo = 61)), listOf(workload()), now)!!
 
         assertEquals(SecurityStatusColor.GREEN, within.exposed.status)
         assertEquals(SecurityStatusColor.YELLOW, past.exposed.status)
@@ -200,7 +200,9 @@ class SecurityStatusEvaluatorTest {
 
     @Test
     fun `should set level new for recently off track team`() {
-        val status = evaluator.evaluate("team", listOf(vuln(discoveredDaysAgo = 2)), listOf(workload()), now)!!
+        val status = evaluator.evaluate(
+            "team", listOf(vuln(discoveredDaysAgo = 8)), listOf(workload(firstSeenDaysAgo = 10)), now,
+        )!!
 
         assertEquals(SecurityLevel.NEW, status.level)
     }
@@ -216,7 +218,7 @@ class SecurityStatusEvaluatorTest {
 
     @Test
     fun `should count exposure for a vulnerability that went overdue and was resolved the same day`() {
-        val discovered = now.minus(Duration.ofDays(5))
+        val discovered = now.minus(Duration.ofDays(10))
         val deadline = SlaPolicy().evaluate("CRITICAL", discovered, discovered).deadline
         val resolved = deadline.plus(Duration.ofHours(2))
         val vuln = VulnerabilityLifecycle("team", "app-1", "app", "CRITICAL", discovered, resolved)
@@ -405,7 +407,7 @@ class SecurityStatusEvaluatorTest {
         val app = workload().copy(firstSeenAt = baseline, deployments = listOf(baseline))
         val finding = VulnerabilityLifecycle(
             "team", "app-1", "app", "CRITICAL",
-            Instant.parse("2025-12-28T10:00:00Z"),
+            Instant.parse("2025-12-22T10:00:00Z"),
             Instant.parse("2025-12-30T10:00:00Z"),
         )
 
@@ -418,5 +420,48 @@ class SecurityStatusEvaluatorTest {
             ),
             status.history,
         )
+    }
+
+    @Test
+    fun `should list the maximum calendar days overdue per app for non critical findings`() {
+        val at = Instant.parse("2026-11-11T08:26:03Z")
+        val finding = VulnerabilityLifecycle(
+            "team", "app-1", "stats-job", "MEDIUM",
+            Instant.parse("2026-08-04T07:26:03Z"), null,
+        )
+        val later = finding.copy(discoveredAt = Instant.parse("2026-08-24T07:26:03Z"))
+        val app = workload().copy(deployments = listOf(at.minus(Duration.ofDays(1))))
+
+        val status = evaluator.evaluate("team", listOf(finding, later), listOf(app), at)!!
+
+        assertEquals(listOf(AppPastDeadline("stats-job", 39)), status.exposed.appsPastDeadline)
+    }
+
+    @Test
+    fun `should turn red after five calendar days overdue even across a weekend`() {
+        val at = Instant.parse("2026-11-11T09:00:00Z")
+        val finding = VulnerabilityLifecycle(
+            "team", "app-1", "app", "CRITICAL",
+            Instant.parse("2026-10-30T09:00:00Z"), null,
+        )
+        val status = evaluator.evaluate("team", listOf(finding), listOf(workload()), at)!!
+
+        assertEquals(SecurityStatusColor.RED, status.exposed.status)
+        assertEquals(listOf(AppPastDeadline("app", 5)), status.exposed.appsPastDeadline)
+    }
+
+    @Test
+    fun `should require deployment immediately after sixty calendar days`() {
+        val at = Instant.parse("2026-11-11T09:00:00Z")
+        val deployed = at.atZone(SlaPolicy.OSLO).minusDays(60).toInstant()
+        val app = workload().copy(deployments = listOf(deployed))
+
+        val onDeadline = evaluator.evaluate("team", emptyList(), listOf(app), at)!!
+        val afterDeadline = evaluator.evaluate("team", emptyList(), listOf(app), at.plusNanos(1))!!
+
+        assertEquals(1, onDeadline.maintenance.upToDate)
+        assertTrue(onDeadline.maintenance.overdueRebuild.isEmpty())
+        assertEquals(0, afterDeadline.maintenance.upToDate)
+        assertEquals(listOf(AppOverdueRebuild("app", 0)), afterDeadline.maintenance.overdueRebuild)
     }
 }
