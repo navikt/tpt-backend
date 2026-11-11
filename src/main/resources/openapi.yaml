@@ -1499,13 +1499,34 @@ components:
               type: array
               items:
                 type: object
-                required: [app, daysOver]
+                required: [app, daysOver, findings]
                 properties:
                   app:
                     type: string
                   daysOver:
                     type: integer
                     description: Maximum completed calendar days past deadline for unresolved findings in this application
+                  findings:
+                    type: array
+                    description: Unresolved findings past deadline in this application, most days past deadline first
+                    items:
+                      type: object
+                      required: [cveId, packageName, severity, daysOver]
+                      properties:
+                        cveId:
+                          type: string
+                          example: "CVE-2024-1234"
+                        packageName:
+                          type: string
+                          nullable: true
+                          description: Package URL (purl) of the affected dependency, including its version
+                          example: "pkg:maven/org.yaml/snakeyaml@1.31"
+                        severity:
+                          type: string
+                          nullable: true
+                        daysOver:
+                          type: integer
+                          description: Completed calendar days past deadline for this finding
         trend:
           type: object
           required: [status, direction, appsWithOverduePerMonth]
@@ -1630,6 +1651,7 @@ components:
       required:
         - cveId
         - applicationName
+        - packageName
         - severity
         - daysOverdue
       properties:
@@ -1641,6 +1663,11 @@ components:
           type: string
           description: Application or job name
           example: "my-application"
+        packageName:
+          type: string
+          nullable: true
+          description: Package URL (purl) of the affected dependency, including its version
+          example: "pkg:maven/org.yaml/snakeyaml@1.31"
         severity:
           type: string
           nullable: true

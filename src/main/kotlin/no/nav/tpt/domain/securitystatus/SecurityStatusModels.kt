@@ -28,6 +28,15 @@ enum class TrendDirection {
 data class AppPastDeadline(
     val app: String,
     val daysOver: Int,
+    val findings: List<OverdueFinding>,
+)
+
+@Serializable
+data class OverdueFinding(
+    val cveId: String,
+    val packageName: String?,
+    val severity: String?,
+    val daysOver: Int,
 )
 
 @Serializable

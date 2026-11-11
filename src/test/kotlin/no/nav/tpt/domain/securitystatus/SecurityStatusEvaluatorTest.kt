@@ -43,6 +43,8 @@ class SecurityStatusEvaluatorTest {
         teamSlug = "team",
         appNaisId = appId,
         appName = appName,
+        cveId = "CVE-2026-0001",
+        packageName = "pkg:npm/example@1.0.0",
         severity = severity,
         discoveredAt = daysAgo(discoveredDaysAgo),
         resolvedAt = resolvedDaysAgo?.let { daysAgo(it) },
@@ -221,7 +223,7 @@ class SecurityStatusEvaluatorTest {
         val discovered = now.minus(Duration.ofDays(10))
         val deadline = SlaPolicy().evaluate("CRITICAL", discovered, discovered).deadline
         val resolved = deadline.plus(Duration.ofHours(2))
-        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "CRITICAL", discovered, resolved)
+        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "CVE-2026-0001", null, "CRITICAL", discovered, resolved)
 
         val status = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
 
@@ -254,8 +256,8 @@ class SecurityStatusEvaluatorTest {
     fun `should not count time between resolution and reappearance as overdue`() {
         val discovered = daysAgo(60)
         val gap = ResolutionGap(daysAgo(50), daysAgo(1))
-        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "LOW", discovered, null, listOf(gap))
-        val flat = VulnerabilityLifecycle("team", "app-1", "app", "LOW", discovered, null)
+        val vuln = VulnerabilityLifecycle("team", "app-1", "app", "CVE-2026-0001", null, "LOW", discovered, null, listOf(gap))
+        val flat = VulnerabilityLifecycle("team", "app-1", "app", "CVE-2026-0001", null, "LOW", discovered, null)
 
         val withGap = evaluator.evaluate("team", listOf(vuln), listOf(workload()), now)!!
         val without = evaluator.evaluate("team", listOf(flat), listOf(workload()), now)!!
@@ -280,7 +282,7 @@ class SecurityStatusEvaluatorTest {
         val at = Instant.parse("2026-10-28T12:00:00Z")
         val app = workload().copy(firstSeenAt = baseline, deployments = listOf(baseline))
         val finding = VulnerabilityLifecycle(
-            "team", "app-1", "app", "CRITICAL",
+            "team", "app-1", "app", "CVE-2026-0001", null, "CRITICAL",
             Instant.parse("2026-09-01T10:00:00Z"),
             Instant.parse("2026-10-02T10:00:00Z"),
         )
@@ -406,7 +408,7 @@ class SecurityStatusEvaluatorTest {
         val at = Instant.parse("2026-01-03T12:00:00Z")
         val app = workload().copy(firstSeenAt = baseline, deployments = listOf(baseline))
         val finding = VulnerabilityLifecycle(
-            "team", "app-1", "app", "CRITICAL",
+            "team", "app-1", "app", "CVE-2026-0001", null, "CRITICAL",
             Instant.parse("2025-12-22T10:00:00Z"),
             Instant.parse("2025-12-30T10:00:00Z"),
         )
@@ -423,31 +425,53 @@ class SecurityStatusEvaluatorTest {
     }
 
     @Test
-    fun `should list the maximum calendar days overdue per app for non critical findings`() {
+    fun `should list each overdue package per app with the maximum calendar days overdue`() {
         val at = Instant.parse("2026-11-11T08:26:03Z")
         val finding = VulnerabilityLifecycle(
-            "team", "app-1", "stats-job", "MEDIUM",
+            "team", "app-1", "stats-job", "CVE-2026-54518", "pkg:golang/golang.org/x/net@0.30.0", "MEDIUM",
             Instant.parse("2026-08-04T07:26:03Z"), null,
         )
-        val later = finding.copy(discoveredAt = Instant.parse("2026-08-24T07:26:03Z"))
+        val later = finding.copy(
+            cveId = "CVE-2026-59889",
+            packageName = "pkg:golang/stdlib@1.23.1",
+            discoveredAt = Instant.parse("2026-08-24T07:26:03Z"),
+        )
+        val unknownPackage = finding.copy(cveId = "CVE-2026-54512", packageName = null, severity = "HIGH")
+        val withinSla = finding.copy(cveId = "CVE-2026-60000", discoveredAt = at.minus(Duration.ofDays(10)))
         val app = workload().copy(deployments = listOf(at.minus(Duration.ofDays(1))))
 
-        val status = evaluator.evaluate("team", listOf(finding, later), listOf(app), at)!!
+        val status = evaluator.evaluate("team", listOf(later, unknownPackage, withinSla, finding), listOf(app), at)!!
 
-        assertEquals(listOf(AppPastDeadline("stats-job", 39)), status.exposed.appsPastDeadline)
+        assertEquals(
+            listOf(
+                AppPastDeadline(
+                    "stats-job",
+                    39,
+                    listOf(
+                        OverdueFinding("CVE-2026-54518", "pkg:golang/golang.org/x/net@0.30.0", "MEDIUM", 39),
+                        OverdueFinding("CVE-2026-54512", null, "HIGH", 39),
+                        OverdueFinding("CVE-2026-59889", "pkg:golang/stdlib@1.23.1", "MEDIUM", 19),
+                    ),
+                ),
+            ),
+            status.exposed.appsPastDeadline,
+        )
     }
 
     @Test
     fun `should turn red after five calendar days overdue even across a weekend`() {
         val at = Instant.parse("2026-11-11T09:00:00Z")
         val finding = VulnerabilityLifecycle(
-            "team", "app-1", "app", "CRITICAL",
+            "team", "app-1", "app", "CVE-2026-0001", null, "CRITICAL",
             Instant.parse("2026-10-30T09:00:00Z"), null,
         )
         val status = evaluator.evaluate("team", listOf(finding), listOf(workload()), at)!!
 
         assertEquals(SecurityStatusColor.RED, status.exposed.status)
-        assertEquals(listOf(AppPastDeadline("app", 5)), status.exposed.appsPastDeadline)
+        assertEquals(
+            listOf(AppPastDeadline("app", 5, listOf(OverdueFinding("CVE-2026-0001", null, "CRITICAL", 5)))),
+            status.exposed.appsPastDeadline,
+        )
     }
 
     @Test
