@@ -32,6 +32,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── user/                                  # User role determination based on team membership
 │   └── vulnerability/                         # Vulnerability data layer implementations
 ├── plugins/                                   # Ktor plugins and application lifecycle
+│   ├── AppRoleAuthorization.kt                # Per-route Entra ID app role checks for M2M endpoints
 │   ├── Authentication.kt                      # JWT authentication configuration
 │   ├── Dependencies.kt                        # Dependency injection setup
 │   ├── LeaderElection.kt                      # Kubernetes leader election for in-process sync schedulers
@@ -43,6 +44,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
 │   ├── DataCollectorRoutes.kt                 # On-demand data collection trigger endpoint
 │   ├── DataCollectorCallbackRoutes.kt         # Callbacks from tpt-data-collector (`/callbacks/*`, M2M only)
+│   ├── TeamVulnerabilityRoutes.kt             # Read-only team vulnerabilities for other apps (M2M only)
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
 │   ├── SseRoutes.kt                           # Server-Sent Events endpoint (`/events`)
 │   ├── SecurityStatusRoutes.kt                # Security status (compliance) endpoint
@@ -165,8 +167,14 @@ Full API documentation available at `/swagger` or see `src/main/resources/openap
 Endpoints require a valid JWT Bearer token with:
 - `preferred_username` claim for email
 
-`/callbacks/*` endpoints only accept Entra ID machine-to-machine tokens (`idtyp=app`). Which applications can
-obtain such tokens is controlled by the inbound access policy in `.nais/nais.yaml`.
+Machine-to-machine endpoints only accept Entra ID app tokens (`idtyp=app`) and are authorized per route by a
+custom app role in the `roles` claim. Roles are granted per consumer under
+`accessPolicy.inbound.rules[].permissions.roles` in `.nais/nais.yaml`:
+
+| Role                        | Endpoints                              | Granted to          |
+|-----------------------------|----------------------------------------|---------------------|
+| `data-collector-callbacks`  | `POST /callbacks/*`                    | tpt-data-collector  |
+| `team-vulnerabilities-read` | `GET /vulnerabilities/team/{teamSlug}` | read-only consumers |
 
 ## License
 

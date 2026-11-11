@@ -25,6 +25,9 @@ spec:
       rules:
         - application: tpt-frontend
         - application: tpt-data-collector
+          permissions:
+            roles:
+              - "data-collector-callbacks"
     outbound:
       rules:
         - application: tpt-data-collector

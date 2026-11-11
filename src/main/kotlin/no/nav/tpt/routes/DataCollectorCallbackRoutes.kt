@@ -14,48 +14,52 @@ import no.nav.tpt.infrastructure.datacollector.GitHubSyncSignal
 import no.nav.tpt.infrastructure.github.GitHubRepositoryMessage
 import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.metrics.TPTMetrics
+import no.nav.tpt.plugins.AppRole
 import no.nav.tpt.plugins.BadRequestException
 import no.nav.tpt.plugins.dependencies
+import no.nav.tpt.plugins.withAppRole
 
 private val callbackJson = Json { ignoreUnknownKeys = true }
 
 fun Route.dataCollectorCallbackRoutes() {
-    authenticate("data-collector-bearer") {
-        route("/callbacks") {
-            post("/github/vulnerabilities") {
-                val message = call.decodeBody<GitHubRepositoryMessage>()
-                if (message.nameWithOwner.isBlank()) {
-                    throw BadRequestException("nameWithOwner must not be blank")
+    authenticate("m2m-bearer") {
+        withAppRole(AppRole.DATA_COLLECTOR_CALLBACKS) {
+            route("/callbacks") {
+                post("/github/vulnerabilities") {
+                    val message = call.decodeBody<GitHubRepositoryMessage>()
+                    if (message.nameWithOwner.isBlank()) {
+                        throw BadRequestException("nameWithOwner must not be blank")
+                    }
+                    call.dependencies.gitHubRepository.upsertRepositoryData(message)
+                    call.respond(HttpStatusCode.NoContent)
                 }
-                call.dependencies.gitHubRepository.upsertRepositoryData(message)
-                call.respond(HttpStatusCode.NoContent)
-            }
 
-            post("/github/sync/started") {
-                val signal = call.decodeBody<GitHubSyncSignal>()
-                call.dependencies.sseEventLogRepository.publish(SseEvent.GitHubVulnSyncStarted(signal.teams, signal.timestamp))
-                call.respond(HttpStatusCode.NoContent)
-            }
-
-            post("/github/sync/complete") {
-                val signal = call.decodeBody<GitHubSyncSignal>()
-                call.dependencies.sseEventLogRepository.publish(SseEvent.GitHubVulnSyncComplete(signal.teams, signal.timestamp))
-                call.respond(HttpStatusCode.NoContent)
-            }
-
-            post("/checks") {
-                val checkResults = call.decodeBody<CheckResultsForRepo>()
-                if (checkResults.repoName.isBlank()) {
-                    throw BadRequestException("repoName must not be blank")
+                post("/github/sync/started") {
+                    val signal = call.decodeBody<GitHubSyncSignal>()
+                    call.dependencies.sseEventLogRepository.publish(SseEvent.GitHubVulnSyncStarted(signal.teams, signal.timestamp))
+                    call.respond(HttpStatusCode.NoContent)
                 }
-                try {
-                    call.dependencies.dataCollectorRepository.insert(checkResults)
-                } catch (e: Exception) {
-                    TPTMetrics.checksPersistingFailed()
-                    throw e
+
+                post("/github/sync/complete") {
+                    val signal = call.decodeBody<GitHubSyncSignal>()
+                    call.dependencies.sseEventLogRepository.publish(SseEvent.GitHubVulnSyncComplete(signal.teams, signal.timestamp))
+                    call.respond(HttpStatusCode.NoContent)
                 }
-                TPTMetrics.checksPersisted(checkResults.results.size)
-                call.respond(HttpStatusCode.NoContent)
+
+                post("/checks") {
+                    val checkResults = call.decodeBody<CheckResultsForRepo>()
+                    if (checkResults.repoName.isBlank()) {
+                        throw BadRequestException("repoName must not be blank")
+                    }
+                    try {
+                        call.dependencies.dataCollectorRepository.insert(checkResults)
+                    } catch (e: Exception) {
+                        TPTMetrics.checksPersistingFailed()
+                        throw e
+                    }
+                    TPTMetrics.checksPersisted(checkResults.results.size)
+                    call.respond(HttpStatusCode.NoContent)
+                }
             }
         }
     }

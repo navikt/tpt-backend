@@ -38,6 +38,7 @@ import no.nav.tpt.infrastructure.datacollector.FakeDataCollector
 import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
 import no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector
 import no.nav.tpt.routes.dataCollectorCallbackRoutes
+import no.nav.tpt.routes.teamVulnerabilityRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
 
 fun Application.installTestDependencies(
@@ -247,5 +248,6 @@ fun Application.testModule(
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()
         dataCollectorCallbackRoutes()
+        teamVulnerabilityRoutes()
     }
 }

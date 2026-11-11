@@ -2,7 +2,9 @@ package no.nav.tpt.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
 import org.slf4j.LoggerFactory
@@ -13,15 +15,18 @@ data class TokenPrincipal(
     val groups: List<String> = emptyList()
 )
 
-data class ApplicationPrincipal(val clientName: String?)
+data class ApplicationPrincipal(
+    val clientId: String?,
+    val clientName: String?,
+    val roles: Set<String> = emptySet()
+)
 
 fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospectionService) {
     val logger = LoggerFactory.getLogger("Authentication")
-    val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"
-    val expectedDataCollectorName = "$cluster:appsec:tpt-data-collector"
 
     install(Authentication) {
         // Machine-to-machine tokens only; Entra ID issues them solely to apps in our inbound access policy.
+        // Authorize per route with withAppRole, never with azp_name.
         bearer("m2m-bearer") {
             authenticate { credential ->
                 try {
@@ -31,32 +36,15 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                         logger.warn("Rejected machine-to-machine token (active=${introspectionResult.active}, idtyp=$idtyp)")
                         return@authenticate null
                     }
-                    ApplicationPrincipal(introspectionResult.claims["azp_name"]?.jsonPrimitive?.content)
-                } catch (e: Exception) {
-                    logger.error("Token introspection failed: ${e.message}", e)
-                    null
-                }
-            }
-        }
-
-        bearer("data-collector-bearer") {
-            authenticate { credential ->
-                try {
-                    val introspectionResult = tokenIntrospectionService.introspect(credential.token)
-                    val idtyp = introspectionResult.claims["idtyp"]?.jsonPrimitive?.content
-                    val azpName = introspectionResult.claims["azp_name"]?.jsonPrimitive?.content
-                    
-                    if (!introspectionResult.active || idtyp != "app") {
-                        logger.warn("Rejected data collector token (active=${introspectionResult.active}, idtyp=$idtyp)")
-                        return@authenticate null
-                    }
-                    
-                    if (azpName != expectedDataCollectorName) {
-                        logger.warn("Rejected data collector token: azp_name=$azpName does not match expected=$expectedDataCollectorName")
-                        return@authenticate null
-                    }
-                    
-                    ApplicationPrincipal(azpName)
+                    val roles = (introspectionResult.claims["roles"] as? JsonArray)
+                        ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                        ?.toSet()
+                        ?: emptySet()
+                    ApplicationPrincipal(
+                        clientId = introspectionResult.claims["azp"]?.jsonPrimitive?.content,
+                        clientName = introspectionResult.claims["azp_name"]?.jsonPrimitive?.content,
+                        roles = roles
+                    )
                 } catch (e: Exception) {
                     logger.error("Token introspection failed: ${e.message}", e)
                     null

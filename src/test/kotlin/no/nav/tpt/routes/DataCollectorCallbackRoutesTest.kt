@@ -3,10 +3,12 @@ package no.nav.tpt.routes
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import no.nav.tpt.infrastructure.auth.IntrospectionResponse
 import no.nav.tpt.infrastructure.auth.MockTokenIntrospectionService
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
+import no.nav.tpt.plugins.AppRole
 import no.nav.tpt.plugins.testModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,14 +23,17 @@ class DataCollectorCallbackRoutesTest {
         {"repoName": "navikt/app", "repoOwners": ["team-a"], "results": []}
     """.trimIndent()
 
-    private fun appToken(claims: Map<String, String>) = object : TokenIntrospectionService {
-        override suspend fun introspect(token: String) =
-            IntrospectionResponse(active = true, claims = claims.mapValues { JsonPrimitive(it.value) })
+    private fun appToken(idtyp: String?, vararg roles: String) = object : TokenIntrospectionService {
+        override suspend fun introspect(token: String) = IntrospectionResponse(
+            active = true,
+            claims = buildMap {
+                idtyp?.let { put("idtyp", JsonPrimitive(it)) }
+                put("roles", JsonArray(roles.map { JsonPrimitive(it) }))
+            }
+        )
     }
 
-    private val dataCollectorToken = appToken(
-        mapOf("idtyp" to "app", "azp_name" to "dev-gcp:appsec:tpt-data-collector")
-    )
+    private val dataCollectorToken = appToken("app", "access_as_application", AppRole.DATA_COLLECTOR_CALLBACKS)
 
     @Test
     fun `should return 401 when no authorization header provided`() = testApplication {
@@ -70,7 +75,7 @@ class DataCollectorCallbackRoutesTest {
 
     @Test
     fun `should return 401 when token is not a machine-to-machine token`() = testApplication {
-        val delegatedToken = appToken(mapOf("azp_name" to "dev-gcp:appsec:tpt-data-collector"))
+        val delegatedToken = appToken(idtyp = null, AppRole.DATA_COLLECTOR_CALLBACKS)
         application { testModule(tokenIntrospectionService = delegatedToken) }
 
         val response = client.post("/callbacks/checks") {
@@ -83,9 +88,9 @@ class DataCollectorCallbackRoutesTest {
     }
 
     @Test
-    fun `should return 401 when token is from a different application`() = testApplication {
-        val frontendToken = appToken(mapOf("idtyp" to "app", "azp_name" to "dev-gcp:appsec:tpt-frontend"))
-        application { testModule(tokenIntrospectionService = frontendToken) }
+    fun `should return 403 when application lacks the data collector role`() = testApplication {
+        val readOnlyToken = appToken("app", "access_as_application", AppRole.TEAM_VULNERABILITIES_READ)
+        application { testModule(tokenIntrospectionService = readOnlyToken) }
 
         val response = client.post("/callbacks/github/vulnerabilities") {
             header(HttpHeaders.Authorization, "Bearer frontend")
@@ -93,7 +98,7 @@ class DataCollectorCallbackRoutesTest {
             setBody(repositoryPayload)
         }
 
-        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertEquals(HttpStatusCode.Forbidden, response.status)
     }
 
     @Test

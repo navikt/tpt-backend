@@ -6,6 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import no.nav.tpt.infrastructure.auth.IntrospectionResponse
 import no.nav.tpt.infrastructure.auth.TokenIntrospectionService
@@ -15,6 +16,7 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.sse.SseEvent
 import no.nav.tpt.infrastructure.sse.SseEventLogRepository
+import no.nav.tpt.plugins.AppRole
 import no.nav.tpt.plugins.testModule
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -64,7 +66,7 @@ class DataCollectorCallbackIntegrationTest {
             active = true,
             claims = mapOf(
                 "idtyp" to JsonPrimitive("app"),
-                "azp_name" to JsonPrimitive("dev-gcp:appsec:tpt-data-collector"),
+                "roles" to JsonArray(listOf(JsonPrimitive(AppRole.DATA_COLLECTOR_CALLBACKS))),
             ),
         )
     }

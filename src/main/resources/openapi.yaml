@@ -657,17 +657,62 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /vulnerabilities/team/{teamSlug}:
+    get:
+      summary: Get vulnerabilities for a specific team (machine-to-machine)
+      description: |
+        Read-only access to the prioritized vulnerabilities for a given team slug, for other applications.
+        Requires an Entra ID machine-to-machine token with the `team-vulnerabilities-read` app role.
+      tags:
+        - Vulnerabilities
+      security:
+        - applicationBearerAuth: []
+      parameters:
+        - name: teamSlug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z0-9][a-z0-9-]{0,99}$'
+          description: The NAIS team slug to fetch vulnerabilities for
+      responses:
+        '200':
+          description: Successfully retrieved vulnerabilities for the team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VulnerabilityResponse'
+        '400':
+          description: Bad request - invalid team slug
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - missing or invalid token, or not a machine-to-machine token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          $ref: '#/components/responses/ApplicationForbidden'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /callbacks/github/vulnerabilities:
     post:
       summary: Deliver GitHub vulnerability data for one repository
       description: |
         Callback from tpt-data-collector with the GitHub vulnerability data for a single repository
         Replaces the stored teams and vulnerabilities for the repository. Unknown fields are ignored.
-        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
+        Requires an Entra ID machine-to-machine token with the `data-collector-callbacks` app role.
       tags:
         - Data collector callbacks
       security:
-        - dataCollectorBearerAuth: []
+        - applicationBearerAuth: []
       requestBody:
         required: true
         content:
@@ -681,6 +726,8 @@ paths:
           $ref: '#/components/responses/CallbackBadRequest'
         '401':
           $ref: '#/components/responses/CallbackUnauthorized'
+        '403':
+          $ref: '#/components/responses/ApplicationForbidden'
         '500':
           $ref: '#/components/responses/CallbackInternalError'
   /callbacks/checks:
@@ -690,11 +737,11 @@ paths:
         Callback from tpt-data-collector with check results for a single repository. Existing results with
         the same repository and check name are replaced.
         Unknown fields are ignored.
-        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
+        Requires an Entra ID machine-to-machine token with the `data-collector-callbacks` app role.
       tags:
         - Data collector callbacks
       security:
-        - dataCollectorBearerAuth: []
+        - applicationBearerAuth: []
       requestBody:
         required: true
         content:
@@ -708,6 +755,8 @@ paths:
           $ref: '#/components/responses/CallbackBadRequest'
         '401':
           $ref: '#/components/responses/CallbackUnauthorized'
+        '403':
+          $ref: '#/components/responses/ApplicationForbidden'
         '500':
           $ref: '#/components/responses/CallbackInternalError'
   /callbacks/github/sync/started:
@@ -716,11 +765,11 @@ paths:
       description: |
         Callback from tpt-data-collector. Written to the SSE event log and delivered to clients as a
         `github_vuln_sync_started` event.
-        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
+        Requires an Entra ID machine-to-machine token with the `data-collector-callbacks` app role.
       tags:
         - Data collector callbacks
       security:
-        - dataCollectorBearerAuth: []
+        - applicationBearerAuth: []
       requestBody:
         required: true
         content:
@@ -734,6 +783,8 @@ paths:
           $ref: '#/components/responses/CallbackBadRequest'
         '401':
           $ref: '#/components/responses/CallbackUnauthorized'
+        '403':
+          $ref: '#/components/responses/ApplicationForbidden'
         '500':
           $ref: '#/components/responses/CallbackInternalError'
   /callbacks/github/sync/complete:
@@ -742,11 +793,11 @@ paths:
       description: |
         Callback from tpt-data-collector. Written to the SSE event log and delivered to clients as a
         `github_vuln_sync_complete` event.
-        Only accepts an Entra ID machine-to-machine token issued to the tpt-data-collector application for the current cluster.
+        Requires an Entra ID machine-to-machine token with the `data-collector-callbacks` app role.
       tags:
         - Data collector callbacks
       security:
-        - dataCollectorBearerAuth: []
+        - applicationBearerAuth: []
       requestBody:
         required: true
         content:
@@ -760,6 +811,8 @@ paths:
           $ref: '#/components/responses/CallbackBadRequest'
         '401':
           $ref: '#/components/responses/CallbackUnauthorized'
+        '403':
+          $ref: '#/components/responses/ApplicationForbidden'
         '500':
           $ref: '#/components/responses/CallbackInternalError'
 components:
@@ -773,7 +826,13 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     CallbackUnauthorized:
-      description: Unauthorized - missing or invalid token, not a machine-to-machine token, or not issued to tpt-data-collector
+      description: Unauthorized - missing or invalid token, or not a machine-to-machine token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ApplicationForbidden:
+      description: Forbidden - the calling application is missing the required app role
       content:
         application/problem+json:
           schema:
@@ -790,11 +849,13 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Bearer token authentication using JWT
-    dataCollectorBearerAuth:
+    applicationBearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Machine-to-machine JWT issued to the tpt-data-collector application for the current cluster.
+      description: |
+        Entra ID machine-to-machine JWT (`idtyp=app`). Each operation requires a custom app role in the `roles`
+        claim, granted per consumer in the inbound access policy in `.nais/nais.yaml`.
   schemas:
     CheckResult:
       type: object
