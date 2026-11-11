@@ -15,16 +15,16 @@ data class AppConfig(
     val riskThresholdCritical: Double = DEFAULT_RISK_THRESHOLD_CRITICAL,
     val riskThresholdHigh: Double = DEFAULT_RISK_THRESHOLD_HIGH,
     val riskThresholdMedium: Double = DEFAULT_RISK_THRESHOLD_MEDIUM,
-    val slaCriticalWorkdays: Int = DEFAULT_SLA_CRITICAL_WORKDAYS,
-    val slaNonCriticalMonths: Long = DEFAULT_SLA_NON_CRITICAL_MONTHS,
+    val slaCriticalDays: Int = DEFAULT_SLA_CRITICAL_DAYS,
+    val slaNonCriticalDays: Long = DEFAULT_SLA_NON_CRITICAL_DAYS,
     val securityStatus: SecurityStatusConfig = SecurityStatusConfig(),
 ) {
     companion object {
         const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
         const val DEFAULT_RISK_THRESHOLD_HIGH = 50.0
         const val DEFAULT_RISK_THRESHOLD_MEDIUM = 30.0
-        const val DEFAULT_SLA_CRITICAL_WORKDAYS = 1
-        const val DEFAULT_SLA_NON_CRITICAL_MONTHS = 3L
+        const val DEFAULT_SLA_CRITICAL_DAYS = 7
+        const val DEFAULT_SLA_NON_CRITICAL_DAYS = 60L
 
         fun fromEnvironment(): AppConfig {
             val introspectionEndpoint = System.getenv("NAIS_TOKEN_INTROSPECTION_ENDPOINT")
@@ -59,8 +59,8 @@ data class AppConfig(
                 adminGroups = adminGroups,
                 gcveApiUrl = gcveApiUrl,
                 gcveApiKey = gcveApiKey,
-                slaCriticalWorkdays = System.getenv("SLA_CRITICAL_WORKDAYS")?.toIntOrNull() ?: DEFAULT_SLA_CRITICAL_WORKDAYS,
-                slaNonCriticalMonths = System.getenv("SLA_NON_CRITICAL_MONTHS")?.toLongOrNull() ?: DEFAULT_SLA_NON_CRITICAL_MONTHS,
+                slaCriticalDays = System.getenv("SLA_CRITICAL_DAYS")?.toIntOrNull() ?: DEFAULT_SLA_CRITICAL_DAYS,
+                slaNonCriticalDays = System.getenv("SLA_NON_CRITICAL_DAYS")?.toLongOrNull() ?: DEFAULT_SLA_NON_CRITICAL_DAYS,
                 securityStatus = securityStatusFromEnvironment(),
             )
         }
@@ -69,7 +69,7 @@ data class AppConfig(
             val defaults = SecurityStatusConfig()
             return SecurityStatusConfig(
                 deployMaxAgeDays = System.getenv("DEPLOY_MAX_AGE_DAYS")?.toLongOrNull() ?: defaults.deployMaxAgeDays,
-                exposedRedWorkdays = System.getenv("SECURITY_STATUS_RED_WORKDAYS")?.toIntOrNull() ?: defaults.exposedRedWorkdays,
+                exposedRedDays = System.getenv("SECURITY_STATUS_RED_DAYS")?.toIntOrNull() ?: defaults.exposedRedDays,
                 maintenanceYellowRatio = System.getenv("SECURITY_STATUS_MAINTENANCE_YELLOW_RATIO")?.toDoubleOrNull() ?: defaults.maintenanceYellowRatio,
                 trendWindowDays = System.getenv("SECURITY_STATUS_TREND_WINDOW_DAYS")?.toLongOrNull() ?: defaults.trendWindowDays,
                 trendStableRatio = System.getenv("SECURITY_STATUS_TREND_STABLE_RATIO")?.toDoubleOrNull() ?: defaults.trendStableRatio,
@@ -80,4 +80,3 @@ data class AppConfig(
         }
     }
 }
-

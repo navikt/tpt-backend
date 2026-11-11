@@ -27,7 +27,7 @@ enum class TrendDirection {
 @Serializable
 data class AppPastDeadline(
     val app: String,
-    val workdaysOver: Int,
+    val daysOver: Int,
 )
 
 @Serializable
@@ -74,15 +74,15 @@ data class MonthlySecurityHistory(
 @Serializable
 data class SecurityStatusMeasurement(
     val deployMaxAgeDays: Long,
-    val exposedRedWorkdays: Int,
+    val exposedRedDays: Int,
     val maintenanceYellowRatio: Double,
     val trendWindowDays: Long,
     val trendStableRatio: Double,
     val historyMonths: Long,
     val levelNewWorkdays: Int,
     val levelChronicMonths: Long,
-    val criticalWorkdays: Int,
-    val nonCriticalMonths: Long,
+    val criticalDays: Int,
+    val nonCriticalDays: Long,
     val timeZone: String,
 )
 

@@ -374,7 +374,7 @@ paths:
         Returns the pre-computed SLA compliance report for all teams.
         The report is generated after each full sync and can be refreshed manually
         via POST /admin/reports/refresh. Returns 503 if no report has been generated yet.
-        Critical vulnerabilities are overdue after 1 workday, others after 30 days.
+        Critical vulnerabilities are overdue after 7 calendar days, others after 60 calendar days by default.
         Only accessible to admin users.
       tags:
         - Admin
@@ -1402,19 +1402,22 @@ components:
           $ref: '#/components/schemas/SecurityStatusMeasurement'
     SecurityStatusMeasurement:
       type: object
-      required: [deployMaxAgeDays, exposedRedWorkdays, maintenanceYellowRatio, trendWindowDays, trendStableRatio, historyMonths, levelNewWorkdays, levelChronicMonths, criticalWorkdays, nonCriticalMonths, timeZone]
+      required: [deployMaxAgeDays, exposedRedDays, maintenanceYellowRatio, trendWindowDays, trendStableRatio, historyMonths, levelNewWorkdays, levelChronicMonths, criticalDays, nonCriticalDays, timeZone]
       properties:
         timeZone:
           type: string
           example: Europe/Oslo
-        criticalWorkdays:
+        criticalDays:
           type: integer
-        nonCriticalMonths:
+          description: Calendar days from discovery to the critical vulnerability deadline
+        nonCriticalDays:
           type: integer
+          description: Calendar days from discovery to the non-critical vulnerability deadline
         deployMaxAgeDays:
           type: integer
-        exposedRedWorkdays:
+        exposedRedDays:
           type: integer
+          description: Completed calendar days overdue before the exposed status turns red
         maintenanceYellowRatio:
           type: number
         trendWindowDays:
@@ -1496,12 +1499,13 @@ components:
               type: array
               items:
                 type: object
-                required: [app, workdaysOver]
+                required: [app, daysOver]
                 properties:
                   app:
                     type: string
-                  workdaysOver:
+                  daysOver:
                     type: integer
+                    description: Maximum completed calendar days past deadline for unresolved findings in this application
         trend:
           type: object
           required: [status, direction, appsWithOverduePerMonth]
@@ -1582,11 +1586,11 @@ components:
           example: "team-a"
         criticalOverdue:
           type: integer
-          description: Number of critical vulnerabilities overdue (>1 workday)
+          description: Number of critical vulnerabilities past their calendar-day deadline (7 days by default)
           example: 3
         nonCriticalOverdue:
           type: integer
-          description: Number of non-critical vulnerabilities overdue (>30 days)
+          description: Number of non-critical vulnerabilities past their calendar-day deadline (60 days by default)
           example: 12
         criticalWithinSla:
           type: integer
@@ -1645,13 +1649,8 @@ components:
         daysOverdue:
           type: integer
           format: int64
-          description: Number of days overdue
+          description: Number of completed calendar days past the SLA deadline
           example: 5
-        workdaysOverdue:
-          type: integer
-          nullable: true
-          description: Number of workdays overdue (only for critical vulnerabilities)
-          example: 3
 
 
     VulnerabilityRefreshResponse:
@@ -1823,11 +1822,11 @@ components:
           example: 87
         criticalOverdue:
           type: integer
-          description: Number of critical vulnerabilities overdue (>1 workday)
+          description: Number of critical vulnerabilities past their calendar-day deadline (7 days by default)
           example: 3
         nonCriticalOverdue:
           type: integer
-          description: Number of non-critical vulnerabilities overdue (>30 days)
+          description: Number of non-critical vulnerabilities past their calendar-day deadline (60 days by default)
           example: 12
         criticalWithinSla:
           type: integer

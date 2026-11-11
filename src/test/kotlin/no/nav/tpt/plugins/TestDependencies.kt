@@ -144,7 +144,6 @@ fun Application.installTestDependencies(
 
     val mockVulnerabilitySearchService = no.nav.tpt.infrastructure.vulnerability.VulnerabilitySearchService(
         vulnerabilityRepository = mockVulnerabilityRepository,
-        slaPolicy = no.nav.tpt.domain.vulnerability.SlaPolicy(),
     )
 
     val mockSecurityStatusService = no.nav.tpt.infrastructure.securitystatus.SecurityStatusService(
