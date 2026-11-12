@@ -15,7 +15,7 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
         suspendTransaction(database) { block() }
 
     override suspend fun upsertRepositoryData(message: GitHubRepositoryMessage): Unit = dbQuery {
-        val repoIdentifier = message.nameWithOwner
+        val repoIdentifier = normalizeGitHubRepositoryName(message.nameWithOwner)
 
         val existingRow = GitHubRepositories.selectAll()
             .where { GitHubRepositories.nameWithOwner eq repoIdentifier }
@@ -69,14 +69,14 @@ class GitHubRepositoryImpl(private val database: Database) : GitHubRepository {
 
     override suspend fun getRepository(nameWithOwner: String): GitHubRepositoryData? = dbQuery {
         GitHubRepositories.selectAll()
-            .where { GitHubRepositories.nameWithOwner eq nameWithOwner }
+            .where { GitHubRepositories.nameWithOwner eq normalizeGitHubRepositoryName(nameWithOwner) }
             .mapNotNull { toGitHubRepositoryData(it) }
             .singleOrNull()
     }
 
     override suspend fun getVulnerabilities(nameWithOwner: String): List<GitHubVulnerabilityData> = dbQuery {
         val vulnerabilities = GitHubVulnerabilities.selectAll()
-            .where { GitHubVulnerabilities.nameWithOwner eq nameWithOwner }
+            .where { GitHubVulnerabilities.nameWithOwner eq normalizeGitHubRepositoryName(nameWithOwner) }
             .toList()
 
         vulnerabilities.map { vulnRow ->

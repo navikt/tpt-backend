@@ -16,6 +16,7 @@ import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.severity
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.updatedAt
 import no.nav.tpt.infrastructure.datacollector.DatacollectorCheckFailureReasons.checkId
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepoOwners.owner
+import no.nav.tpt.infrastructure.github.normalizeGitHubRepositoryName
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ReferenceOption.CASCADE
 import org.jetbrains.exposed.v1.core.Table
@@ -73,10 +74,11 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
         suspendTransaction(db = database) { block() }
 
     override suspend fun insert(checks: CheckResultsForRepo) {
+        val repositoryName = normalizeGitHubRepositoryName(checks.repoName)
         transaction(database) {
             checks.results.forEach { check ->
                 val existingIds = DataCollectorChecks.selectAll().where {
-                    repo eq checks.repoName and(checkName eq check.name)
+                    repo eq repositoryName and(checkName eq check.name)
                 }.map { row ->
                     row[DataCollectorChecks.id].value
                 }
@@ -94,7 +96,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
                 this[checkName] = checkResult.name
                 this[description] = checkResult.desc
                 this[severity] = checkResult.severity.toString()
-                this[repo] = checks.repoName
+                this[repo] = repositoryName
                 this[result] = checkResult.javaClass.simpleName
                 this[updatedAt] = checkResult.whenChecked.toJavaInstant().truncatedTo(ChronoUnit.MILLIS)
             }.associate { row ->
@@ -165,4 +167,3 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
 private data class CheckResultWithId(val id: String, val repo: String, val checkResult: CheckResult)
 
 private fun List<CheckResultWithId>.toRegularCheckResults() = this.map { it.checkResult }
-
