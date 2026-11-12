@@ -18,6 +18,7 @@ import no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository
 import no.nav.tpt.plugins.testModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AdminRoutesTest {
@@ -120,11 +121,13 @@ class AdminRoutesTest {
         assertEquals(HttpStatusCode.InternalServerError, response.status)
         assertEquals(ContentType("application", "problem+json"), response.contentType()?.withoutParameters())
 
-        val problem = Json.decodeFromString<ProblemDetail>(response.bodyAsText())
+        val body = response.bodyAsText()
+        val problem = Json.decodeFromString<ProblemDetail>(body)
         assertEquals("about:blank", problem.type)
         assertEquals("Internal Server Error", problem.title)
         assertEquals(500, problem.status)
         assertEquals("/admin/vulnerabilities/team/team-appsec", problem.instance)
+        assertFalse(body.contains("Simulated database connection failure"))
     }
 
     @Test
