@@ -132,6 +132,8 @@ Docker must be running — tests use testcontainers to spin up PostgreSQL.
 - **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
 - **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive through authenticated `POST /callbacks/*` endpoints (GitHub vulnerability data, check results, GitHub sync started/complete).
 
+Collector repository names are stored and returned as `owner/repository`. Legacy bare names are interpreted as `navikt/<repository>`; names already containing an owner are preserved.
+
 ### Data Persistence Strategy
 
 All external data sources are cached in PostgreSQL with staleness tracking:
