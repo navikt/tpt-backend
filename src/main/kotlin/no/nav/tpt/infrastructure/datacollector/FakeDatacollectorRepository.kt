@@ -17,5 +17,8 @@ class FakeDatacollectorRepository: DatacollectorRepository {
             CheckResult.AllGood("BraSjekk", "The description", MEDIUM,Clock.System.now()),
             CheckResult.NeedsWork("Dårligsjekk", "The description", HIGH,Clock.System.now(), listOf("Her kan det forbedres"))
         )),
+        CheckResultsForRepo("niceRepo", listOf("team1", "team2"), listOf(
+            CheckResult.AllGood("BraSjekk", "The description", MEDIUM,Clock.System.now())
+        )),
     )
 }

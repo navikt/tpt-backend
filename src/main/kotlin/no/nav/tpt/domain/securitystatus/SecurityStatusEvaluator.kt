@@ -17,15 +17,15 @@ class SecurityStatusEvaluator(
 
     val measurement = SecurityStatusMeasurement(
         deployMaxAgeDays = config.deployMaxAgeDays,
-        exposedRedWorkdays = config.exposedRedWorkdays,
+        exposedRedDays = config.exposedRedDays,
         maintenanceYellowRatio = config.maintenanceYellowRatio,
         trendWindowDays = config.trendWindowDays,
         trendStableRatio = config.trendStableRatio,
         historyMonths = config.historyMonths,
         levelNewWorkdays = config.levelNewWorkdays,
         levelChronicMonths = config.levelChronicMonths,
-        criticalWorkdays = slaPolicy.config.criticalWorkdays,
-        nonCriticalMonths = slaPolicy.config.nonCriticalMonths,
+        criticalDays = slaPolicy.config.criticalDays,
+        nonCriticalDays = slaPolicy.config.nonCriticalDays,
         timeZone = zone.id,
     )
 
@@ -161,7 +161,7 @@ class SecurityStatusEvaluator(
                 }
                 val redStart = firstIndex(start, end) {
                     val at = if (periodEnd != null && periodEnd.isBefore(evalAt[it])) periodEnd else evalAt[it]
-                    slaPolicy.workdaysOverdue(deadline, at) >= config.exposedRedWorkdays
+                    slaPolicy.calendarDaysOverdue(deadline, at) >= config.exposedRedDays
                 }
                 if (redStart < end) {
                     redDiff.getOrPut(vuln.appNaisId) { IntArray(n + 1) }.also {
@@ -203,11 +203,20 @@ class SecurityStatusEvaluator(
             .filter { it.resolvedAt == null }
             .mapNotNull { vuln ->
                 val result = slaPolicy.evaluate(vuln.severity, vuln.discoveredAt, now)
-                if (!result.isOverdue) null else vuln to slaPolicy.workdaysOverdue(result.deadline, now)
+                if (!result.isOverdue) null else vuln to result.calendarDaysOverdue.toInt()
             }
             .groupBy({ it.first.appNaisId }, { it })
-            .map { (_, entries) -> AppPastDeadline(entries.first().first.appName, entries.maxOf { it.second }) }
-            .sortedWith(compareByDescending<AppPastDeadline> { it.workdaysOver }.thenBy { it.app })
+            .map { (_, entries) ->
+                val findings = entries
+                    .map { (vuln, daysOver) -> OverdueFinding(vuln.cveId, vuln.packageName, vuln.severity, daysOver) }
+                    .sortedWith(
+                        compareByDescending<OverdueFinding> { it.daysOver }
+                            .thenBy(nullsLast()) { it.packageName }
+                            .thenBy { it.cveId },
+                    )
+                AppPastDeadline(entries.first().first.appName, findings.first().daysOver, findings)
+            }
+            .sortedWith(compareByDescending<AppPastDeadline> { it.daysOver }.thenBy { it.app })
 
     private fun trendDirection(
         vulnerabilities: List<VulnerabilityLifecycle>,
@@ -257,7 +266,7 @@ class SecurityStatusEvaluator(
 
     private fun maintenanceAt(workloads: List<WorkloadFact>, at: Instant): Pair<Int, Int> {
         val tracked = workloads.filter { isPresent(it, at) }.mapNotNull { w -> lastDeployment(w, at) }
-        val upToDate = tracked.count { Duration.between(it, at).toDays() <= config.deployMaxAgeDays }
+        val upToDate = tracked.count { !at.isAfter(deploymentDeadline(it)) }
         return upToDate to tracked.size
     }
 
@@ -273,10 +282,14 @@ class SecurityStatusEvaluator(
             .filter { it.removedAt == null }
             .mapNotNull { workload ->
                 val reference = lastDeployment(workload, now) ?: return@mapNotNull null
-                val daysOver = Duration.between(reference, now).toDays() - config.deployMaxAgeDays
-                if (daysOver > 0) AppOverdueRebuild(workload.appName, daysOver.toInt()) else null
+                val deadline = deploymentDeadline(reference)
+                if (!now.isAfter(deadline)) return@mapNotNull null
+                AppOverdueRebuild(workload.appName, slaPolicy.calendarDaysOverdue(deadline, now).toInt())
             }
             .sortedWith(compareByDescending<AppOverdueRebuild> { it.daysOver }.thenBy { it.app })
+
+    private fun deploymentDeadline(deployedAt: Instant): Instant =
+        deployedAt.atZone(zone).plusDays(config.deployMaxAgeDays).toInstant()
 
     private fun level(offTrack: List<Boolean>, reds: Int, dates: List<LocalDate>, today: LocalDate): SecurityLevel? {
         if (!offTrack.last()) return null

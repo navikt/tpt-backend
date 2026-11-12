@@ -26,7 +26,7 @@ private fun mapWorkloadNode(
             packageType = PurlParser.extractPackageType(vuln.packageName),
             description = vuln.description,
             vulnerabilityDetailsLink = vuln.vulnerabilityDetailsLink,
-            suppressed = vuln.suppression?.state == "SUPPRESSED"
+            suppressed = vuln.suppression != null
         )
     }?.distinct() ?: emptyList()
 
