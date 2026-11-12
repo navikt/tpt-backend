@@ -13,6 +13,7 @@ import no.nav.tpt.domain.ProblemDetail
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("no.nav.tpt.plugins.StatusPages")
+private const val INTERNAL_SERVER_ERROR_DETAIL = "An unexpected error occurred while processing the request."
 
 class BadRequestException(message: String) : Exception(message)
 class UnauthorizedException(message: String) : Exception(message)
@@ -123,7 +124,7 @@ fun Application.configureStatusPages() {
                     type = "about:blank",
                     title = "Internal Server Error",
                     status = HttpStatusCode.InternalServerError.value,
-                    detail = cause.message,
+                    detail = INTERNAL_SERVER_ERROR_DETAIL,
                     instance = call.request.uri
                 )
             )
@@ -152,7 +153,7 @@ fun Application.configureStatusPages() {
                     type = "about:blank",
                     title = "Internal Server Error",
                     status = HttpStatusCode.InternalServerError.value,
-                    detail = cause.message,
+                    detail = INTERNAL_SERVER_ERROR_DETAIL,
                     instance = call.request.uri
                 )
             )

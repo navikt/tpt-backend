@@ -19,7 +19,7 @@ Docker images use distroless bases. Prefer testcontainers over mocking where pra
 
 ## Integrations
 
-- **Nais API GraphQL**: Fetch vulnerability data and application ingresses
+- **Nais API GraphQL**: Sync per-team vulnerability data and application ingresses to PostgreSQL; resolve user team membership
 - **Entra ID**: Fetch username from access token claim
 - **GCVE (db.gcve.eu)**: Single enrichment source for all CVE metadata — KEV status, EPSS scores, SSVC,
   CVSS, exploit/patch references, ransomware campaign signal, affected products. Replaces standalone
@@ -31,6 +31,10 @@ Docker images use distroless bases. Prefer testcontainers over mocking where pra
 - **Dependency Injection**: Ktor lambda-based DI
 - **Single Responsibility**: Each class has one clear purpose
 - **Interface Segregation**: Small, focused interfaces
+- **Vulnerability reads**: Enrichment reads active rows from `VulnerabilityRepository`, groups by team/workload,
+  and scores them with `VulnerabilityRiskAssessor`. Database failures propagate to 500 Problem Details.
+- **Stale-team sync**: Enrichment and `SecurityStatusService` share one injected `StaleTeamSyncTrigger`,
+  called after successful reads with the requested teams and teams containing data.
 
 ## Technology Stack
 

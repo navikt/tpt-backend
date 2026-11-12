@@ -47,71 +47,56 @@ class NaisApiMappersTest {
         )
     )
 
-    private fun response(vararg nodes: GraphQLTypes.WorkloadNode) = WorkloadVulnerabilitiesResponse(
-        data = WorkloadVulnerabilitiesResponse.Data(
-            user = WorkloadVulnerabilitiesResponse.User(
-                teams = WorkloadVulnerabilitiesResponse.Teams(
-                    pageInfo = GraphQLTypes.PageInfo(hasNextPage = false, endCursor = null),
-                    nodes = listOf(
-                        WorkloadVulnerabilitiesResponse.TeamNode(
-                            team = GraphQLTypes.Team(
-                                slug = "test-team",
-                                applications = GraphQLTypes.WorkloadConnection(
-                                    pageInfo = GraphQLTypes.PageInfo(hasNextPage = false, endCursor = null),
-                                    nodes = nodes.toList()
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
+    private fun mapWorkloads(vararg nodes: GraphQLTypes.WorkloadNode) = mapToUserVulnerabilitiesData(
+        teamSlug = "test-team",
+        appWorkloads = nodes.toList(),
+        jobWorkloads = emptyList(),
     )
 
     @Test
     fun `should map EXTERNAL ingress type correctly`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(ingresses = listOf(GraphQLTypes.Ingress(type = "EXTERNAL")))
-        ).toData()
+        )
 
         assertEquals(listOf("EXTERNAL"), result.teams.first().workloads.first().ingressTypes)
     }
 
     @Test
     fun `should map INTERNAL ingress type correctly`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(ingresses = listOf(GraphQLTypes.Ingress(type = "INTERNAL")))
-        ).toData()
+        )
 
         assertEquals(listOf("INTERNAL"), result.teams.first().workloads.first().ingressTypes)
     }
 
     @Test
     fun `should map AUTHENTICATED ingress type correctly`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(ingresses = listOf(GraphQLTypes.Ingress(type = "AUTHENTICATED")))
-        ).toData()
+        )
 
         assertEquals(listOf("AUTHENTICATED"), result.teams.first().workloads.first().ingressTypes)
     }
 
     @Test
     fun `should map empty ingress list when no ingresses`() {
-        val result = response(workloadNode(ingresses = emptyList())).toData()
+        val result = mapWorkloads(workloadNode(ingresses = emptyList()))
 
         assertTrue(result.teams.first().workloads.first().ingressTypes.isEmpty())
     }
 
     @Test
     fun `should map all ingress types when multiple ingresses are present`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(
                 ingresses = listOf(
                     GraphQLTypes.Ingress(type = "INTERNAL"),
                     GraphQLTypes.Ingress(type = "EXTERNAL"),
                 )
             )
-        ).toData()
+        )
 
         val ingressTypes = result.teams.first().workloads.first().ingressTypes
         assertEquals(2, ingressTypes.size)
@@ -121,23 +106,23 @@ class NaisApiMappersTest {
 
     @Test
     fun `should map environment name from first deployment node`() {
-        val result = response(workloadNode(environmentName = "prod-gcp")).toData()
+        val result = mapWorkloads(workloadNode(environmentName = "prod-gcp"))
 
         assertEquals("prod-gcp", result.teams.first().workloads.first().environment)
     }
 
     @Test
     fun `should mark vulnerability as suppressed when Nais suppression state is IN_TRIAGE`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(image = imageWithSuppression(GraphQLTypes.Suppression(state = "IN_TRIAGE")))
-        ).toData()
+        )
 
         assertTrue(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
     }
 
     @Test
     fun `should not mark vulnerability as suppressed when Nais suppression is null`() {
-        val result = response(workloadNode(image = imageWithSuppression(null))).toData()
+        val result = mapWorkloads(workloadNode(image = imageWithSuppression(null)))
 
         assertFalse(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
     }
