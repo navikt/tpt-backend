@@ -2,6 +2,7 @@ package no.nav.tpt.infrastructure.nais
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class NaisApiMappersTest {
@@ -11,6 +12,7 @@ class NaisApiMappersTest {
         name: String = "test-app",
         ingresses: List<GraphQLTypes.Ingress> = emptyList(),
         environmentName: String? = "prod-gcp",
+        image: GraphQLTypes.Image? = null,
     ) = GraphQLTypes.WorkloadNode(
         id = id,
         name = name,
@@ -24,7 +26,25 @@ class NaisApiMappersTest {
                 )
             )
         ),
-        image = null
+        image = image
+    )
+
+    private fun imageWithSuppression(suppression: GraphQLTypes.Suppression?) = GraphQLTypes.Image(
+        name = "test-app",
+        tag = "1.0.0",
+        vulnerabilities = GraphQLTypes.Vulnerabilities(
+            pageInfo = GraphQLTypes.PageInfo(hasNextPage = false, endCursor = null),
+            nodes = listOf(
+                GraphQLTypes.Vulnerability(
+                    identifier = "CVE-2024-1234",
+                    severity = "HIGH",
+                    packageName = "pkg:maven/org.example/lib@1.0.0",
+                    description = null,
+                    vulnerabilityDetailsLink = null,
+                    suppression = suppression
+                )
+            )
+        )
     )
 
     private fun response(vararg nodes: GraphQLTypes.WorkloadNode) = WorkloadVulnerabilitiesResponse(
@@ -104,5 +124,21 @@ class NaisApiMappersTest {
         val result = response(workloadNode(environmentName = "prod-gcp")).toData()
 
         assertEquals("prod-gcp", result.teams.first().workloads.first().environment)
+    }
+
+    @Test
+    fun `should mark vulnerability as suppressed when Nais suppression state is IN_TRIAGE`() {
+        val result = response(
+            workloadNode(image = imageWithSuppression(GraphQLTypes.Suppression(state = "IN_TRIAGE")))
+        ).toData()
+
+        assertTrue(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
+    }
+
+    @Test
+    fun `should not mark vulnerability as suppressed when Nais suppression is null`() {
+        val result = response(workloadNode(image = imageWithSuppression(null))).toData()
+
+        assertFalse(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
     }
 }

@@ -632,7 +632,7 @@ class NaisApiClientTeamVulnerabilitiesTest {
                                                     "severity": "HIGH",
                                                     "package": "test-package",
                                                     "suppression": {
-                                                      "state": "SUPPRESSED"
+                                                      "state": "NOT_AFFECTED"
                                                     }
                                                   }
                                                 ]
