@@ -24,6 +24,10 @@ Docker images use distroless bases. Prefer testcontainers over mocking where pra
 - **GCVE (db.gcve.eu)**: Single enrichment source for all CVE metadata — KEV status, EPSS scores, SSVC,
   CVSS, exploit/patch references, ransomware campaign signal, affected products. Replaces standalone
   CISA KEV and EPSS integrations.
+- **GitHub (Fix with Copilot)**: GitHub App user authorization (OAuth + PKCE) on every request; the user
+  access token is used once to start a Copilot task via the Agent Tasks API
+  (`X-GitHub-Api-Version: 2026-03-10`) and then revoked. Only the App's client ID and secret are used — no
+  installation token, private key, webhooks or polling. Dedup state lives in `copilot_remediations`.
 
 ## Key Architectural Principles
 

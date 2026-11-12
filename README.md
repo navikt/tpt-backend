@@ -12,6 +12,7 @@ src/main/kotlin/no/nav/tpt/
 ├── domain/                                    # Core business logic and interfaces
 │   ├── admin/                                 # Admin overview and reporting interfaces
 │   ├── github/                                # GitHub vulnerability domain models
+│   ├── remediation/                           # "Fix with Copilot" request/response models
 │   ├── risk/                                  # Risk scoring — additive point model (0–100), 5 factor calculators
 │   │   └── factors/                           # SeverityCalculator, ExploitationEvidenceCalculator, ExposureCalculator, EnvironmentCalculator, ActionabilityCalculator
 │   ├── user/                                  # User context and role management interfaces
@@ -24,6 +25,7 @@ src/main/kotlin/no/nav/tpt/
 │   ├── database/                              # Database factory and connection management
 │   ├── datacollector/                         # Triggers on-demand data collection from the external tpt-data-collector service
 │   ├── github/                                # GitHub repository metadata and vulnerability service
+│   │   └── copilot/                           # GitHub App OAuth, Copilot Agent Tasks client, prompt builder, remediation service
 │   ├── nais/                                  # Nais GraphQL API client for vulnerability data
 │   ├── gcve/                                  # GCVE (db.gcve.eu) CVE enrichment — KEV, EPSS, SSVC, CVSS (PostgreSQL-backed)
 │   ├── enrichment/                            # Repository-backed reads; VulnerabilityRiskAssessor scores Nais and GitHub vulns (GCVE + VEX)
@@ -41,6 +43,7 @@ src/main/kotlin/no/nav/tpt/
 ├── routes/                                    # HTTP API endpoints
 │   ├── AdminRoutes.kt                         # Admin query and overview endpoints
 │   ├── ConfigRoutes.kt                        # Risk factor documentation endpoint
+│   ├── CopilotRemediationRoutes.kt            # "Fix with Copilot" endpoints (`/remediations/copilot`)
 │   ├── DataCollectorRoutes.kt                 # On-demand data collection trigger endpoint
 │   ├── DataCollectorCallbackRoutes.kt         # Callbacks from tpt-data-collector (`/callbacks/*`, M2M only)
 │   ├── HealthRoutes.kt                        # Liveness and readiness probes
@@ -90,6 +93,9 @@ src/test/                                      # Test suite mirroring main struc
 - `ELECTOR_GET_URL` - Kubernetes leader election URL (auto-injected by Nais)
 - `GCVE_API_URL` - GCVE API URL (default: `https://db.gcve.eu/api`)
 - `GCVE_API_KEY` - GCVE API key for per-key rate bucket (optional)
+- `GITHUB_APP_CLIENT_ID` - Client ID of the GitHub App used for "Fix with Copilot" (the feature is disabled when unset)
+- `GITHUB_APP_CLIENT_SECRET` - Client secret of the same GitHub App (the feature is disabled when unset)
+- `GITHUB_APP_REDIRECT_URI` - OAuth callback URL (default: `https://tpt.nav.no/api/github/copilot/callback`)
 
 ## Running Locally
 
@@ -131,6 +137,24 @@ Docker must be running — tests use testcontainers to spin up PostgreSQL.
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
 - **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
 - **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive through authenticated `POST /callbacks/*` endpoints (GitHub vulnerability data, check results, GitHub sync started/complete).
+
+### Fix with Copilot
+
+Users can start a Copilot cloud agent task
+for a vulnerability in a repository their team owns. TPT never clones repositories.
+
+1. `POST /remediations/copilot` resolves the vulnerability from the user's own data, rejects it when a
+   Dependabot PR exists and returns a GitHub App authorize URL (OAuth with PKCE, single-use state).
+   GitHub redirects to `https://tpt.nav.no/api/github/copilot/callback`, the only path tpt-frontend exposes on
+   `tpt.nav.no` (excluded from autoLogin). It forwards `code` and `state` to `tpt.ansatt.nav.no`, where the
+   user's Entra session is available.
+2. `POST /remediations/copilot/callback` exchanges the code for a short-lived user access token, starts a task
+   through the Agent Tasks API (`create_pull_request: true`) and revokes the token. Tokens are never stored.
+3. One row per repository, vulnerability and package in `copilot_remediations` prevents duplicate tasks. A new
+   task is only started if the previous one failed, was cancelled or timed out.
+
+Requires a GitHub App with the repository permission "Agent tasks" (read and write) installed on the
+repositories, and a Copilot Business or Enterprise seat for the user.
 
 ### Data Persistence Strategy
 

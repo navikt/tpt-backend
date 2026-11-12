@@ -18,6 +18,8 @@ private const val INTERNAL_SERVER_ERROR_DETAIL = "An unexpected error occurred w
 class BadRequestException(message: String) : Exception(message)
 class UnauthorizedException(message: String) : Exception(message)
 class ForbiddenException(message: String) : Exception(message)
+class NotFoundException(message: String) : Exception(message)
+class ConflictException(message: String) : Exception(message)
 class ServiceUnavailableException(message: String) : Exception(message)
 class InternalServerException(val context: String, cause: Throwable) : Exception("$context: ${cause.message}", cause)
 class NaisApiException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -83,6 +85,32 @@ fun Application.configureStatusPages() {
                     type = "about:blank",
                     title = "Forbidden",
                     status = HttpStatusCode.Forbidden.value,
+                    detail = cause.message,
+                    instance = call.request.uri
+                )
+            )
+        }
+
+        exception<NotFoundException> { call, cause ->
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Not Found",
+                    status = HttpStatusCode.NotFound.value,
+                    detail = cause.message,
+                    instance = call.request.uri
+                )
+            )
+        }
+
+        exception<ConflictException> { call, cause ->
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Conflict",
+                    status = HttpStatusCode.Conflict.value,
                     detail = cause.message,
                     instance = call.request.uri
                 )

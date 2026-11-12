@@ -18,6 +18,7 @@ data class AppConfig(
     val slaCriticalDays: Int = DEFAULT_SLA_CRITICAL_DAYS,
     val slaNonCriticalDays: Long = DEFAULT_SLA_NON_CRITICAL_DAYS,
     val securityStatus: SecurityStatusConfig = SecurityStatusConfig(),
+    val copilotRemediation: CopilotRemediationConfig? = null,
 ) {
     companion object {
         const val DEFAULT_RISK_THRESHOLD_CRITICAL = 75.0
@@ -62,6 +63,7 @@ data class AppConfig(
                 slaCriticalDays = System.getenv("SLA_CRITICAL_DAYS")?.toIntOrNull() ?: DEFAULT_SLA_CRITICAL_DAYS,
                 slaNonCriticalDays = System.getenv("SLA_NON_CRITICAL_DAYS")?.toLongOrNull() ?: DEFAULT_SLA_NON_CRITICAL_DAYS,
                 securityStatus = securityStatusFromEnvironment(),
+                copilotRemediation = CopilotRemediationConfig.fromEnvironment(),
             )
         }
 

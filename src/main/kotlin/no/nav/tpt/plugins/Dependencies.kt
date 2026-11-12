@@ -46,6 +46,10 @@ import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubRepositoryImpl
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityService
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityServiceImpl
+import no.nav.tpt.infrastructure.github.copilot.CopilotAgentTasksClientImpl
+import no.nav.tpt.infrastructure.github.copilot.CopilotRemediationRepositoryImpl
+import no.nav.tpt.infrastructure.github.copilot.CopilotRemediationService
+import no.nav.tpt.infrastructure.github.copilot.GitHubUserAuthClientImpl
 import no.nav.tpt.infrastructure.nais.NaisApiClient
 import no.nav.tpt.infrastructure.nais.NaisApiService
 import no.nav.tpt.infrastructure.sse.SseEventBus
@@ -89,6 +93,7 @@ class Dependencies(
     val sseEventLogListener: SseEventLogListener?,
     val dataCollector: DataCollector,
     val gitHubDataCollector: GitHubDataCollector,
+    val copilotRemediationService: CopilotRemediationService,
 )
 
 val DependenciesKey = AttributeKey<Dependencies>("Dependencies")
@@ -221,6 +226,20 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
     val gitHubDataCollector =
         RealGitHubDataCollector(httpClient = httpClient, naisTokenEndpoint = config.naisTokenRetrievalEndpoint)
 
+    val copilotRemediationService = CopilotRemediationService(
+        authClient = config.copilotRemediation?.let { GitHubUserAuthClientImpl(httpClient, it) },
+        tasksClient = CopilotAgentTasksClientImpl(
+            httpClient,
+            config.copilotRemediation?.gitHubApiUrl ?: "https://api.github.com",
+        ),
+        remediationRepository = CopilotRemediationRepositoryImpl(database),
+        userContextService = userContextService,
+        gitHubRepository = gitHubRepository,
+        vulnerabilityRepository = vulnerabilityRepository,
+        gitHubVulnerabilityService = gitHubVulnerabilityService,
+        vulnerabilityEnrichmentService = vulnService,
+    )
+
     val dependencies = Dependencies(
         appConfig = config,
         tokenIntrospectionService = tokenIntrospectionService,
@@ -247,6 +266,7 @@ val DependenciesPlugin = createApplicationPlugin(name = "Dependencies") {
         sseEventLogListener = sseEventLogListener,
         dataCollector = dataCollector,
         gitHubDataCollector = gitHubDataCollector,
+        copilotRemediationService = copilotRemediationService,
     )
 
     application.attributes.put(DependenciesKey, dependencies)

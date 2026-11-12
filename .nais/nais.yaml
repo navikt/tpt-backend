@@ -32,6 +32,8 @@ spec:
         - host: teamkatalog-api.intern.nav.no
         - host: console.nav.cloud.nais.io
         - host: db.gcve.eu
+        - host: github.com
+        - host: api.github.com
   gcp:
     sqlInstances:
       - type: POSTGRES_17

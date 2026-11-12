@@ -39,6 +39,13 @@ import no.nav.tpt.infrastructure.datacollector.FakeDatacollectorRepository
 import no.nav.tpt.infrastructure.datacollector.FakeGitHubDataCollector
 import no.nav.tpt.routes.dataCollectorCallbackRoutes
 import no.nav.tpt.routes.dataCollectorRoutes
+import no.nav.tpt.routes.copilotRemediationRoutes
+import no.nav.tpt.infrastructure.github.copilot.CopilotAgentTasksClient
+import no.nav.tpt.infrastructure.github.copilot.CopilotRemediationRepository
+import no.nav.tpt.infrastructure.github.copilot.CopilotRemediationService
+import no.nav.tpt.infrastructure.github.copilot.FakeCopilotAgentTasksClient
+import no.nav.tpt.infrastructure.github.copilot.GitHubUserAuthClient
+import no.nav.tpt.infrastructure.github.copilot.InMemoryCopilotRemediationRepository
 
 fun Application.installTestDependencies(
     tokenIntrospectionService: TokenIntrospectionService = MockTokenIntrospectionService(),
@@ -52,6 +59,9 @@ fun Application.installTestDependencies(
     gitHubRepository: GitHubRepository? = null,
     dataCollectorRepository: DatacollectorRepository? = null,
     sseEventLogRepository: SseEventLogRepository? = null,
+    copilotAuthClient: GitHubUserAuthClient? = null,
+    copilotTasksClient: CopilotAgentTasksClient = FakeCopilotAgentTasksClient(),
+    copilotRemediationRepository: CopilotRemediationRepository = InMemoryCopilotRemediationRepository(),
 ) {
     val client = httpClient ?: HttpClient(MockEngine) {
         engine {
@@ -191,7 +201,17 @@ fun Application.installTestDependencies(
         sseEventLogRepository = resolvedSseEventLogRepository,
         sseEventLogListener = null,
         dataCollector = dataCollector,
-        gitHubDataCollector = gitHubDataCollector
+        gitHubDataCollector = gitHubDataCollector,
+        copilotRemediationService = CopilotRemediationService(
+            authClient = copilotAuthClient,
+            tasksClient = copilotTasksClient,
+            remediationRepository = copilotRemediationRepository,
+            userContextService = actualUserContextService,
+            gitHubRepository = resolvedGitHubRepository,
+            vulnerabilityRepository = mockVulnerabilityRepository,
+            gitHubVulnerabilityService = gitHubVulnerabilityService,
+            vulnerabilityEnrichmentService = vulnService,
+        ),
     )
 
     attributes.put(DependenciesKey, dependencies)
@@ -208,6 +228,9 @@ fun Application.testModule(
     userContextService: UserContextService? = null,
     dataCollectorRepository: DatacollectorRepository? = null,
     sseEventLogRepository: SseEventLogRepository? = null,
+    copilotAuthClient: GitHubUserAuthClient? = null,
+    copilotTasksClient: CopilotAgentTasksClient = FakeCopilotAgentTasksClient(),
+    copilotRemediationRepository: CopilotRemediationRepository = InMemoryCopilotRemediationRepository(),
 ) {
     installTestDependencies(
         tokenIntrospectionService,
@@ -220,6 +243,9 @@ fun Application.testModule(
         userContextService = userContextService,
         dataCollectorRepository = dataCollectorRepository,
         sseEventLogRepository = sseEventLogRepository,
+        copilotAuthClient = copilotAuthClient,
+        copilotTasksClient = copilotTasksClient,
+        copilotRemediationRepository = copilotRemediationRepository,
     )
 
     install(SSE)
@@ -244,5 +270,6 @@ fun Application.testModule(
         sseRoutes(dependencies.sseEventBus)
         dataCollectorRoutes()
         dataCollectorCallbackRoutes()
+        copilotRemediationRoutes()
     }
 }
