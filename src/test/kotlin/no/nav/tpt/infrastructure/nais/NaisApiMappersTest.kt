@@ -113,16 +113,16 @@ class NaisApiMappersTest {
 
     @Test
     fun `should mark vulnerability as suppressed when Nais suppression state is IN_TRIAGE`() {
-        val result = response(
+        val result = mapWorkloads(
             workloadNode(image = imageWithSuppression(GraphQLTypes.Suppression(state = "IN_TRIAGE")))
-        ).toData()
+        )
 
         assertTrue(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
     }
 
     @Test
     fun `should not mark vulnerability as suppressed when Nais suppression is null`() {
-        val result = response(workloadNode(image = imageWithSuppression(null))).toData()
+        val result = mapWorkloads(workloadNode(image = imageWithSuppression(null)))
 
         assertFalse(result.teams.first().workloads.first().vulnerabilities.first().suppressed)
     }
