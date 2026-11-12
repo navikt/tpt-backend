@@ -154,6 +154,64 @@ class DataCollectorCallbackIntegrationTest {
     }
 
     @Test
+    fun `should use one GitHub repository for bare and owner-qualified callbacks`() {
+        val bareName = "callback-name-transition"
+        val qualifiedName = "navikt/$bareName"
+
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(qualifiedName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+
+        runBlocking {
+            assertEquals(
+                listOf(qualifiedName),
+                gitHubRepository.getAllRepositories()
+                    .filter { it.nameWithOwner.endsWith("/$bareName") || it.nameWithOwner == bareName }
+                    .map { it.nameWithOwner }
+            )
+            assertEquals(2, gitHubRepository.getVulnerabilities(qualifiedName).size)
+            assertEquals(
+                gitHubRepository.getRepository(qualifiedName),
+                gitHubRepository.getRepository(bareName)
+            )
+            assertEquals(
+                gitHubRepository.getVulnerabilities(qualifiedName),
+                gitHubRepository.getVulnerabilities(bareName)
+            )
+        }
+    }
+
+    @Test
+    fun `should keep GitHub callbacks for different repository owners separate`() {
+        val bareName = "callback-distinct-owners"
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload("other/$bareName"))
+
+        runBlocking {
+            assertNotNull(gitHubRepository.getRepository("navikt/$bareName"))
+            assertNotNull(gitHubRepository.getRepository("other/$bareName"))
+            assertEquals(2, gitHubRepository.getVulnerabilities("navikt/$bareName").size)
+            assertEquals(2, gitHubRepository.getVulnerabilities("other/$bareName").size)
+        }
+    }
+
+    @Test
+    fun `should use one repository for bare and owner-qualified check callbacks`() {
+        val bareName = "check-callback-name-transition"
+        val owner = "team-callback-transition"
+
+        postCallback("/callbacks/checks", checksPayload(bareName, owner))
+        postCallback("/callbacks/checks", checksPayload("navikt/$bareName", owner))
+        postCallback("/callbacks/checks", checksPayload(bareName, owner))
+
+        runBlocking {
+            val results = dataCollectorRepository.allForOwner(listOf(owner)).single()
+            assertEquals("navikt/$bareName", results.repoName)
+            assertEquals(2, results.results.size)
+        }
+    }
+
+    @Test
     fun `should write sync signals to the SSE event log`() {
         val lastId = runBlocking { sseEventLogRepository.latestEventId() }
 
