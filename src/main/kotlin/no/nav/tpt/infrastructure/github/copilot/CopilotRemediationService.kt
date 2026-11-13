@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.github.copilot
 
+import no.nav.tpt.domain.DependencyCategory
 import no.nav.tpt.domain.remediation.CopilotRemediationCallbackRequest
 import no.nav.tpt.domain.remediation.CopilotRemediationCallbackResponse
 import no.nav.tpt.domain.remediation.CopilotRemediationDto
@@ -8,10 +9,14 @@ import no.nav.tpt.domain.remediation.CopilotRemediationStartResponse
 import no.nav.tpt.domain.remediation.CopilotRemediationStatus
 import no.nav.tpt.domain.remediation.CopilotRemediationsResponse
 import no.nav.tpt.domain.user.UserContextService
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import no.nav.tpt.domain.vulnerability.VulnerabilityRepository
 import no.nav.tpt.infrastructure.enrichment.VulnerabilityEnrichmentService
 import no.nav.tpt.infrastructure.github.GitHubRepository
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityService
+import no.nav.tpt.infrastructure.github.copilot.RemediationIdentity.normalizeRepository
+import no.nav.tpt.infrastructure.github.copilot.RemediationIdentity.packageIdentity
 import no.nav.tpt.plugins.BadRequestException
 import no.nav.tpt.plugins.ConflictException
 import no.nav.tpt.plugins.ForbiddenException
@@ -42,12 +47,13 @@ class CopilotRemediationService(
 
     suspend fun list(email: String, groups: List<String>, repository: String): CopilotRemediationsResponse {
         if (!enabled) return CopilotRemediationsResponse(enabled = false, remediations = emptyList())
-        validateRepository(repository)
+        val normalizedRepository = normalizeRepository(repository)
+        validateRepository(normalizedRepository)
 
-        val canonicalRepository = accessibleRepository(email, groups, repository)
+        val canonicalRepository = accessibleRepository(email, groups, normalizedRepository)
             ?: throw ForbiddenException("You do not have access to repository $repository")
 
-        val remediations = remediationRepository.findByRepository(canonicalRepository).map {
+        val remediations = remediationRepository.findByRepository(canonicalRepository.lowercase()).map {
             CopilotRemediationDto(
                 repository = it.key.repository,
                 vulnerabilityIdentifier = it.key.vulnerabilityIdentifier,
@@ -66,12 +72,12 @@ class CopilotRemediationService(
         request: CopilotRemediationStartRequest,
     ): CopilotRemediationStartResponse {
         val client = requireAuthClient()
-        validateRepository(request.repository)
+        val repository = normalizeRepository(request.repository)
+        validateRepository(repository)
         validateReturnPath(request.returnPath)
 
-        val context = resolveContext(
-            email, groups, request.repository, request.vulnerabilityIdentifier, request.packageName, request.workloadId,
-        )
+        val vulnerability = VulnerabilityRef(repository, request.vulnerabilityIdentifier, request.packageName)
+        val context = resolveContext(email, groups, vulnerability, request.workloadId)
         val key = context.toKey()
 
         val existing = remediationRepository.find(key)
@@ -86,7 +92,7 @@ class CopilotRemediationService(
                 state = state,
                 codeVerifier = codeVerifier,
                 requestedBy = email,
-                key = key,
+                vulnerability = vulnerability,
                 workloadId = request.workloadId,
                 returnPath = request.returnPath,
                 expiresAt = clock().plus(AUTHORIZATION_REQUEST_TTL),
@@ -115,14 +121,7 @@ class CopilotRemediationService(
             throw ForbiddenException("The authorization request belongs to another user")
         }
 
-        val context = resolveContext(
-            email,
-            groups,
-            authorization.key.repository,
-            authorization.key.vulnerabilityIdentifier,
-            authorization.key.packageName.ifEmpty { null },
-            authorization.workloadId,
-        )
+        val context = resolveContext(email, groups, authorization.vulnerability, authorization.workloadId)
 
         val accessToken = try {
             client.exchangeCode(request.code, authorization.codeVerifier)
@@ -136,7 +135,7 @@ class CopilotRemediationService(
         } catch (e: GitHubApiException) {
             throw mapGitHubError(e)
         } finally {
-            client.revokeToken(accessToken)
+            withContext(NonCancellable) { client.revokeToken(accessToken) }
         }
     }
 
@@ -148,17 +147,16 @@ class CopilotRemediationService(
     ): CopilotRemediationCallbackResponse {
         val key = context.toKey()
         val now = clock()
-        val existing = remediationRepository.find(key)
+        val stalePendingBefore = now.minus(PENDING_CLAIM_TTL)
+        var existing = remediationRepository.find(key)
+        if (existing?.status == CopilotRemediationStatus.PENDING && existing.updatedAt.isBefore(stalePendingBefore)) {
+            existing = reconcilePendingClaim(accessToken, existing) ?: existing
+        }
 
         var replaceableTaskId: String? = null
         if (existing?.status == CopilotRemediationStatus.STARTED && existing.taskId != null) {
             val task = tasksClient.getTask(accessToken, key.repository, existing.taskId)
-            val restartable = if (task == null) {
-                existing.updatedAt.isBefore(now.minus(INVISIBLE_TASK_RESTART_AFTER))
-            } else {
-                task.state in RESTARTABLE_STATES
-            }
-            if (!restartable) {
+            if (task == null || task.state !in RESTARTABLE_STATES) {
                 return CopilotRemediationCallbackResponse(
                     taskUrl = existing.taskUrl ?: task?.htmlUrl,
                     returnPath = returnPath,
@@ -168,7 +166,7 @@ class CopilotRemediationService(
             replaceableTaskId = existing.taskId
         }
 
-        val claimed = remediationRepository.tryClaim(key, email, replaceableTaskId, now.minus(PENDING_CLAIM_TTL))
+        val claimed = remediationRepository.tryClaim(key, email, replaceableTaskId, stalePendingBefore)
         if (!claimed) {
             return CopilotRemediationCallbackResponse(
                 taskUrl = remediationRepository.find(key)?.taskUrl,
@@ -179,14 +177,29 @@ class CopilotRemediationService(
 
         val task = try {
             tasksClient.createTask(accessToken, key.repository, CopilotPromptBuilder.build(context))
-        } catch (e: Exception) {
-            remediationRepository.releaseClaim(key)
+        } catch (e: GitHubApiException) {
+            // Only a 4xx is a definitive rejection; otherwise the task may have started, so keep the claim
+            // until reconcilePendingClaim can look for it.
+            if (e.statusCode in 400..499) remediationRepository.releaseClaim(key)
             throw e
         }
         remediationRepository.markStarted(key, task.id, task.htmlUrl)
         logger.info("Started Copilot task ${task.id} for ${key.vulnerabilityIdentifier} in ${key.repository}")
 
         return CopilotRemediationCallbackResponse(taskUrl = task.htmlUrl, returnPath = returnPath, alreadyStarted = false)
+    }
+
+    private suspend fun reconcilePendingClaim(accessToken: String, claim: CopilotRemediation): CopilotRemediation? {
+        val claimedAt = claim.updatedAt
+        val task = tasksClient.findTaskCreatedBetween(
+            accessToken,
+            claim.key.repository,
+            claimedAt.minus(CLOCK_SKEW),
+            claimedAt.plus(PENDING_CLAIM_TTL),
+        ) ?: return null
+        remediationRepository.markStarted(claim.key, task.id, task.htmlUrl)
+        logger.info("Recovered Copilot task ${task.id} for ${claim.key.vulnerabilityIdentifier} in ${claim.key.repository}")
+        return claim.copy(status = CopilotRemediationStatus.STARTED, taskId = task.id, taskUrl = task.htmlUrl)
     }
 
     private suspend fun accessibleRepository(email: String, groups: List<String>, repository: String): String? {
@@ -196,33 +209,36 @@ class CopilotRemediationService(
             .map { it.nameWithOwner }
             .firstOrNull { it.equals(repository, ignoreCase = true) }
             ?: vulnerabilityRepository.getActiveVulnerabilitiesForTeams(teams)
-                .mapNotNull { it.repository }
+                .mapNotNull { it.repository?.let(::normalizeRepository) }
                 .firstOrNull { it.equals(repository, ignoreCase = true) }
     }
 
     private suspend fun resolveContext(
         email: String,
         groups: List<String>,
-        repository: String,
-        identifier: String,
-        packageName: String?,
+        vulnerability: VulnerabilityRef,
         workloadId: String?,
     ): RemediationVulnerabilityContext {
+        val (repository, identifier, packageName) = vulnerability
         val context = if (workloadId != null) {
             vulnerabilityEnrichmentService.enrichVulnerabilitiesForUser(email, groups).teams
                 .flatMap { it.workloads }
-                .filter { it.id == workloadId && it.repository.equals(repository, ignoreCase = true) }
+                .filter { workload ->
+                    workload.id == workloadId &&
+                        workload.repository?.let(::normalizeRepository).equals(repository, ignoreCase = true)
+                }
                 .firstNotNullOfOrNull { workload ->
                     workload.vulnerabilities
                         .firstOrNull { it.identifier == identifier && it.packageName == packageName }
                         ?.let { vuln ->
                             RemediationVulnerabilityContext(
-                                repository = workload.repository!!,
+                                repository = normalizeRepository(workload.repository!!),
                                 identifier = vuln.identifier,
                                 packageName = vuln.packageName,
                                 packageEcosystem = vuln.packageEcosystem,
                                 dependencyScope = vuln.dependencyScope,
-                                dependencyCategory = vuln.dependencyCategory,
+                                dependencyCategory = DependencyCategory.entries
+                                    .firstOrNull { it.name == vuln.dependencyCategory },
                                 summary = vuln.summary,
                                 description = vuln.description,
                                 detailsLink = vuln.vulnerabilityDetailsLink,
@@ -258,10 +274,26 @@ class CopilotRemediationService(
                 }
         }
         context ?: throw NotFoundException("Vulnerability $identifier was not found in repository $repository")
-        if (context.dependabotUpdatePullRequestUrl != null) {
+        val dependabotPullRequestUrl = context.dependabotUpdatePullRequestUrl
+            ?: if (workloadId != null) gitHubDependabotPullRequestUrl(email, groups, context) else null
+        if (dependabotPullRequestUrl != null) {
             throw ConflictException("A Dependabot pull request already fixes this vulnerability")
         }
         return context
+    }
+
+    private suspend fun gitHubDependabotPullRequestUrl(
+        email: String,
+        groups: List<String>,
+        context: RemediationVulnerabilityContext,
+    ): String? {
+        val packageKey = packageIdentity(context.packageName)
+        return gitHubVulnerabilityService.enrichVulnerabilitiesForUser(email, groups).teams
+            .flatMap { it.repositories }
+            .filter { it.nameWithOwner.equals(context.repository, ignoreCase = true) }
+            .flatMap { it.vulnerabilities }
+            .firstOrNull { it.identifier == context.identifier && packageIdentity(it.packageName) == packageKey }
+            ?.dependabotUpdatePullRequestUrl
     }
 
     private fun mapGitHubError(e: GitHubApiException): Exception {
@@ -307,14 +339,18 @@ class CopilotRemediationService(
     }
 
     private fun RemediationVulnerabilityContext.toKey() =
-        RemediationKey(repository = repository, vulnerabilityIdentifier = identifier, packageName = packageName ?: "")
+        RemediationKey(
+            repository = repository.lowercase(),
+            vulnerabilityIdentifier = identifier,
+            packageName = packageIdentity(packageName),
+        )
 
     companion object {
         private val REPOSITORY_PATTERN = Regex("^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$")
         private const val MAX_RETURN_PATH_LENGTH = 2048
         private val AUTHORIZATION_REQUEST_TTL: Duration = Duration.ofMinutes(10)
         private val PENDING_CLAIM_TTL: Duration = Duration.ofMinutes(5)
-        private val INVISIBLE_TASK_RESTART_AFTER: Duration = Duration.ofDays(7)
+        private val CLOCK_SKEW: Duration = Duration.ofMinutes(1)
         private val RESTARTABLE_STATES = setOf("failed", "cancelled", "timed_out")
     }
 }

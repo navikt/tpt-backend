@@ -978,10 +978,14 @@ components:
       properties:
         repository:
           type: string
+          description: Repository in lowercase `owner/repo` form
         vulnerabilityIdentifier:
           type: string
         packageName:
           type: string
+          description: >-
+            Version-independent package identity in lowercase, shared by GitHub coordinates and Nais PURLs
+            (for example `org.example:library` for `pkg:maven/org.example/library@1.2.3`)
         status:
           type: string
           enum: [PENDING, STARTED]
@@ -996,12 +1000,13 @@ components:
       properties:
         repository:
           type: string
-          description: Repository in `owner/repo` form
+          description: Repository in `owner/repo` form. GitHub URLs are accepted and normalized.
         vulnerabilityIdentifier:
           type: string
           description: CVE identifier
         packageName:
           type: string
+          description: Package name exactly as returned by the GitHub or workload vulnerability endpoints
         workloadId:
           type: string
           description: Workload id when the vulnerability comes from a Nais workload instead of a GitHub repository

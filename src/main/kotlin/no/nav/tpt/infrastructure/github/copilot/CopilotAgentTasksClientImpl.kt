@@ -6,6 +6,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -16,6 +17,7 @@ import io.ktor.http.encodeURLPathPart
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.time.Instant
 
 class CopilotAgentTasksClientImpl(
     private val httpClient: HttpClient,
@@ -45,6 +47,32 @@ class CopilotAgentTasksClientImpl(
         return response.body<TaskResponse>().toAgentTask()
     }
 
+    override suspend fun findTaskCreatedBetween(
+        accessToken: String,
+        repository: String,
+        from: Instant,
+        to: Instant,
+    ): AgentTask? {
+        val response = httpClient.get(tasksUrl(repository)) {
+            githubHeaders(accessToken)
+            parameter("since", from.toString())
+            parameter("sort", "created_at")
+            parameter("direction", "asc")
+            parameter("per_page", 100)
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) {
+            throw GitHubApiException(response.status.value, "Listing Copilot tasks failed")
+        }
+        return response.body<TaskListResponse>().tasks
+            .mapNotNull { task ->
+                task.createdAt?.let(Instant::parse)?.takeIf { it in from..to }?.let { it to task }
+            }
+            .minByOrNull { (createdAt, _) -> createdAt }
+            ?.second
+            ?.toAgentTask()
+    }
+
     private fun tasksUrl(repository: String): String {
         val (owner, repo) = repository.split("/", limit = 2)
         return "$gitHubApiUrl/agents/repos/${owner.encodeURLPathPart()}/${repo.encodeURLPathPart()}/tasks"
@@ -67,7 +95,11 @@ class CopilotAgentTasksClientImpl(
         val id: String,
         @SerialName("html_url") val htmlUrl: String? = null,
         val state: String,
+        @SerialName("created_at") val createdAt: String? = null,
     ) {
         fun toAgentTask() = AgentTask(id = id, htmlUrl = htmlUrl, state = state)
     }
+
+    @Serializable
+    private data class TaskListResponse(val tasks: List<TaskResponse>)
 }

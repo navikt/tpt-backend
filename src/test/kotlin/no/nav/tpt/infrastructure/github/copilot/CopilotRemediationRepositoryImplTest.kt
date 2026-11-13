@@ -111,7 +111,7 @@ class CopilotRemediationRepositoryImplTest {
             state = "state-1",
             codeVerifier = "verifier",
             requestedBy = "a@nav.no",
-            key = key,
+            vulnerability = VulnerabilityRef(key.repository, key.vulnerabilityIdentifier, key.packageName),
             workloadId = null,
             returnPath = "/nb",
             expiresAt = Instant.parse("2099-01-01T00:00:00Z"),

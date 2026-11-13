@@ -1,12 +1,14 @@
 package no.nav.tpt.infrastructure.github.copilot
 
+import no.nav.tpt.domain.DependencyCategory
+
 data class RemediationVulnerabilityContext(
     val repository: String,
     val identifier: String,
     val packageName: String?,
     val packageEcosystem: String?,
     val dependencyScope: String?,
-    val dependencyCategory: String?,
+    val dependencyCategory: DependencyCategory?,
     val summary: String?,
     val description: String?,
     val detailsLink: String?,
@@ -17,7 +19,6 @@ data class RemediationVulnerabilityContext(
 
 object CopilotPromptBuilder {
     private const val MAX_DESCRIPTION_LENGTH = 2000
-    private val CONTAINER_CATEGORIES = setOf("OS_PACKAGE", "CONTAINER")
 
     fun build(context: RemediationVulnerabilityContext): String = buildString {
         val packageText = context.packageName?.let { "package `$it`" } ?: "a dependency"
@@ -43,7 +44,7 @@ object CopilotPromptBuilder {
         appendLine()
 
         appendLine("Instructions:")
-        if (context.dependencyCategory in CONTAINER_CATEGORIES) {
+        if (context.dependencyCategory.isFromContainerImage()) {
             appendLine(
                 "- The vulnerable package comes from the container image. Update the base image in the " +
                     "Dockerfile (or the image reference used by the build) to a version where it is fixed.",
@@ -61,5 +62,10 @@ object CopilotPromptBuilder {
             "- Open a pull request that references ${context.identifier} and explains the change, including " +
                 "any breaking changes or follow-up work.",
         )
+    }
+
+    private fun DependencyCategory?.isFromContainerImage(): Boolean = when (this) {
+        DependencyCategory.OS_PACKAGE, DependencyCategory.CONTAINER -> true
+        DependencyCategory.APPLICATION, DependencyCategory.UNKNOWN, null -> false
     }
 }

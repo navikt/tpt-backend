@@ -1,5 +1,6 @@
 package no.nav.tpt.infrastructure.github.copilot
 
+import no.nav.tpt.domain.DependencyCategory
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -34,7 +35,7 @@ class CopilotPromptBuilderTest {
     @Test
     fun `should ask for base image update for container packages in workloads`() {
         val prompt = CopilotPromptBuilder.build(
-            context.copy(dependencyCategory = "OS_PACKAGE", workloadName = "app-a", environment = "prod-gcp"),
+            context.copy(dependencyCategory = DependencyCategory.OS_PACKAGE, workloadName = "app-a", environment = "prod-gcp"),
         )
 
         assertContains(prompt, "Detected in the deployed Nais workload `app-a` in prod-gcp.")

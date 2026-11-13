@@ -83,9 +83,9 @@ class CopilotRemediationRepositoryImpl(private val database: Database) : Copilot
             it[state] = request.state
             it[codeVerifier] = request.codeVerifier
             it[requestedBy] = request.requestedBy
-            it[repository] = request.key.repository
-            it[vulnerabilityIdentifier] = request.key.vulnerabilityIdentifier
-            it[packageName] = request.key.packageName
+            it[repository] = request.vulnerability.repository
+            it[vulnerabilityIdentifier] = request.vulnerability.vulnerabilityIdentifier
+            it[packageName] = request.vulnerability.packageName.orEmpty()
             it[workloadId] = request.workloadId
             it[returnPath] = request.returnPath
             it[expiresAt] = request.expiresAt
@@ -125,10 +125,10 @@ class CopilotRemediationRepositoryImpl(private val database: Database) : Copilot
         state = this[CopilotAuthorizationRequestsTable.state],
         codeVerifier = this[CopilotAuthorizationRequestsTable.codeVerifier],
         requestedBy = this[CopilotAuthorizationRequestsTable.requestedBy],
-        key = RemediationKey(
+        vulnerability = VulnerabilityRef(
             repository = this[CopilotAuthorizationRequestsTable.repository],
             vulnerabilityIdentifier = this[CopilotAuthorizationRequestsTable.vulnerabilityIdentifier],
-            packageName = this[CopilotAuthorizationRequestsTable.packageName],
+            packageName = this[CopilotAuthorizationRequestsTable.packageName].ifEmpty { null },
         ),
         workloadId = this[CopilotAuthorizationRequestsTable.workloadId],
         returnPath = this[CopilotAuthorizationRequestsTable.returnPath],

@@ -150,8 +150,10 @@ for a vulnerability in a repository their team owns. TPT never clones repositori
    user's Entra session is available.
 2. `POST /remediations/copilot/callback` exchanges the code for a short-lived user access token, starts a task
    through the Agent Tasks API (`create_pull_request: true`) and revokes the token. Tokens are never stored.
-3. One row per repository, vulnerability and package in `copilot_remediations` prevents duplicate tasks. A new
-   task is only started if the previous one failed, was cancelled or timed out.
+3. One row per repository, vulnerability and version-independent package identity in `copilot_remediations`
+   prevents duplicate tasks, also across GitHub and Nais workload data. A new task is only started if the previous
+   one is confirmed failed, cancelled or timed out. If task creation fails without a definitive GitHub rejection,
+   the claim is kept and a later attempt adopts a task created in the claim window instead of starting another.
 
 Requires a GitHub App with the repository permission "Agent tasks" (read and write) installed on the
 repositories, and a Copilot Business or Enterprise seat for the user.

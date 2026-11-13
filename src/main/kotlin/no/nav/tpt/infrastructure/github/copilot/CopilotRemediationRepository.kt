@@ -9,6 +9,13 @@ data class RemediationKey(
     val packageName: String,
 )
 
+/** The vulnerability as identified by its source (GitHub or Nais), used to look it up again in the callback. */
+data class VulnerabilityRef(
+    val repository: String,
+    val vulnerabilityIdentifier: String,
+    val packageName: String?,
+)
+
 data class CopilotRemediation(
     val key: RemediationKey,
     val status: CopilotRemediationStatus,
@@ -23,7 +30,7 @@ data class CopilotAuthorizationRequest(
     val state: String,
     val codeVerifier: String,
     val requestedBy: String,
-    val key: RemediationKey,
+    val vulnerability: VulnerabilityRef,
     val workloadId: String?,
     val returnPath: String,
     val expiresAt: Instant,

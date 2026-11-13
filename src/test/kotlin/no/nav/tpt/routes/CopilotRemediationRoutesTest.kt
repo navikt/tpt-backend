@@ -14,14 +14,19 @@ import no.nav.tpt.infrastructure.github.GitHubIdentifierData
 import no.nav.tpt.infrastructure.github.GitHubRepositoryData
 import no.nav.tpt.infrastructure.github.GitHubVulnerabilityData
 import no.nav.tpt.infrastructure.github.MockGitHubRepository
+import no.nav.tpt.domain.vulnerability.VulnerabilitySearchResult
+import no.nav.tpt.infrastructure.github.copilot.AgentTask
 import no.nav.tpt.infrastructure.github.copilot.CopilotAuthorizationRequest
 import no.nav.tpt.infrastructure.github.copilot.CopilotRemediation
 import no.nav.tpt.infrastructure.github.copilot.FakeCopilotAgentTasksClient
 import no.nav.tpt.infrastructure.github.copilot.FakeGitHubUserAuthClient
 import no.nav.tpt.infrastructure.github.copilot.InMemoryCopilotRemediationRepository
 import no.nav.tpt.infrastructure.github.copilot.RemediationKey
+import no.nav.tpt.infrastructure.github.copilot.VulnerabilityRef
+import no.nav.tpt.infrastructure.vulnerability.MockVulnerabilityRepository
 import no.nav.tpt.infrastructure.nais.MockNaisApiService
 import no.nav.tpt.plugins.testModule
+import java.io.IOException
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,9 +49,42 @@ class CopilotRemediationRoutesTest {
             repo to listOf(
                 vulnerability(1, "CVE-2026-0001", "lib-a"),
                 vulnerability(2, "CVE-2026-0002", "lib-b", dependabotPr = "https://github.com/$repo/pull/1"),
+                vulnerability(3, "CVE-2026-0003", "org.example:library", dependabotPr = "https://github.com/$repo/pull/2"),
             ),
         ),
     )
+
+    private val workloadRepository = MockVulnerabilityRepository(
+        vulnerabilities = listOf(
+            workloadVulnerability("CVE-2026-0001", "pkg:maven/lib-a@1.0.0"),
+            workloadVulnerability("CVE-2026-0003", "pkg:maven/org.example/library@1.2.3"),
+        ),
+    )
+
+    private fun workloadVulnerability(cve: String, purl: String) = VulnerabilitySearchResult(
+        cveId = cve,
+        teamSlug = "team-a",
+        applicationName = "app-a",
+        applicationNaisId = "app-a-id",
+        workloadType = "app",
+        environment = "prod-gcp",
+        repository = "https://github.com/$repo",
+        imageTag = null,
+        ingressTypes = emptyList(),
+        packageName = purl,
+        packageType = "maven",
+        severity = "HIGH",
+        description = null,
+        vulnerabilityDetailsLink = null,
+        hasExternalIngress = false,
+        suppressed = false,
+        discoveredAt = now,
+        lastSeenAt = now,
+    )
+
+    private fun workloadStartBody(identifier: String, purl: String) =
+        """{"repository":"https://github.com/$repo","vulnerabilityIdentifier":"$identifier",""" +
+            """"packageName":"$purl","workloadId":"app-a-id","returnPath":"/nb"}"""
 
     private fun vulnerability(id: Int, cve: String, packageName: String, dependabotPr: String? = null) =
         GitHubVulnerabilityData(
@@ -76,6 +114,7 @@ class CopilotRemediationRoutesTest {
                 tokenIntrospectionService = tokenService,
                 naisApiService = naisApi,
                 gitHubRepository = gitHubRepository,
+                vulnerabilityRepository = workloadRepository,
                 copilotAuthClient = authClient,
                 copilotTasksClient = tasksClient,
                 copilotRemediationRepository = repository,
@@ -213,6 +252,85 @@ class CopilotRemediationRoutesTest {
     }
 
     @Test
+    fun `should not restart task when its state is not visible to the user`() = testApplication {
+        val repository = InMemoryCopilotRemediationRepository().apply {
+            remediations[key] = startedRemediation("old").copy(updatedAt = now.minusSeconds(30L * 24 * 3600))
+        }
+        val tasksClient = FakeCopilotAgentTasksClient(existingTaskState = null)
+        setup(tasksClient = tasksClient, repository = repository)
+
+        val state = stateFrom(json.decodeFromString(start(startBody(force = true)).bodyAsText()))
+        val response = callback(state)
+
+        assertTrue(json.decodeFromString<CopilotRemediationCallbackResponse>(response.bodyAsText()).alreadyStarted)
+        assertTrue(tasksClient.createdTasks.isEmpty())
+    }
+
+    @Test
+    fun `should keep claim and revoke token when task creation outcome is unknown`() = testApplication {
+        val repository = InMemoryCopilotRemediationRepository()
+        val authClient = FakeGitHubUserAuthClient()
+        setup(
+            tasksClient = FakeCopilotAgentTasksClient(createException = IOException("connection reset")),
+            repository = repository,
+            authClient = authClient,
+        )
+
+        val state = stateFrom(json.decodeFromString(start(startBody()).bodyAsText()))
+        callback(state)
+
+        assertEquals(CopilotRemediationStatus.PENDING, repository.remediations.getValue(key).status)
+        assertEquals(listOf("ghu_test"), authClient.revokedTokens)
+    }
+
+    @Test
+    fun `should adopt task created by a stale claim instead of starting another`() = testApplication {
+        val repository = InMemoryCopilotRemediationRepository().apply {
+            remediations[key] = startedRemediation("unused").copy(
+                status = CopilotRemediationStatus.PENDING,
+                taskId = null,
+                taskUrl = null,
+                updatedAt = Instant.now().minusSeconds(3600),
+            )
+        }
+        val tasksClient = FakeCopilotAgentTasksClient(
+            existingTaskState = "in_progress",
+            recoverableTask = AgentTask("lost", "https://github.com/$repo/tasks/lost", "in_progress"),
+        )
+        setup(tasksClient = tasksClient, repository = repository)
+
+        val state = stateFrom(json.decodeFromString(start(startBody()).bodyAsText()))
+        val response = callback(state)
+
+        val body = json.decodeFromString<CopilotRemediationCallbackResponse>(response.bodyAsText())
+        assertTrue(body.alreadyStarted)
+        assertEquals("https://github.com/$repo/tasks/lost", body.taskUrl)
+        assertEquals("lost", repository.remediations.getValue(key).taskId)
+        assertTrue(tasksClient.createdTasks.isEmpty())
+    }
+
+    @Test
+    fun `should deduplicate workload and GitHub requests for the same package`() = testApplication {
+        val repository = InMemoryCopilotRemediationRepository().apply { remediations[key] = startedRemediation("old") }
+        setup(repository = repository)
+
+        val response = start(workloadStartBody("CVE-2026-0001", "pkg:maven/lib-a@1.0.0"))
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = json.decodeFromString<CopilotRemediationStartResponse>(response.bodyAsText())
+        assertEquals("https://github.com/$repo/tasks/old", body.existingTaskUrl)
+    }
+
+    @Test
+    fun `should return 409 for workload vulnerability when GitHub has a Dependabot pull request`() = testApplication {
+        setup()
+
+        val response = start(workloadStartBody("CVE-2026-0003", "pkg:maven/org.example/library@1.2.3"))
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
     fun `should return 409 when Dependabot pull request exists`() = testApplication {
         setup()
 
@@ -257,7 +375,7 @@ class CopilotRemediationRoutesTest {
                 state = "other-state",
                 codeVerifier = "verifier",
                 requestedBy = "colleague@example.com",
-                key = key,
+                vulnerability = VulnerabilityRef(repo, "CVE-2026-0001", "lib-a"),
                 workloadId = null,
                 returnPath = "/",
                 expiresAt = Instant.now().plusSeconds(600),
