@@ -661,6 +661,168 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /remediations/copilot:
+    get:
+      summary: List Copilot remediations for a repository
+      description: |
+        Returns whether the "Fix with Copilot" feature is enabled and the Copilot cloud agent tasks TPT has
+        started for vulnerabilities in the repository. `enabled` is false when the GitHub App is not configured.
+      tags:
+        - Copilot remediation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: repository
+          in: query
+          required: true
+          description: Repository in `owner/repo` form. Must belong to one of the user's teams.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Remediations for the repository
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopilotRemediationsResponse'
+        '400':
+          description: Bad request - missing or invalid repository
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - repository does not belong to the user's teams
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    post:
+      summary: Request a Copilot remediation for a vulnerability
+      description: |
+        Validates that the vulnerability belongs to the user's teams and creates a single-use GitHub App
+        authorization request (OAuth with PKCE, valid for 10 minutes). Returns the GitHub authorize URL the
+        user must be redirected to. If a task already exists and `force` is false, returns its URL instead.
+        The prompt is built from server-side data only.
+      tags:
+        - Copilot remediation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopilotRemediationStartRequest'
+      responses:
+        '200':
+          description: Authorize URL, or the URL of an existing task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopilotRemediationStartResponse'
+        '400':
+          description: Bad request - invalid repository or return path
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Vulnerability not found in the data of the user's teams
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Fix with Copilot is not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
+          description: Conflict - a Dependabot pull request already fixes the vulnerability
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /remediations/copilot/callback:
+    post:
+      summary: Complete GitHub authorization and start the Copilot task
+      description: |
+        Consumes the single-use authorization state, exchanges the code for a GitHub user access token,
+        starts a Copilot cloud agent task with `create_pull_request: true` and revokes the token. When a
+        task already exists, a new one is only started if the existing task is failed, cancelled or timed out.
+      tags:
+        - Copilot remediation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopilotRemediationCallbackRequest'
+      responses:
+        '200':
+          description: A task was already started; no new task was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopilotRemediationCallbackResponse'
+        '201':
+          description: Copilot task started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopilotRemediationCallbackResponse'
+        '400':
+          description: Bad request - unknown, expired or already used state, or invalid code
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - invalid or missing bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - state belongs to another user, or the user lacks a Copilot seat or access
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: GitHub App is not installed on the repository, or the vulnerability no longer exists
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
+          description: Conflict - GitHub rejected the task
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Fix with Copilot is not configured, or GitHub is unavailable
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /callbacks/github/vulnerabilities:
     post:
       summary: Deliver GitHub vulnerability data for one repository
@@ -800,6 +962,86 @@ components:
       bearerFormat: JWT
       description: Machine-to-machine JWT issued to the tpt-data-collector application for the current cluster.
   schemas:
+    CopilotRemediationsResponse:
+      type: object
+      required: [enabled, remediations]
+      properties:
+        enabled:
+          type: boolean
+        remediations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CopilotRemediation'
+    CopilotRemediation:
+      type: object
+      required: [repository, vulnerabilityIdentifier, status, requestedAt]
+      properties:
+        repository:
+          type: string
+          description: Repository in lowercase `owner/repo` form
+        vulnerabilityIdentifier:
+          type: string
+        packageName:
+          type: string
+          description: >-
+            Version-independent package identity in lowercase, shared by GitHub coordinates and Nais PURLs
+            (for example `org.example:library` for `pkg:maven/org.example/library@1.2.3`)
+        status:
+          type: string
+          enum: [PENDING, STARTED]
+        taskUrl:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+    CopilotRemediationStartRequest:
+      type: object
+      required: [repository, vulnerabilityIdentifier, returnPath]
+      properties:
+        repository:
+          type: string
+          description: Repository in `owner/repo` form. GitHub URLs are accepted and normalized.
+        vulnerabilityIdentifier:
+          type: string
+          description: CVE identifier
+        packageName:
+          type: string
+          description: Package name exactly as returned by the GitHub or workload vulnerability endpoints
+        workloadId:
+          type: string
+          description: Workload id when the vulnerability comes from a Nais workload instead of a GitHub repository
+        returnPath:
+          type: string
+          description: Relative frontend path to return to after authorization. Must start with a single `/`.
+        force:
+          type: boolean
+          default: false
+          description: Request a new task even if one already exists
+    CopilotRemediationStartResponse:
+      type: object
+      properties:
+        authorizeUrl:
+          type: string
+        existingTaskUrl:
+          type: string
+    CopilotRemediationCallbackRequest:
+      type: object
+      required: [code, state]
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+    CopilotRemediationCallbackResponse:
+      type: object
+      required: [returnPath, alreadyStarted]
+      properties:
+        taskUrl:
+          type: string
+        returnPath:
+          type: string
+        alreadyStarted:
+          type: boolean
     CheckResult:
       type: object
       description: The `reasons` property is required when `type` is `NeedsWork`.

@@ -170,6 +170,7 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         teamkatalogenUrl = "http://localhost:8080/mock-teamkatalogen",
         adminGroups = null,
         naisTokenRetrievalEndpoint = "http://localhost:8080/token",
+        copilotRemediation = no.nav.tpt.infrastructure.config.CopilotRemediationConfig.fromEnvironment(),
     )
 
     val localGcveClient = no.nav.tpt.infrastructure.gcve.GcveClient(httpClient, "https://db.gcve.eu/api")
@@ -206,6 +207,21 @@ val LocalDevDependenciesPlugin = createApplicationPlugin(name = "LocalDevDepende
         sseEventLogListener = sseEventLogListener,
         dataCollector = dataCollector,
         gitHubDataCollector = FakeGitHubDataCollector(),
+        copilotRemediationService = no.nav.tpt.infrastructure.github.copilot.CopilotRemediationService(
+            authClient = config.copilotRemediation?.let {
+                no.nav.tpt.infrastructure.github.copilot.GitHubUserAuthClientImpl(httpClient, it)
+            },
+            tasksClient = no.nav.tpt.infrastructure.github.copilot.CopilotAgentTasksClientImpl(
+                httpClient,
+                "https://api.github.com",
+            ),
+            remediationRepository = no.nav.tpt.infrastructure.github.copilot.CopilotRemediationRepositoryImpl(database),
+            userContextService = userContextService,
+            gitHubRepository = gitHubRepository,
+            vulnerabilityRepository = mockVulnerabilityRepository,
+            gitHubVulnerabilityService = gitHubVulnerabilityService,
+            vulnerabilityEnrichmentService = vulnService,
+        ),
     )
 
     application.attributes.put(DependenciesKey, dependencies)
