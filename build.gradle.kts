@@ -1,3 +1,9 @@
+buildscript {
+    dependencies {
+        classpath(platform(libs.jackson.bom))
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
@@ -24,6 +30,7 @@ repositories {
 }
 
 dependencies {
+    implementation(platform(libs.jackson.bom))
     implementation(libs.bundles.ktor)
     implementation(libs.bundles.logging)
     implementation(libs.bundles.database)
