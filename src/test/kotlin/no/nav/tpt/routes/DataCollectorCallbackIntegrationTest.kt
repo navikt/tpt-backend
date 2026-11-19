@@ -97,9 +97,9 @@ class DataCollectorCallbackIntegrationTest {
         }
     """.trimIndent()
 
-    private fun checksPayload(repoName: String, owner: String) = """
+    private fun checksPayload(repoName: String, owner: String, repositoryNameField: String = "repoName") = """
         {
-          "repoName": "$repoName",
+          "$repositoryNameField": "$repoName",
           "repoOwners": ["$owner"],
           "results": [
             {"type": "AllGood", "name": "branch-protection", "desc": "Branch protection", "severity": "HIGH", "whenChecked": "2026-01-01T10:00:00.123Z"},
@@ -149,6 +149,19 @@ class DataCollectorCallbackIntegrationTest {
             val results = dataCollectorRepository.allForOwner(listOf("team-callback"))
                 .singleOrNull { it.repoName == repoName }
             assertNotNull(results)
+            assertEquals(listOf("branch-protection", "codeowners"), results.results.map { it.name }.sorted())
+        }
+    }
+
+    @Test
+    fun `should persist check results delivered with nameWithOwner`() {
+        val repoName = "other/check-callback-qualified-field"
+        val owner = "team-callback-qualified-field"
+        postCallback("/callbacks/checks", checksPayload(repoName, owner, repositoryNameField = "nameWithOwner"))
+
+        runBlocking {
+            val results = dataCollectorRepository.allForOwner(listOf(owner)).single()
+            assertEquals(repoName, results.repoName)
             assertEquals(listOf("branch-protection", "codeowners"), results.results.map { it.name }.sorted())
         }
     }

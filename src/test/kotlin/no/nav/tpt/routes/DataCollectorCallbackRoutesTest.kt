@@ -123,6 +123,45 @@ class DataCollectorCallbackRoutesTest {
     }
 
     @Test
+    fun `should return 204 when check results use nameWithOwner`() = testApplication {
+        application { testModule(tokenIntrospectionService = dataCollectorToken) }
+
+        val response = client.post("/callbacks/checks") {
+            header(HttpHeaders.Authorization, "Bearer collector-token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"nameWithOwner": "other/app", "repoOwners": ["team-a"], "results": []}""")
+        }
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+    }
+
+    @Test
+    fun `should return 400 when check results omit both repository name fields`() = testApplication {
+        application { testModule(tokenIntrospectionService = dataCollectorToken) }
+
+        val response = client.post("/callbacks/checks") {
+            header(HttpHeaders.Authorization, "Bearer collector-token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"repoOwners": ["team-a"], "results": []}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `should return 400 when nameWithOwner is blank`() = testApplication {
+        application { testModule(tokenIntrospectionService = dataCollectorToken) }
+
+        val response = client.post("/callbacks/checks") {
+            header(HttpHeaders.Authorization, "Bearer collector-token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"nameWithOwner": " ", "repoOwners": ["team-a"], "results": []}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `should return 400 when required fields are missing`() = testApplication {
         application { testModule(tokenIntrospectionService = dataCollectorToken) }
 

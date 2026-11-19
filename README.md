@@ -136,7 +136,7 @@ Docker must be running — tests use testcontainers to spin up PostgreSQL.
 - **Nais API** - Vulnerability data and application metadata (on-demand & scheduled sync to PostgreSQL twice daily)
 - **GCVE (db.gcve.eu)** - Single enrichment source for all CVE metadata: KEV status, EPSS scores, SSVC, CVSS, exploit/patch references, affected products (PostgreSQL-backed, incremental sync every 2 hours + targeted miss-path fetches)
 - **PostgreSQL LISTEN/NOTIFY** - Durable SSE event log shared across backend pods; notifications carry event IDs only, and each pod reads the event payload from PostgreSQL
-- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive through authenticated `POST /callbacks/*` endpoints (GitHub vulnerability data, check results, GitHub sync started/complete).
+- **tpt-data-collector** - External service triggered on demand (`POST /datacollector`) via Entra ID token exchange to collect fresh data for a user's teams. Results arrive through authenticated `POST /callbacks/*` endpoints (GitHub vulnerability data, check results, GitHub sync started/complete). Check callbacks accept `nameWithOwner` or the legacy `repoName` field.
 Collector repository names are stored and returned as `owner/repository`. Legacy bare names are interpreted as `navikt/<repository>`; names already containing an owner are preserved.
 
 ### Fix with Copilot
