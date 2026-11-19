@@ -89,7 +89,7 @@ paths:
   /checks:
     get:
       summary: Get check results for the authenticated user's teams
-      description: Returns the latest data-collector check results grouped by repository.
+      description: Returns the latest data-collector check results grouped by repository. Repository names include the owner (for example, navikt/tpt-backend).
       tags:
         - Data collector
       security:
@@ -1078,6 +1078,7 @@ components:
       properties:
         nameWithOwner:
           type: string
+          description: Repository name including its owner. Legacy bare names are interpreted as navikt repositories.
           example: navikt/tpt-backend
         naisTeams:
           type: array
@@ -1136,13 +1137,19 @@ components:
                 nullable: true
     CheckResultsCallback:
       type: object
+      description: At least one of nameWithOwner or the legacy repoName field must be provided. Both accept owner/repository values; bare names are interpreted as navikt repositories.
       required:
-        - repoName
         - repoOwners
         - results
       properties:
+        nameWithOwner:
+          type: string
+          description: Repository name including its owner.
+          example: navikt/tpt-backend
         repoName:
           type: string
+          description: Legacy alias for nameWithOwner.
+          deprecated: true
           example: navikt/tpt-backend
         repoOwners:
           type: array

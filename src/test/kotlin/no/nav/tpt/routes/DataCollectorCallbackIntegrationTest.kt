@@ -97,9 +97,9 @@ class DataCollectorCallbackIntegrationTest {
         }
     """.trimIndent()
 
-    private fun checksPayload(repoName: String, owner: String) = """
+    private fun checksPayload(repoName: String, owner: String, repositoryNameField: String = "repoName") = """
         {
-          "repoName": "$repoName",
+          "$repositoryNameField": "$repoName",
           "repoOwners": ["$owner"],
           "results": [
             {"type": "AllGood", "name": "branch-protection", "desc": "Branch protection", "severity": "HIGH", "whenChecked": "2026-01-01T10:00:00.123Z"},
@@ -150,6 +150,77 @@ class DataCollectorCallbackIntegrationTest {
                 .singleOrNull { it.repoName == repoName }
             assertNotNull(results)
             assertEquals(listOf("branch-protection", "codeowners"), results.results.map { it.name }.sorted())
+        }
+    }
+
+    @Test
+    fun `should persist check results delivered with nameWithOwner`() {
+        val repoName = "other/check-callback-qualified-field"
+        val owner = "team-callback-qualified-field"
+        postCallback("/callbacks/checks", checksPayload(repoName, owner, repositoryNameField = "nameWithOwner"))
+
+        runBlocking {
+            val results = dataCollectorRepository.allForOwner(listOf(owner)).single()
+            assertEquals(repoName, results.repoName)
+            assertEquals(listOf("branch-protection", "codeowners"), results.results.map { it.name }.sorted())
+        }
+    }
+
+    @Test
+    fun `should use one GitHub repository for bare and owner-qualified callbacks`() {
+        val bareName = "callback-name-transition"
+        val qualifiedName = "navikt/$bareName"
+
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(qualifiedName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+
+        runBlocking {
+            assertEquals(
+                listOf(qualifiedName),
+                gitHubRepository.getAllRepositories()
+                    .filter { it.nameWithOwner.endsWith("/$bareName") || it.nameWithOwner == bareName }
+                    .map { it.nameWithOwner }
+            )
+            assertEquals(2, gitHubRepository.getVulnerabilities(qualifiedName).size)
+            assertEquals(
+                gitHubRepository.getRepository(qualifiedName),
+                gitHubRepository.getRepository(bareName)
+            )
+            assertEquals(
+                gitHubRepository.getVulnerabilities(qualifiedName),
+                gitHubRepository.getVulnerabilities(bareName)
+            )
+        }
+    }
+
+    @Test
+    fun `should keep GitHub callbacks for different repository owners separate`() {
+        val bareName = "callback-distinct-owners"
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload(bareName))
+        postCallback("/callbacks/github/vulnerabilities", repositoryPayload("other/$bareName"))
+
+        runBlocking {
+            assertNotNull(gitHubRepository.getRepository("navikt/$bareName"))
+            assertNotNull(gitHubRepository.getRepository("other/$bareName"))
+            assertEquals(2, gitHubRepository.getVulnerabilities("navikt/$bareName").size)
+            assertEquals(2, gitHubRepository.getVulnerabilities("other/$bareName").size)
+        }
+    }
+
+    @Test
+    fun `should use one repository for bare and owner-qualified check callbacks`() {
+        val bareName = "check-callback-name-transition"
+        val owner = "team-callback-transition"
+
+        postCallback("/callbacks/checks", checksPayload(bareName, owner))
+        postCallback("/callbacks/checks", checksPayload("navikt/$bareName", owner))
+        postCallback("/callbacks/checks", checksPayload(bareName, owner))
+
+        runBlocking {
+            val results = dataCollectorRepository.allForOwner(listOf(owner)).single()
+            assertEquals("navikt/$bareName", results.repoName)
+            assertEquals(2, results.results.size)
         }
     }
 
