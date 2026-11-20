@@ -168,8 +168,7 @@ All external data sources are cached in PostgreSQL with staleness tracking:
 - Enrichment reads active vulnerability rows directly from the repository and groups them by team and workload
 - Vulnerability and security-status reads share one stale-team sync trigger; stale teams sync in the background on the serving pod, with a PostgreSQL sync lock preventing duplicate work across pods
 - Failed vulnerability reads return 500 Problem Details, not an empty success response, for both user and admin per-team endpoints
-- `team_sync_started` and `team_sync_complete` signals are recorded in PostgreSQL for each successful team sync; a failed or cancelled sync records `team_sync_failed` instead of `team_sync_complete`
-- Writes only happen after a complete fetch: any failed Nais page fails the sync before anything is written. The writes commit separately, so a failure during writing can leave some applied. `team_sync_metadata.last_sync_complete` records whether the last sync succeeded
+- `team_sync_started` and `team_sync_complete` signals are recorded in PostgreSQL for each successful team sync
 - **Two-table structure** for efficiency:
   - `cves` - CVE reference data (stored once per CVE)
   - `workload_vulnerabilities` - Tracks which workloads are affected (with JOINs)
