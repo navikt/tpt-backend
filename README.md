@@ -182,6 +182,7 @@ Backfill and single-record enrichment only fetch `CVE-` IDs; RHSA, PYSEC and GHS
 **SSE Events (`GET /events`, authenticated):**
 - `team_sync_started` — backend is fetching fresh vulnerability data for a team
 - `team_sync_complete` — team data is updated and ready to fetch
+- `team_sync_failed` — team sync failed or was cancelled; the latest data may not be available
 - `gcve_sync_complete` — GCVE incremental sync finished
 - `github_vuln_sync_started` and `github_vuln_sync_complete` — GitHub vulnerability data collection progress
 - Events include an SSE `id`; reconnecting with `Last-Event-ID` replays retained events (about one hour)

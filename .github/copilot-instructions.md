@@ -10,13 +10,18 @@ metadata from external sources, and returns a risk-scored, prioritized list of s
 - Break work into small tasks; verify one step before moving to the next. If in doubt, ask for clarification
   and do not stray beyond the requested scope (e.g. don't add docs or extend functionality unprompted).
 - Do NOT add code comments unless the logic is genuinely complex.
-- Do NOT add documentation files or explanations unless specifically asked — **except** the root `README.md`,
-  which must be kept concise and updated whenever functionality, packages, or folder structure change.
+- Do NOT add documentation files or explanations unless specifically asked.
+- The root `README.md` is a brief overview of the application only (purpose, high-level architecture, how to
+  run it). NEVER add detailed behaviour to it: no event semantics, sync/lock mechanics, column names, error
+  handling or edge cases. Put such details in the relevant `.github/instructions/*.instructions.md` file or
+  the OpenAPI spec instead. Only touch the README when the overview itself becomes wrong.
 - Keep existing instruction files (`.github/instructions/*.instructions.md`) in sync with the code they
   describe. If a change makes one inaccurate — a renamed pattern, a changed env var or default, a replaced
   integration — update that file in the same commit. This is maintenance of what already exists, not adding
   new documentation.
 - Do not use `timeout` when running terminal commands (zsh on macOS).
+- Commit messages and PR titles use Conventional Commits: `<type>(<scope>): <description>` in imperative
+  form, max 72 characters, no trailing period (e.g. `fix(nais): fail team sync on partial vulnerability pages`).
 - The user verifies functionality manually; you do not need to build or run the app to confirm your changes.
 
 ## Reference
