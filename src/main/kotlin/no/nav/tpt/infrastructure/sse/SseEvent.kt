@@ -14,6 +14,10 @@ sealed class SseEvent {
     data class TeamSyncComplete(val teamSlug: String, val timestamp: String) : SseEvent()
 
     @Serializable
+    @SerialName("team_sync_failed")
+    data class TeamSyncFailed(val teamSlug: String, val timestamp: String) : SseEvent()
+
+    @Serializable
     @SerialName("gcve_sync_complete")
     data class GcveSyncComplete(val cveCount: Int, val timestamp: String) : SseEvent()
 

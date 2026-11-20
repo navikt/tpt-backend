@@ -120,6 +120,7 @@ class SseRoutesTest {
         when (event) {
             is SseEvent.TeamSyncStarted -> event.teamSlug in userTeamSlugs
             is SseEvent.TeamSyncComplete -> event.teamSlug in userTeamSlugs
+            is SseEvent.TeamSyncFailed -> event.teamSlug in userTeamSlugs
             is SseEvent.GcveSyncComplete -> true
             is SseEvent.GitHubVulnSyncStarted -> event.teams.any { it in userTeamSlugs }
             is SseEvent.GitHubVulnSyncComplete -> event.teams.any { it in userTeamSlugs }

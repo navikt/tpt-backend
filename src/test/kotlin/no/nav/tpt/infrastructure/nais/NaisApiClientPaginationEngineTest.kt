@@ -54,6 +54,37 @@ class NaisApiClientPaginationEngineTest {
             }
         """.trimIndent()
 
+        private val workloadWithMoreVulnerabilitiesResponse = """
+            {
+              "data": {
+                "team": {
+                  "slug": "test-team",
+                  "applications": {
+                    "pageInfo": { "hasNextPage": false, "endCursor": null },
+                    "nodes": [
+                      {
+                        "id": "app-1", "name": "app-one",
+                        "ingresses": [],
+                        "deployments": { "nodes": [] },
+                        "image": {
+                          "name": "img", "tag": "1.0",
+                          "vulnerabilities": {
+                            "pageInfo": { "hasNextPage": true, "endCursor": "vuln-cursor" },
+                            "nodes": [
+                              { "identifier": "CVE-2024-0001", "severity": "HIGH",
+                                "package": null, "description": null,
+                                "vulnerabilityDetailsLink": null, "suppression": null }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+
         private fun teamResponseWithCursor(cursor: String, hasNext: Boolean, appId: String, appName: String) = """
             {
               "data": {
@@ -189,6 +220,32 @@ class NaisApiClientPaginationEngineTest {
         assertFailsWith<NaisApiException> {
             client.getVulnerabilitiesForTeam("test-team")
         }
+    }
+
+    @Test
+    fun `should throw NaisApiException when a later vulnerability page fails`() = runTest {
+        val requestCount = AtomicInteger(0)
+        val mockEngine = MockEngine { _ ->
+            when (requestCount.incrementAndGet()) {
+                1 -> respond(
+                    ByteReadChannel(workloadWithMoreVulnerabilitiesResponse),
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+                else -> respond(
+                    ByteReadChannel(""),
+                    HttpStatusCode.BadGateway,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val client = NaisApiClient(createTestHttpClient(mockEngine), "https://api.nais.io", tokenFile.absolutePath)
+
+        assertFailsWith<NaisApiException> {
+            client.getVulnerabilitiesForTeam("test-team")
+        }
+        assertEquals(2, requestCount.get())
     }
 
     @Test

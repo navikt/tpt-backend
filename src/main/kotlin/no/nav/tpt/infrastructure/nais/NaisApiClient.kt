@@ -184,32 +184,30 @@ class NaisApiClient(
         var hasMoreVulns = workload.image.vulnerabilities.pageInfo.hasNextPage
 
         while (hasMoreVulns) {
-            val response: Res = try {
-                val httpResponse = httpClient.post(apiUrl) {
+            val httpResponse = try {
+                httpClient.post(apiUrl) {
                     contentType(ContentType.Application.Json)
                     bearerAuth(readToken())
                     setBody(buildVulnRequest(vulnCursor))
                 }
-                if (!httpResponse.status.isSuccess()) {
-                    logger.error("HTTP ${httpResponse.status.value} fetching vulnerabilities for workload ${workload.id}")
-                    break
-                }
-                httpResponse.body()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                logger.error("HTTP error fetching vulnerabilities for workload ${workload.id}", e)
-                break
+                throw NaisApiException("HTTP transport error fetching vulnerabilities for workload ${workload.id}", e)
             }
 
-            val paginatedWorkload = extractWorkload(response)
-            if (paginatedWorkload?.image != null) {
-                allVulns.addAll(paginatedWorkload.image.vulnerabilities.nodes)
-                hasMoreVulns = paginatedWorkload.image.vulnerabilities.pageInfo.hasNextPage
-                vulnCursor = paginatedWorkload.image.vulnerabilities.pageInfo.endCursor
-            } else {
-                break
+            if (!httpResponse.status.isSuccess()) {
+                throw NaisApiException(
+                    "HTTP ${httpResponse.status.value} fetching vulnerabilities for workload ${workload.id}"
+                )
             }
+
+            val response: Res = httpResponse.body()
+            val paginatedImage = extractWorkload(response)?.image
+                ?: throw NaisApiException("Workload ${workload.id} missing from vulnerability page response")
+            allVulns.addAll(paginatedImage.vulnerabilities.nodes)
+            hasMoreVulns = paginatedImage.vulnerabilities.pageInfo.hasNextPage
+            vulnCursor = paginatedImage.vulnerabilities.pageInfo.endCursor
         }
 
         return GraphQLTypes.WorkloadNode(
