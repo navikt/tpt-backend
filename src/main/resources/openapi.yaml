@@ -544,7 +544,7 @@ paths:
         Event types:
         - `team_sync_started`: A background sync for a specific team has been triggered (e.g. stale data detected on user fetch).
         - `team_sync_complete`: A team sync has finished — fresh data is available.
-        - `team_sync_failed`: A team sync failed — no data was changed, and the team keeps its last successfully synced data.
+        - `team_sync_failed`: A team sync failed or was cancelled — the latest data may not be available. Data is only written from a complete fetch from Nais.
         - `gcve_sync_complete`: A GCVE incremental sync has finished.
         - `github_vuln_sync_started` / `github_vuln_sync_complete`: A GitHub vulnerability sync for the user's teams.
 

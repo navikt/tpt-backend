@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
+import io.ktor.http.content.TextContent
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.test.runTest
@@ -84,6 +85,35 @@ class NaisApiClientPaginationEngineTest {
               }
             }
         """.trimIndent()
+
+        private fun appPage(
+            workloadCursor: String?,
+            appId: String,
+            vulnCursor: String?,
+            cves: List<String>,
+            errors: String? = null,
+        ): String {
+            fun cursorJson(cursor: String?) =
+                """{ "hasNextPage": ${cursor != null}, "endCursor": ${cursor?.let { "\"$it\"" } ?: "null"} }"""
+            val vulnNodes = cves.joinToString(",") {
+                """{ "identifier": "$it", "severity": "HIGH", "package": null, "description": null,
+                     "vulnerabilityDetailsLink": null, "suppression": null }"""
+            }
+            return """
+                {
+                  ${errors?.let { "\"errors\": $it," } ?: ""}
+                  "data": { "team": { "slug": "test-team", "applications": {
+                    "pageInfo": ${cursorJson(workloadCursor)},
+                    "nodes": [{
+                      "id": "$appId", "name": "$appId", "ingresses": [], "deployments": { "nodes": [] },
+                      "image": { "name": "img", "tag": "1.0", "vulnerabilities": {
+                        "pageInfo": ${cursorJson(vulnCursor)}, "nodes": [$vulnNodes]
+                      } }
+                    }]
+                  } } }
+                }
+            """.trimIndent()
+        }
 
         private fun teamResponseWithCursor(cursor: String, hasNext: Boolean, appId: String, appName: String) = """
             {
@@ -247,6 +277,52 @@ class NaisApiClientPaginationEngineTest {
         }
         assertEquals(2, requestCount.get())
     }
+
+    @Test
+    fun `should throw NaisApiException when a vulnerability page contains GraphQL errors`() = runTest {
+        val requestCount = AtomicInteger(0)
+        val mockEngine = MockEngine { _ ->
+            val content = when (requestCount.incrementAndGet()) {
+                1 -> workloadWithMoreVulnerabilitiesResponse
+                else -> appPage(
+                    workloadCursor = null, appId = "app-1", vulnCursor = null, cves = listOf("CVE-2024-0002"),
+                    errors = """[{ "message": "partial failure", "path": ["team"] }]""",
+                )
+            }
+            respond(ByteReadChannel(content), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+
+        val client = NaisApiClient(createTestHttpClient(mockEngine), "https://api.nais.io", tokenFile.absolutePath)
+
+        assertFailsWith<NaisApiException> {
+            client.getVulnerabilitiesForTeam("test-team")
+        }
+    }
+
+    @Test
+    fun `should use the workload page cursor when paginating vulnerabilities beyond the first workload page`() =
+        runTest {
+            val mockEngine = MockEngine { request ->
+                val body = (request.body as TextContent).text
+                val content = when {
+                    "JobVulnerabilitiesForTeam" in body ->
+                        """{"data":{"team":{"slug":"test-team","jobs":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}"""
+                    "\"vulnAfter\":\"v1\"" in body && "\"workloadAfter\":\"w1\"" in body ->
+                        appPage(workloadCursor = null, appId = "app-2", vulnCursor = null, cves = listOf("CVE-2024-0002"))
+                    "\"workloadAfter\":\"w1\"" in body ->
+                        appPage(workloadCursor = null, appId = "app-2", vulnCursor = "v1", cves = listOf("CVE-2024-0001"))
+                    else ->
+                        appPage(workloadCursor = "w1", appId = "app-1", vulnCursor = null, cves = emptyList())
+                }
+                respond(ByteReadChannel(content), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            }
+
+            val client = NaisApiClient(createTestHttpClient(mockEngine), "https://api.nais.io", tokenFile.absolutePath)
+            val result = client.getVulnerabilitiesForTeam("test-team")
+
+            val secondApp = result.teams.first().workloads.single { it.id == "app-2" }
+            assertEquals(listOf("CVE-2024-0001", "CVE-2024-0002"), secondApp.vulnerabilities.map { it.identifier })
+        }
 
     @Test
     fun `should collect single-page result without following cursor`() = runTest {

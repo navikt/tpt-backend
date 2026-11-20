@@ -24,6 +24,8 @@ class NaisApiClient(
 
     private data class PaginatedPage<T>(val items: List<T>, val hasNext: Boolean, val endCursor: String?)
 
+    private data class PagedItem<T>(val item: T, val pageCursor: String?)
+
     private fun readToken(): String =
         try {
             File(tokenFilePath).readText(Charsets.UTF_8)
@@ -35,8 +37,8 @@ class NaisApiClient(
     private suspend inline fun <reified Req, reified Res, Item> paginate(
         crossinline buildRequest: (cursor: String?) -> Req,
         crossinline extractPage: (Res) -> PaginatedPage<Item>?,
-    ): List<Item> {
-        val allItems = mutableListOf<Item>()
+    ): List<PagedItem<Item>> {
+        val allItems = mutableListOf<PagedItem<Item>>()
         var cursor: String? = null
         var hasNext = true
 
@@ -62,7 +64,7 @@ class NaisApiClient(
             val page = extractPage(response)
                 ?: throw NaisApiException("No data returned from Nais API")
 
-            allItems.addAll(page.items)
+            page.items.mapTo(allItems) { PagedItem(it, cursor) }
             hasNext = page.hasNext
             cursor = page.endCursor
         }
@@ -92,7 +94,7 @@ class NaisApiClient(
                 )
             }
         )
-        return nodes.map { TeamInfo(it.slug, it.slackChannel) }
+        return nodes.map { TeamInfo(it.item.slug, it.item.slackChannel) }
     }
 
     override suspend fun getVulnerabilitiesForTeam(teamSlug: String): UserVulnerabilitiesData {
@@ -140,7 +142,7 @@ class NaisApiClient(
         )
 
         return coroutineScope {
-            workloads.map { workload ->
+            workloads.map { (workload, workloadPageCursor) ->
                 async {
                     paginationSemaphore.withPermit {
                         paginateVulnerabilities(
@@ -151,13 +153,19 @@ class NaisApiClient(
                                     variables = TeamWorkloadVulnerabilitiesRequest.Variables(
                                         team = teamSlug,
                                         workloadFirst = 50,
-                                        workloadAfter = null,
+                                        workloadAfter = workloadPageCursor,
                                         vulnFirst = 50,
                                         vulnAfter = vulnCursor
                                     )
                                 )
                             },
                             extractWorkload = { response: TeamWorkloadVulnerabilitiesResponse ->
+                                if (!response.errors.isNullOrEmpty()) {
+                                    throw NaisApiException(
+                                        "GraphQL errors fetching vulnerabilities for workload ${workload.id}: " +
+                                            response.errors.joinToString { "${it.message} at ${it.path}" }
+                                    )
+                                }
                                 val team = response.data?.team ?: return@paginateVulnerabilities null
                                 when (workloadType) {
                                     "applications" -> team.applications?.nodes

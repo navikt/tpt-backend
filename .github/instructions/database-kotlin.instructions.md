@@ -50,7 +50,7 @@ suspend fun upsertCves(cves: List<GcveCveData>) {
 
 - Per-team sync (`VulnerabilityTeamSyncService`) upserts vulnerabilities, then sets `resolved_at` on rows that vanished. Rows are never hard-deleted by the sync; resolved rows are purged after the history retention (history months + trend window).
 - All "current" queries must filter `resolved_at IS NULL`.
-- A Team sync is all-or-nothing: any failed Nais page (including per-workload vulnerability pages) throws `NaisApiException`, so nothing is upserted, resolved or purged. `team_sync_metadata.last_sync_complete` records whether the last sync succeeded; steps that rely on complete data (e.g. notifications) must check it.
+- A Team sync only writes data from a complete fetch: any failed Nais page (including per-workload vulnerability pages and pages with GraphQL errors) throws `NaisApiException` before anything is upserted, resolved or purged. The writes commit in separate transactions, so a failure during the write phase can leave some of them applied. `team_sync_metadata.last_sync_complete` records whether the last sync succeeded; steps that rely on complete data (e.g. notifications) must check it.
 - The same sync records workloads and their latest deployment (`workloads`, `workload_deployments`). `GET /security-status` is computed on the fly from these tables with `SecurityStatusEvaluator`; there is no snapshot table or extra job.
 - Reappearing vulnerabilities record a gap in `vulnerability_resolution_gaps`, and reappearing workloads record an absence in `workload_absences`, so the evaluator does not count the missing period as overdue or present.
 
