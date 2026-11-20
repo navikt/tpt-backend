@@ -9,6 +9,9 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import no.nav.tpt.plugins.NaisApiException
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -303,16 +306,20 @@ class NaisApiClientPaginationEngineTest {
     fun `should use the workload page cursor when paginating vulnerabilities beyond the first workload page`() =
         runTest {
             val mockEngine = MockEngine { request ->
-                val body = (request.body as TextContent).text
+                val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
+                val variables = body.getValue("variables").jsonObject
+                val workloadAfter = variables["workloadAfter"]?.jsonPrimitive?.contentOrNull
+                val vulnAfter = variables["vulnAfter"]?.jsonPrimitive?.contentOrNull
                 val content = when {
-                    "JobVulnerabilitiesForTeam" in body ->
+                    "JobVulnerabilitiesForTeam" in body.getValue("query").jsonPrimitive.content ->
                         """{"data":{"team":{"slug":"test-team","jobs":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}"""
-                    "\"vulnAfter\":\"v1\"" in body && "\"workloadAfter\":\"w1\"" in body ->
+                    workloadAfter == "w1" && vulnAfter == "v1" ->
                         appPage(workloadCursor = null, appId = "app-2", vulnCursor = null, cves = listOf("CVE-2024-0002"))
-                    "\"workloadAfter\":\"w1\"" in body ->
+                    workloadAfter == "w1" && vulnAfter == null ->
                         appPage(workloadCursor = null, appId = "app-2", vulnCursor = "v1", cves = listOf("CVE-2024-0001"))
-                    else ->
+                    workloadAfter == null && vulnAfter == null ->
                         appPage(workloadCursor = "w1", appId = "app-1", vulnCursor = null, cves = emptyList())
+                    else -> error("Unexpected request variables: $variables")
                 }
                 respond(ByteReadChannel(content), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
             }
