@@ -1,10 +1,8 @@
 package no.nav.tpt.infrastructure.datacollector
 
 import kotlin.time.Instant
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonNames
 import no.nav.tpt.infrastructure.datacollector.Severity.UNKNOWN
 
 enum class Severity {
@@ -12,9 +10,8 @@ enum class Severity {
 }
 
 @Serializable
-@OptIn(ExperimentalSerializationApi::class)
 data class CheckResultsForRepo(
-    @JsonNames("nameWithOwner") val repoName: String,
+    @SerialName("nameWithOwner") val repoName: String,
     val repoOwners: List<String>,
     val results: List<CheckResult>
 )
