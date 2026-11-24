@@ -13,9 +13,12 @@ import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.id
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.repo
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.result
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.severity
+import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.suppressed
 import no.nav.tpt.infrastructure.datacollector.DataCollectorChecks.updatedAt
 import no.nav.tpt.infrastructure.datacollector.DatacollectorCheckFailureReasons.checkId
 import no.nav.tpt.infrastructure.datacollector.DatacollectorRepoOwners.owner
+import no.nav.tpt.infrastructure.datacollector.PreservationMode.KEEP_SUPPRESSION
+import no.nav.tpt.infrastructure.datacollector.PreservationMode.OVERWRITE_SUPPRESSION
 import no.nav.tpt.infrastructure.github.normalizeGitHubRepositoryName
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ReferenceOption.CASCADE
@@ -35,6 +38,10 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 private val ulid = ULID()
 
+enum class PreservationMode {
+    KEEP_SUPPRESSION, OVERWRITE_SUPPRESSION
+}
+
 object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val checkName = text("check_name")
     val description = text("description").nullable()
@@ -42,6 +49,7 @@ object DataCollectorChecks : IdTable<String>("datacollector_checks") {
     val repo = text("repo")
     val result = text("result")
     val updatedAt = timestamp("updated_at").default(Instant.now().truncatedTo(ChronoUnit.MILLIS))
+    val suppressed = bool("suppressed").default(false)
 
     init {
         uniqueIndex(repo, checkName)
@@ -65,7 +73,7 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 }
 
 interface DatacollectorRepository {
-    suspend fun insert(checks: CheckResultsForRepo)
+    suspend fun insert(checks: CheckResultsForRepo, preservationMode: PreservationMode = KEEP_SUPPRESSION)
     suspend fun allForOwner(teamSlugs: List<String>): List<CheckResultsForRepo>
 }
 
@@ -73,7 +81,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         suspendTransaction(db = database) { block() }
 
-    override suspend fun insert(checks: CheckResultsForRepo) {
+    override suspend fun insert(checks: CheckResultsForRepo, preservationMode: PreservationMode) {
         val repositoryName = normalizeGitHubRepositoryName(checks.repoName)
         transaction(database) {
             checks.results.forEach { check ->
@@ -88,9 +96,7 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
                 }
             }
 
-            val insertedChecks = DataCollectorChecks.batchInsert(
-                data = checks.results
-            ) { checkResult ->
+            val insertedChecks = DataCollectorChecks.batchInsert(data = checks.results) { checkResult ->
                 val rowId = ulid.nextValue()
                 this[DataCollectorChecks.id] = rowId.toString()
                 this[checkName] = checkResult.name
@@ -99,6 +105,9 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
                 this[repo] = repositoryName
                 this[result] = checkResult.javaClass.simpleName
                 this[updatedAt] = checkResult.whenChecked.toJavaInstant().truncatedTo(ChronoUnit.MILLIS)
+                if (preservationMode == OVERWRITE_SUPPRESSION) {
+                    this[suppressed] = checkResult.suppressed
+                }
             }.associate { row ->
                 row[checkName] to row[DataCollectorChecks.id].value
             }
@@ -150,11 +159,12 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             .map {
                 val checkResult = if (it[result] == AllGood::class.java.simpleName) {
                         AllGood(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
-                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant())
+                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), suppressed = it[suppressed])
                     } else {
                         val reasons = reasonMapping[it[id].value] ?: emptyList()
                         NeedsWork(name = it[checkName], desc = it[description] ?: "n/a", severity = Severity.valueOf(it[severity] ?: "UNKNOWN"),
-                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons)
+                            whenChecked = it[updatedAt].truncatedTo(ChronoUnit.MILLIS).toKotlinInstant(), reasons = reasons,
+                            suppressed = it[suppressed])
                     }
                 CheckResultWithId(it[id].value, it[repo], checkResult)
             }

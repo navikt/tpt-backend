@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import kotlin.test.Test
 import kotlin.time.Instant
 import kotlinx.coroutines.test.runTest
+import no.nav.tpt.infrastructure.datacollector.PreservationMode.OVERWRITE_SUPPRESSION
 import no.nav.tpt.infrastructure.datacollector.Severity.HIGH
 import no.nav.tpt.infrastructure.datacollector.Severity.LOW
 import org.flywaydb.core.Flyway
@@ -61,7 +62,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with good results and read them back`() = runTest {
-        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", whenChecked = now)
+        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", whenChecked = now, suppressed = false)
         val crr = CheckResultsForRepo("navikt/firstRepo", listOf("firstTeam"),
             listOf(checkResult))
         repository.insert(crr)
@@ -72,7 +73,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `store checks with failures and read them back`() = runTest {
-        val checkResult = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"))
+        val checkResult = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"), suppressed = false)
         val crr = CheckResultsForRepo("navikt/secondRepo", listOf("secondTeam"), listOf(checkResult))
         repository.insert(crr)
         val expected = listOf(crr)
@@ -84,12 +85,12 @@ class DataCollectorRepositoryTest {
     @Test
     fun `all results for owner with multiple repos`() = runTest{
         val repoWithTeam4 = CheckResultsForRepo("navikt/thirdRepo", listOf("thirdTeam", "fourthTeam"), listOf(
-            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("yolo", "whats", "up")),
-            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now)
+            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("yolo", "whats", "up"), suppressed = false),
+            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now, suppressed = false)
         ))
         val repoWithoutTeam4 = CheckResultsForRepo("navikt/fourthRepo", listOf("thirdTeam"), listOf(
-            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall")),
-            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now)
+            CheckResult.NeedsWork(name = "AnotherFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"), suppressed = false),
+            CheckResult.AllGood(name = "AnotherGoodCheck", whenChecked = now, suppressed = false)
         ))
         repository.insert(repoWithTeam4)
         repository.insert(repoWithoutTeam4)
@@ -101,8 +102,8 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `existing checks with same name and repo should be replaced`() = runTest {
-        val checkResult1 = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"))
-        val checkResult2 = CheckResult.NeedsWork(name = "TheFailingCheck", desc = "a description", severity = LOW, whenChecked = now, reasons = listOf("jau", "dill", "replaced"))
+        val checkResult1 = CheckResult.NeedsWork(name = "TheFailingCheck", whenChecked = now, reasons = listOf("jau", "dill", "dall"), suppressed = false)
+        val checkResult2 = CheckResult.NeedsWork(name = "TheFailingCheck", desc = "a description", severity = LOW, whenChecked = now, reasons = listOf("jau", "dill", "replaced"), suppressed = false)
         val crr1 = CheckResultsForRepo("navikt/fifthRepo", listOf("anotherTeam"), listOf(checkResult1))
         val crr2 = CheckResultsForRepo("navikt/fifthRepo", listOf("anotherTeam"), listOf(checkResult2))
         repository.insert(crr1)
@@ -114,7 +115,7 @@ class DataCollectorRepositoryTest {
 
     @Test
     fun `added columns desc and severity are mapped correctly`() = runTest {
-        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", desc = "A thing", severity = HIGH, whenChecked = now)
+        val checkResult = CheckResult.AllGood(name = "TheGoodCheck", desc = "A thing", severity = HIGH, whenChecked = now, suppressed = false)
         val crr = CheckResultsForRepo("navikt/bogusRepo", listOf("bogusTeam"),
             listOf(checkResult))
         repository.insert(crr)
@@ -127,11 +128,11 @@ class DataCollectorRepositoryTest {
     fun `should replace checks across bare and owner-qualified repository names`() = runTest {
         val initial = CheckResultsForRepo(
             "transition-repo", listOf("transition-team"),
-            listOf(CheckResult.NeedsWork("check", whenChecked = now, reasons = listOf("missing")))
+            listOf(CheckResult.NeedsWork("check", whenChecked = now, reasons = listOf("missing"), suppressed = false))
         )
         val updated = initial.copy(
             repoName = "navikt/transition-repo",
-            results = listOf(CheckResult.AllGood("check", whenChecked = now))
+            results = listOf(CheckResult.AllGood("check", whenChecked = now, suppressed = false))
         )
 
         repository.insert(initial)
@@ -148,7 +149,7 @@ class DataCollectorRepositoryTest {
     fun `should keep repositories with different owners separate`() = runTest {
         val navikt = CheckResultsForRepo(
             "shared-name", listOf("distinct-owner-team"),
-            listOf(CheckResult.AllGood("check", whenChecked = now))
+            listOf(CheckResult.AllGood("check", whenChecked = now, suppressed = false))
         )
         val other = navikt.copy(repoName = "other/shared-name")
 
@@ -159,6 +160,29 @@ class DataCollectorRepositoryTest {
             setOf(navikt.copy(repoName = "navikt/shared-name"), other),
             repository.allForOwner(navikt.repoOwners).toSet()
         )
+    }
+
+    @Test
+    fun `suppression status is preserved when updating`() = runTest {
+        val crrOrig = CheckResultsForRepo(
+            "navikt/reponame", listOf("yolo-team"),
+            listOf(CheckResult.AllGood("check", whenChecked = now, suppressed = false))
+        )
+        val crrUpdated = CheckResultsForRepo(
+            "navikt/reponame", listOf("yolo-team"),
+            listOf(CheckResult.AllGood("check", whenChecked = now, suppressed = true))
+        )
+        repository.insert(crrOrig)
+        val origReadBack = repository.allForOwner(listOf("yolo-team"))
+        assertEquals(listOf(crrOrig), origReadBack)
+
+        repository.insert(crrUpdated)
+        val preservedReadBack = repository.allForOwner(listOf("yolo-team"))
+        assertEquals(listOf(crrOrig), preservedReadBack)
+
+        repository.insert(crrUpdated, OVERWRITE_SUPPRESSION)
+        val overwrittenReadBack = repository.allForOwner(listOf("yolo-team"))
+        assertEquals(listOf(crrUpdated), overwrittenReadBack)
     }
 
 }

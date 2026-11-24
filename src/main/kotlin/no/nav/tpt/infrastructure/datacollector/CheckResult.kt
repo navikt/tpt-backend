@@ -25,13 +25,15 @@ sealed class CheckResult {
     abstract val desc: String
     abstract val severity: Severity
     abstract val whenChecked: Instant
+    abstract val suppressed: Boolean
 
     @Serializable
     @SerialName("AllGood")
     data class AllGood(override val name: String,
                        override val desc: String = "missing desc",
                        override val severity: Severity = UNKNOWN,
-                       override val whenChecked: Instant) :
+                       override val whenChecked: Instant,
+                       override val suppressed: Boolean) :
         CheckResult()
     @Serializable
     @SerialName("NeedsWork")
@@ -40,6 +42,7 @@ sealed class CheckResult {
         override val desc: String = "missing desc",
         override val severity: Severity = UNKNOWN,
         override val whenChecked: Instant,
+        override val suppressed: Boolean,
         val reasons: List<String>
     ) : CheckResult()
 }

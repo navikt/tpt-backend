@@ -102,8 +102,8 @@ class DataCollectorCallbackIntegrationTest {
           "$repositoryNameField": "$repoName",
           "repoOwners": ["$owner"],
           "results": [
-            {"type": "AllGood", "name": "branch-protection", "desc": "Branch protection", "severity": "HIGH", "whenChecked": "2026-01-01T10:00:00.123Z"},
-            {"type": "NeedsWork", "name": "codeowners", "severity": "LOW", "whenChecked": "2026-01-01T10:00:00Z", "reasons": ["missing file", "no owners"]}
+            {"type": "AllGood", "name": "branch-protection", "desc": "Branch protection", "severity": "HIGH", "whenChecked": "2026-01-01T10:00:00.123Z", "suppressed": false},
+            {"type": "NeedsWork", "name": "codeowners", "severity": "LOW", "whenChecked": "2026-01-01T10:00:00Z", "reasons": ["missing file", "no owners"], "suppressed": false}
           ]
         }
     """.trimIndent()
