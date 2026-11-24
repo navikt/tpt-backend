@@ -12,7 +12,7 @@ class SeverityCalculatorTest {
 
     private fun context(severity: String) = VulnerabilityRiskContext(
         severity = severity, ingressTypes = emptyList(),
-        hasKevEntry = false, epssScore = null, suppressed = false,
+        hasKevEntry = false, epssScore = null,
         environment = null, buildDate = null,
     )
 

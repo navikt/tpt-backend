@@ -46,9 +46,6 @@ data class RiskScoringConfig(
     val actionabilityRansomwarePoints: Int = 5,
     val actionabilityNoPatchPenalty: Int = -3,       // applied when no patch and no ransomware association
 
-    // Suppression: multiplier applied to total score after all categories
-    val suppressedMultiplier: Double = 0.2,
-
     // VEX: multiplier applied when version matching confirms the package is not in the affected range
     val vexNotAffectedMultiplier: Double = 0.5,
 )

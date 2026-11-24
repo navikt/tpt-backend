@@ -16,7 +16,7 @@ class ActionabilityCalculatorTest {
         hasCvssScore: Boolean = true,
     ) = VulnerabilityRiskContext(
         severity = "HIGH", ingressTypes = emptyList(),
-        hasKevEntry = false, epssScore = null, suppressed = false,
+        hasKevEntry = false, epssScore = null,
         environment = null, buildDate = null,
         hasPatchReference = hasPatchReference,
         hasRansomwareCampaignUse = hasRansomwareCampaignUse,

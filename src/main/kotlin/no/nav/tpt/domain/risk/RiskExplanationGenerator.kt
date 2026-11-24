@@ -5,7 +5,6 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
     fun generateBreakdown(
         factors: List<RiskFactor>,
         totalScore: Double,
-        suppressed: Boolean = false,
         vexNotAffected: Boolean = false,
     ): RiskScoreBreakdown {
         val explanations = factors
@@ -23,7 +22,6 @@ class RiskExplanationGenerator(private val config: RiskScoringConfig) {
         return RiskScoreBreakdown(
             totalScore = totalScore,
             factors = explanations,
-            suppressed = suppressed,
             vexNotAffected = vexNotAffected,
         )
     }

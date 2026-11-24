@@ -12,7 +12,7 @@ class ExposureCalculatorTest {
 
     private fun context(ingressTypes: List<String>) = VulnerabilityRiskContext(
         severity = "HIGH", ingressTypes = ingressTypes,
-        hasKevEntry = false, epssScore = null, suppressed = false,
+        hasKevEntry = false, epssScore = null,
         environment = null, buildDate = null,
     )
 
