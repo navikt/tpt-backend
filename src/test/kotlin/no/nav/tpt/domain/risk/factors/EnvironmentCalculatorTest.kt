@@ -19,7 +19,7 @@ class EnvironmentCalculatorTest {
         ingressTypes: List<String> = emptyList(),
     ) = VulnerabilityRiskContext(
         severity = "HIGH", ingressTypes = ingressTypes,
-        hasKevEntry = false, epssScore = null, suppressed = false,
+        hasKevEntry = false, epssScore = null,
         environment = environment, buildDate = buildDate, cveDaysOld = cveDaysOld,
     )
 

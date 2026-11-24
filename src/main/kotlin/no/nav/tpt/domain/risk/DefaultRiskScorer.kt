@@ -20,12 +20,9 @@ class DefaultRiskScorer(
         val factors = factorCalculators.map { it.calculate(context) }
         val rawScore = factors.sumOf { it.points }.toDouble()
         val finalScore = rawScore
-            .let { if (context.suppressed) it * config.suppressedMultiplier else it }
             .let { if (context.vexNotAffected) it * config.vexNotAffectedMultiplier else it }
 
-        val breakdown = explanationGenerator.generateBreakdown(
-            factors, finalScore, context.suppressed, context.vexNotAffected
-        )
+        val breakdown = explanationGenerator.generateBreakdown(factors, finalScore, context.vexNotAffected)
 
         return RiskScoreResult(score = finalScore, breakdown = breakdown)
     }

@@ -11,7 +11,7 @@ metadata from a wide range of sources. It calculates a risk score (0–100 addit
 vulnerability and returns a prioritized list to the user.
 
 **Risk scoring**: 5 weighted categories — Severity (0–25), Exploitation Evidence (0–30), Exposure (0–25),
-Environment (0–15), Actionability (0–10). Suppressed vulnerabilities score ×0.2.
+Environment (0–15), Actionability (0–10). Suppressed vulnerabilities are excluded from the list.
 Priority buckets: CRITICAL ≥75, HIGH ≥50, MEDIUM ≥25, LOW <25.
 
 The project runs both locally for development/testing and in a serverless environment (GCP) for production.

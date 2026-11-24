@@ -269,6 +269,19 @@ class SecurityStatusEvaluatorTest {
     }
 
     @Test
+    fun `should restart deadline when suppression is lifted`() {
+        val gap = ResolutionGap(daysAgo(90), daysAgo(2), suppressed = true)
+        val lifted = vuln(discoveredDaysAgo = 100).copy(gaps = listOf(gap))
+        val reappeared = vuln(discoveredDaysAgo = 100).copy(gaps = listOf(gap.copy(suppressed = false)))
+
+        val liftedStatus = evaluator.evaluate("team", listOf(lifted), listOf(workload()), now)!!
+        val reappearedStatus = evaluator.evaluate("team", listOf(reappeared), listOf(workload()), now)!!
+
+        assertTrue(liftedStatus.exposed.appsPastDeadline.isEmpty())
+        assertEquals(1, reappearedStatus.exposed.appsPastDeadline.size)
+    }
+
+    @Test
     fun `should not count workload as present during absence`() {
         val absent = workload(firstSeenDaysAgo = 100).copy(absences = listOf(WorkloadAbsence(daysAgo(30), daysAgo(1))))
         val status = evaluator.evaluate("team", emptyList(), listOf(absent), now)!!

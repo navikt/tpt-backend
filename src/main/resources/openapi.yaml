@@ -1317,7 +1317,7 @@ components:
         riskScore:
           type: number
           format: double
-          description: Uncapped additive risk score from five weighted categories — severity, exploitation evidence, exposure, environment context, and actionability. Suppressed vulnerabilities receive 20% of their calculated score. Higher scores indicate higher priority.
+          description: Uncapped additive risk score from five weighted categories — severity, exploitation evidence, exposure, environment context, and actionability. Suppressed vulnerabilities are not included. Higher scores indicate higher priority.
           example: 68.0
         riskScoreBreakdown:
           type: object
@@ -1384,13 +1384,8 @@ components:
         totalScore:
           type: number
           format: double
-          description: Final calculated additive risk score, reduced to 20% if suppressed
+          description: Final calculated additive risk score
           example: 68.0
-        suppressed:
-          type: boolean
-          default: false
-          description: Whether the score was reduced by the suppression multiplier (0.2x). When true, totalScore = sum(factor.points) * 0.2
-          example: false
         vexNotAffected:
           type: boolean
           default: false
@@ -1663,10 +1658,10 @@ components:
           example: Europe/Oslo
         criticalDays:
           type: integer
-          description: Calendar days from discovery to the critical vulnerability deadline
+          description: Calendar days from discovery (or from when a suppression was lifted) to the critical vulnerability deadline. Suppressed vulnerabilities count as resolved
         nonCriticalDays:
           type: integer
-          description: Calendar days from discovery to the non-critical vulnerability deadline
+          description: Calendar days from discovery (or from when a suppression was lifted) to the non-critical vulnerability deadline
         deployMaxAgeDays:
           type: integer
         exposedRedDays:

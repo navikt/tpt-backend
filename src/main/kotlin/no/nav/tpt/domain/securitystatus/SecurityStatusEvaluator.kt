@@ -143,9 +143,8 @@ class SecurityStatusEvaluator(
         val redDiff = mutableMapOf<String, IntArray>()
 
         for (vuln in vulnerabilities) {
-            val deadline = slaPolicy.evaluate(vuln.severity, vuln.discoveredAt, vuln.discoveredAt).deadline
-
             for ((periodStart, periodEnd) in activePeriods(vuln)) {
+                val deadline = slaPolicy.evaluate(vuln.severity, vuln.slaStartAt(periodStart), periodStart).deadline
                 val overdueFrom = maxOf(periodStart, deadline)
                 val start = firstIndex(0, n) { evalAt[it].isAfter(overdueFrom) }
                 val end = when {
@@ -202,7 +201,7 @@ class SecurityStatusEvaluator(
         vulnerabilities
             .filter { it.resolvedAt == null }
             .mapNotNull { vuln ->
-                val result = slaPolicy.evaluate(vuln.severity, vuln.discoveredAt, now)
+                val result = slaPolicy.evaluate(vuln.severity, vuln.slaStartAt, now)
                 if (!result.isOverdue) null else vuln to result.calendarDaysOverdue.toInt()
             }
             .groupBy({ it.first.appNaisId }, { it })
@@ -226,8 +225,9 @@ class SecurityStatusEvaluator(
         val windowStart = at.minus(Duration.ofDays(config.trendWindowDays))
         if (windowStart.isBefore(baseline)) return TrendDirection.STABLE
 
-        val new = vulnerabilities.count {
-            it.discoveredAt.isAfter(baseline) && it.discoveredAt.isAfter(windowStart) && !it.discoveredAt.isAfter(at)
+        val new = vulnerabilities.sumOf { vuln ->
+            (listOf(vuln.discoveredAt) + vuln.gaps.filter { it.suppressed }.map { it.reappearedAt })
+                .count { it.isAfter(baseline) && it.isAfter(windowStart) && !it.isAfter(at) }
         }
         val fixed = vulnerabilities.sumOf { vuln ->
             (vuln.gaps.map { it.resolvedAt } + listOfNotNull(vuln.resolvedAt))

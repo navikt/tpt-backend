@@ -38,7 +38,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("EXTERNAL"),
                 hasKevEntry = true,
                 epssScore = "0.80",
-                suppressed = false,
                 environment = "prod-gcp",
                 buildDate = LocalDate.now().minusDays(100),
                 hasExploitReference = true,
@@ -63,7 +62,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("INTERNAL"),
                 hasKevEntry = false,
                 epssScore = null,
-                suppressed = false,
                 environment = "dev-gcp",
                 buildDate = null,
             )
@@ -86,7 +84,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("EXTERNAL"),
                 hasKevEntry = true,
                 epssScore = null,
-                suppressed = false,
                 environment = "prod-gcp",
                 buildDate = null,
             )
@@ -111,7 +108,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("EXTERNAL"),
                 hasKevEntry = false,
                 epssScore = "0.75",
-                suppressed = false,
                 environment = "prod-gcp",
                 buildDate = null,
             )
@@ -134,7 +130,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = emptyList(),
                 hasKevEntry = false,
                 epssScore = null,
-                suppressed = false,
                 environment = "dev-gcp",
                 buildDate = null,
             )
@@ -157,7 +152,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("INTERNAL"),
                 hasKevEntry = false,
                 epssScore = null,
-                suppressed = false,
                 environment = "staging-gcp",
                 buildDate = null,
                 hasExploitReference = true,
@@ -168,30 +162,6 @@ class RiskScoringRegressionTest {
             "Scenario 6: high+exploit+internal+staging should be in MEDIUM bucket (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}–${AppConfig.DEFAULT_RISK_THRESHOLD_HIGH}), got ${result.score}")
     }
 
-    // -----------------------------------------------------------------------
-    // Scenario 7: Critical + Suppressed + External + Prod + KEV
-    // Expected current score: ~88 (below LOW, suppression dominates)
-    // New model expected: LOW (<25 pts after 0.2x reduction)
-    // -----------------------------------------------------------------------
-    @Test
-    fun `regression - scenario 7 suppressed critical external prod KEV should score below LOW threshold`() {
-        val result = scorer.calculateRiskScore(
-            VulnerabilityRiskContext(
-                severity = "CRITICAL",
-                ingressTypes = listOf("EXTERNAL"),
-                hasKevEntry = true,
-                epssScore = null,
-                suppressed = true,
-                environment = "prod-gcp",
-                buildDate = null,
-            )
-        )
-        // Current: 100 * 2.0 * 2.0 * 0.2 * 1.1 = 88 — below LOW, suppression dominates
-        // New model: (25+30+20+10) * 0.2 = 17 → LOW
-        assertTrue(result.score.isBelowLow(),
-            "Scenario 7: suppressed critical+KEV+external+prod should be below LOW (${AppConfig.DEFAULT_RISK_THRESHOLD_MEDIUM}), got ${result.score}")
-        assertTrue(result.score > 0.0, "Suppressed score should still be positive")
-    }
 
     // -----------------------------------------------------------------------
     // Scenario 8: Medium + EPSS 0.3-0.5 + Authenticated + Prod
@@ -206,7 +176,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("AUTHENTICATED"),
                 hasKevEntry = false,
                 epssScore = "0.40",
-                suppressed = false,
                 environment = "prod-gcp",
                 buildDate = null,
             )
@@ -229,7 +198,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = emptyList(),
                 hasKevEntry = true,
                 epssScore = null,
-                suppressed = false,
                 environment = "prod-gcp",
                 buildDate = null,
             )
@@ -252,7 +220,6 @@ class RiskScoringRegressionTest {
                 ingressTypes = listOf("EXTERNAL"),
                 hasKevEntry = false,
                 epssScore = null,
-                suppressed = false,
                 environment = "dev-gcp",
                 buildDate = null,
             )
@@ -270,7 +237,7 @@ class RiskScoringRegressionTest {
     fun `regression - invariant KEV always increases risk compared to no KEV`() {
         val base = VulnerabilityRiskContext(
             severity = "HIGH", ingressTypes = listOf("INTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = null, buildDate = null,
         )
         val withKev = base.copy(hasKevEntry = true)
@@ -282,7 +249,7 @@ class RiskScoringRegressionTest {
     fun `regression - invariant external exposure always scores higher than internal`() {
         val base = VulnerabilityRiskContext(
             severity = "HIGH", ingressTypes = listOf("INTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = null, buildDate = null,
         )
         val external = base.copy(ingressTypes = listOf("EXTERNAL"))
@@ -290,23 +257,12 @@ class RiskScoringRegressionTest {
         assertTrue(scorer.calculateRiskScore(external).score > scorer.calculateRiskScore(base).score)
     }
 
-    @Test
-    fun `regression - invariant suppression always reduces score`() {
-        val base = VulnerabilityRiskContext(
-            severity = "CRITICAL", ingressTypes = listOf("EXTERNAL"),
-            hasKevEntry = true, epssScore = "0.9", suppressed = false,
-            environment = "prod-gcp", buildDate = null,
-        )
-        val suppressed = base.copy(suppressed = true)
-
-        assertTrue(scorer.calculateRiskScore(suppressed).score < scorer.calculateRiskScore(base).score)
-    }
 
     @Test
     fun `regression - invariant production always scores higher than dev`() {
         val base = VulnerabilityRiskContext(
             severity = "HIGH", ingressTypes = listOf("EXTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = "dev-gcp", buildDate = null,
         )
         val prod = base.copy(environment = "prod-gcp")
@@ -318,7 +274,7 @@ class RiskScoringRegressionTest {
     fun `regression - invariant high EPSS always scores higher than no EPSS`() {
         val base = VulnerabilityRiskContext(
             severity = "MEDIUM", ingressTypes = listOf("EXTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = null, buildDate = null,
         )
         val highEpss = base.copy(epssScore = "0.80")
@@ -330,7 +286,7 @@ class RiskScoringRegressionTest {
     fun `regression - invariant critical severity always scores higher than medium with same factors`() {
         val base = VulnerabilityRiskContext(
             severity = "MEDIUM", ingressTypes = listOf("EXTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = "prod-gcp", buildDate = null,
         )
         val critical = base.copy(severity = "CRITICAL")
@@ -342,7 +298,7 @@ class RiskScoringRegressionTest {
     fun `regression - invariant no ingress scores lower than internal ingress`() {
         val internal = VulnerabilityRiskContext(
             severity = "CRITICAL", ingressTypes = listOf("INTERNAL"),
-            hasKevEntry = false, epssScore = null, suppressed = false,
+            hasKevEntry = false, epssScore = null,
             environment = null, buildDate = null,
         )
         val noIngress = internal.copy(ingressTypes = emptyList())

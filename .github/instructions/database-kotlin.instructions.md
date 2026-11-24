@@ -53,6 +53,7 @@ suspend fun upsertCves(cves: List<GcveCveData>) {
 - A Team sync only writes data from a complete fetch: any failed Nais page (including per-workload vulnerability pages and pages with GraphQL errors) throws `NaisApiException` before anything is upserted, resolved or purged. The writes commit in separate transactions, so a failure during the write phase can leave some of them applied. `team_sync_metadata.last_sync_complete` records whether the last sync succeeded and is false while a sync is in progress; steps that rely on complete data (e.g. notifications) must check it.
 - The same sync records workloads and their latest deployment (`workloads`, `workload_deployments`). `GET /security-status` is computed on the fly from these tables with `SecurityStatusEvaluator`; there is no snapshot table or extra job.
 - Reappearing vulnerabilities record a gap in `vulnerability_resolution_gaps`, and reappearing workloads record an absence in `workload_absences`, so the evaluator does not count the missing period as overdue or present.
+- Suppression (from Nais) is tracked in `workload_vulnerabilities.suppressed_at`. Suppressed rows are excluded from all "current" queries, and the lifecycle query treats `suppressed_at` as resolution. Lifting a suppression records a gap with `suppressed = true`, and the SLA deadline restarts from that gap's `reappeared_at`.
 
 ## Performance
 
