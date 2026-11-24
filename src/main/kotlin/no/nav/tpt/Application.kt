@@ -63,7 +63,6 @@ fun Application.module() {
 
     install(ServerContentNegotiation) {
         json(Json {
-            prettyPrint = true
             isLenient = true
         })
     }
