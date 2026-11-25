@@ -33,7 +33,7 @@ sealed class CheckResult {
                        override val desc: String = "missing desc",
                        override val severity: Severity = UNKNOWN,
                        override val whenChecked: Instant,
-                       override val suppressed: Boolean) :
+                       override val suppressed: Boolean = false) :
         CheckResult()
     @Serializable
     @SerialName("NeedsWork")
@@ -42,7 +42,7 @@ sealed class CheckResult {
         override val desc: String = "missing desc",
         override val severity: Severity = UNKNOWN,
         override val whenChecked: Instant,
-        override val suppressed: Boolean,
+        override val suppressed: Boolean = false,
         val reasons: List<String>
     ) : CheckResult()
 }
