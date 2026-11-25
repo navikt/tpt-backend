@@ -35,6 +35,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 
 private val ulid = ULID()
 
@@ -75,6 +76,7 @@ object DatacollectorRepoOwners : Table("datacollector_repo_owners") {
 interface DatacollectorRepository {
     suspend fun insert(checks: CheckResultsForRepo, preservationMode: PreservationMode = KEEP_SUPPRESSION)
     suspend fun allForOwner(teamSlugs: List<String>): List<CheckResultsForRepo>
+    suspend fun setSuppression(repo: String, checkName: String, suppressed: Boolean)
 }
 
 class DataCollectorRepositoryImpl(private val database: Database) : DatacollectorRepository {
@@ -170,6 +172,14 @@ class DataCollectorRepositoryImpl(private val database: Database) : Datacollecto
             }
             .groupBy { it.repo }
             .map { (k, v) -> CheckResultsForRepo(k, ownerMapping[v[0].id] ?: emptyList(), v.toRegularCheckResults()) }
+    }
+
+    override suspend fun setSuppression(repo: String, checkName: String, suppressed: Boolean) {
+        transaction(database) {
+            DataCollectorChecks.update({ DataCollectorChecks.repo eq repo and (DataCollectorChecks.checkName eq checkName) }) {
+                it[this.suppressed] = suppressed
+            }
+        }
     }
 
 }

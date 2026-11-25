@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory
 interface DataCollector {
     suspend fun startCollectingDataFor(teamSlugs: List<String>)
     suspend fun allChecksFor(teamSlugs: List<String>): List<CheckResultsForRepo>
+    suspend fun suppress(repo: String, checkName: String)
+    suspend fun unsuppress(repo: String, checkName: String)
 }
 
 interface GitHubDataCollector {
@@ -53,6 +55,14 @@ class RealDataCollector(
 
     override suspend fun allChecksFor(teamSlugs: List<String>) =
         storage.allForOwner(teamSlugs)
+
+    override suspend fun suppress(repo: String, checkName: String) {
+        storage.setSuppression(repo, checkName, true)
+    }
+
+    override suspend fun unsuppress(repo: String, checkName: String) {
+        storage.setSuppression(repo, checkName, false)
+    }
 
     private suspend fun retrieveAccessToken(): String {
         val cluster = System.getenv("NAIS_CLUSTER_NAME") ?: "dev-gcp"

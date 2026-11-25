@@ -172,6 +172,20 @@ fun Application.configureStatusPages() {
             )
         }
 
+        exception<ContentTransformationException> { call, cause ->
+            logger.warn("Deserialization error for request ${call.request.httpMethod.value} ${call.request.uri}", cause)
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                ProblemDetail(
+                    type = "about:blank",
+                    title = "Bad Request",
+                    status = HttpStatusCode.BadRequest.value,
+                    detail = "Invalid request format: ${cause.message}",
+                    instance = call.request.uri
+                )
+            )
+        }
+
         exception<Exception> { call, cause ->
             if (cause is ClosedWriteChannelException) return@exception
             logger.error("Unhandled exception for request ${call.request.httpMethod.value} ${call.request.uri}", cause)

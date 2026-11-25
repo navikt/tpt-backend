@@ -15,20 +15,20 @@ import org.junit.jupiter.api.assertDoesNotThrow
 
 class DataCollectorTest {
 
+    val mockEngine = MockEngine { req ->
+        respond(
+            content = if (req.url.encodedPath.contains("token")) {
+                tokenResponse
+            } else {
+                ""
+            },
+            status = HttpStatusCode.OK,
+            headers = headersOf(HttpHeaders.ContentType, "application/json")
+        )
+    }
+
     @Test
     fun `Loads data from tpt-data-collector using bearer auth`() = runTest {
-        val mockEngine = MockEngine { req ->
-            respond(
-                content = if (req.url.encodedPath.contains("token")) {
-                    tokenResponse
-                } else {
-                    ""
-                },
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
-
         val httpClient = HttpClient(mockEngine) {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })

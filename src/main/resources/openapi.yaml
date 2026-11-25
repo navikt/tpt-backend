@@ -123,6 +123,74 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /checks/{owner}/{repo}/{name}:
+    patch:
+      summary: Suppress or unsuppress a check
+      description: Sets the suppression status of one check for a repository. The repository must belong to one of the authenticated user's teams.
+      tags:
+        - Data collector
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: Repository owner
+          schema:
+            type: string
+          example: navikt
+        - name: repo
+          in: path
+          required: true
+          description: Repository name without the owner
+          schema:
+            type: string
+          example: tpt-backend
+        - name: name
+          in: path
+          required: true
+          description: Name of the check
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - suppress
+              properties:
+                suppress:
+                  type: boolean
+                  description: true suppresses the check, false removes the suppression
+      responses:
+        '204':
+          description: Suppression status updated
+        '400':
+          description: Bad request - invalid request body or preferred_username claim not found in token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '401':
+          description: Unauthorized - missing or invalid token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '403':
+          description: Forbidden - user has no teams, or the check does not belong to the user's teams
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /config:
     get:
       summary: Get application configuration

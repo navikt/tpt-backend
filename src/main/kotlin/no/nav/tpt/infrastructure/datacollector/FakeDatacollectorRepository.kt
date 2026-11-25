@@ -21,4 +21,6 @@ class FakeDatacollectorRepository: DatacollectorRepository {
             CheckResult.AllGood("BraSjekk", "The description", MEDIUM,Clock.System.now(), false)
         )),
     )
+
+    override suspend fun setSuppression(repo: String, checkName: String, suppressed: Boolean) { }
 }

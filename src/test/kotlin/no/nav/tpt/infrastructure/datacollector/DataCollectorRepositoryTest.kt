@@ -12,6 +12,7 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -183,6 +184,18 @@ class DataCollectorRepositoryTest {
         repository.insert(crrUpdated, OVERWRITE_SUPPRESSION)
         val overwrittenReadBack = repository.allForOwner(listOf("yolo-team"))
         assertEquals(listOf(crrUpdated), overwrittenReadBack)
+    }
+
+    @Test
+    fun `explicitly update suppression status`() = runTest{
+        val crr = CheckResultsForRepo(
+            "navikt/reponame", listOf("some-team"),
+            listOf(CheckResult.AllGood("check", whenChecked = now, suppressed = false))
+        )
+        repository.insert(crr)
+        repository.setSuppression(crr.repoName, crr.results.first().name, true)
+        val readBack = repository.allForOwner(listOf("some-team"))
+        assertTrue(readBack.first().results.first().suppressed)
     }
 
 }
