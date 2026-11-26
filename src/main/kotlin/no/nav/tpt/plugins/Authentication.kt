@@ -76,6 +76,9 @@ fun Application.configureAuthentication(tokenIntrospectionService: TokenIntrospe
                         return@authenticate null
                     }
 
+                    val idtyp = introspectionResult.claims["idtyp"]?.jsonPrimitive?.content
+                    if (idtyp == "app") return@authenticate null
+
                     val preferredUsername = introspectionResult.claims["preferred_username"]?.jsonPrimitive?.content
                     logger.debug("preferred_username from token: $preferredUsername")
 

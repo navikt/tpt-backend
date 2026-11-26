@@ -1,6 +1,7 @@
 package no.nav.tpt.routes
 
 import io.ktor.http.*
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -8,6 +9,7 @@ import kotlinx.coroutines.launch
 import no.nav.tpt.plugins.ForbiddenException
 import no.nav.tpt.plugins.InternalServerException
 import no.nav.tpt.plugins.TokenPrincipal
+import no.nav.tpt.plugins.UnauthorizedException
 import no.nav.tpt.plugins.dependencies
 import org.slf4j.LoggerFactory
 
@@ -16,51 +18,24 @@ fun Route.adminRoutes() {
 
     authenticate("auth-bearer") {
         route("/admin") {
+            install(RequireAdmin)
             get("/status") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-                
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-                
                 call.respond(HttpStatusCode.OK, mapOf("status" to "OK"))
             }
             
             get("/teams/overview") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-                
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-                
                 val adminService = call.dependencies.adminService
                 val overview = adminService.getTeamsOverview()
                 call.respond(HttpStatusCode.OK, overview)
             }
             
             get("/teams/sla") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-                
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-                
                 val adminService = call.dependencies.adminService
                 val slaReport = adminService.getTeamsSlaReport()
                 call.respond(HttpStatusCode.OK, slaReport)
             }
 
             get("/vulnerabilities/team/{teamSlug}") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
                 val teamSlug = call.parameters["teamSlug"]
                     ?: throw no.nav.tpt.plugins.BadRequestException("teamSlug path parameter is required")
 
@@ -74,13 +49,6 @@ fun Route.adminRoutes() {
             }
 
             post("/reports/refresh") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
                 val syncJob = call.dependencies.vulnerabilityDataSyncJob
                 val application = call.application
 
@@ -99,13 +67,6 @@ fun Route.adminRoutes() {
             }
 
             post("/sync/trigger") {
-                val principal = call.principal<TokenPrincipal>()!!
-                val adminAuthService = call.dependencies.adminAuthorizationService
-
-                if (!adminAuthService.isAdmin(principal.groups)) {
-                    throw ForbiddenException("User does not have admin privileges")
-                }
-
                 val syncJob = call.dependencies.vulnerabilityDataSyncJob
                 val application = call.application
 
@@ -122,6 +83,16 @@ fun Route.adminRoutes() {
                     mapOf("message" to "Full vulnerability sync started on leader pod. Check application logs for progress.")
                 )
             }
+        }
+    }
+}
+
+val RequireAdmin = createRouteScopedPlugin("RequireAdmin") {
+    on(AuthenticationChecked) { call ->
+        val principal = call.principal<TokenPrincipal>()
+            ?: throw UnauthorizedException("Mangler token")
+        if (!call.dependencies.adminAuthorizationService.isAdmin(principal.groups)) {
+            throw ForbiddenException("User does not have admin privileges")
         }
     }
 }
